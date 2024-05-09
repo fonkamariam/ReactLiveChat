@@ -57,6 +57,7 @@ function LoginPage() {
         clearErrorMessageAfterDelay();
         
       } else { 
+        console.log("here");
         setIsLoading(false);
         setErrorMessage('Connection Problem. Please try again.'); 
         clearErrorMessageAfterDelay(); // Set error message for the user
@@ -66,11 +67,13 @@ function LoginPage() {
       console.log("there is data");  
       sessionStorage.setItem('userId', data.id);
       console.log(data.id);
-      sessionStorage.setItem('Token', data.token);
-      sessionStorage.setItem('RefreshToken',data.refreshToken); // it is an Object
+      sessionStorage.setItem('Token', data.token); 
+      sessionStorage.setItem('RefreshToken',data.refreshToken);
+      sessionStorage.setItem('RefreshTokenExpiry',data.refreshTokenExpiry)
+         // it is an Object
       setIsLoading(false); 
       // Handle successful response and set user data state
-      navigate(`/editProfile`);
+      navigate(`/chats`);
       }
       
     }).catch(error => {

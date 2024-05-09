@@ -57,7 +57,7 @@ function InsertProfile() {
         setgoodMessage('Successfully Updated');  
         clearErrorMessageAfterDelay();  
         setTimeout(() => {
-          navigate(`/editProfile`); // Redirect the user after displaying the error message
+          navigate(`/chats`); // Redirect the user after displaying the error message
         }, 2000); // Redirect after 3 seconds (adjust the delay as needed)
       }else if (response.status === 15) { 
         // Handle bad request
@@ -77,7 +77,9 @@ function InsertProfile() {
         setIsLoading(false);
         setErrorMessage('Invalid token');
         clearErrorMessageAfterDelay(); // Set error message for the user
-        
+        setTimeout(() => {
+          navigate(`/`); // Redirect the user after displaying the error message
+        }, 2000); // Redirect after 3 seconds (adjust the delay as needed)
       }else if( response.status === 30){
         setIsLoading(false);
         setErrorMessage('DataBase connection problem');
