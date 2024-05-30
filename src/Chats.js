@@ -31,6 +31,39 @@ function Chats() {
   const [goodMessage, setgoodMessage] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [varOnce, setVarOnce] = useState(false);
+  const fetchConvDataOnline = async () => {
+    const keys = Object.keys(sessionStorage); 
+    
+    keys.forEach(key => {
+      // Check if the key is an integer 
+      if (/^\d+$/.test(key)) {
+        sessionStorage.removeItem(key);
+        console.log(key);  
+      }  
+    });
+  
+      try {
+        const response = await fetch('http://localhost:5206/api/Message/GetAllConversationDirect', {
+          method: 'GET',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${sessionStorage.getItem('Token')}`
+          } 
+        }); 
+        if (response.ok) {
+          const data = await response.json();  
+          setConversations(data);  // Update Converstaion data state 
+          console.log("Got All Conversation");
+          
+          
+        } else {
+          throw new Error('Failed to fetch user data');
+        }
+      } catch (error) {
+        console.error('Error fetching user data:', error);
+        // Handle error
+      }
+    };
   /** UseEffects Start MessageWs */
   useEffect(() => {
     if (messageWs && messageWs.length > 1) { // Ensure messageWs is not null and has at least 2 messages
@@ -431,7 +464,7 @@ useEffect(() => {
                 
           });
               
-        connection.on('Receive UserProfile', userPayLoad => { 
+            connection.on('Receive UserProfile', userPayLoad => { 
                 
                 setConversations(prevConversations => {
                   const updatedConversations = prevConversations.map(conversation => {
@@ -451,7 +484,7 @@ useEffect(() => {
                  
               });
 
-        connection.on('Receive Conversation', convPayLoad => { 
+            connection.on('Receive Conversation', convPayLoad => { 
            console.log("PAYLOAD CONV")
             
                console.log("SETTED CONVERSATION")
@@ -483,9 +516,63 @@ useEffect(() => {
                  
               });
               
+           connection.on('UserStatusChanged', (userId, isOnline) => {
+           console.log("About to execute SetConversation");
+              
+            setConversations(prevConversations => {
+              const updatedConversations = prevConversations.map(conversation => {
+                
+                if (Number(conversation.userId) === Number(userId)) {
+                  console.log("Yess");
+                  let time = new Date();
+                  
+                  return { ...conversation,status: String(isOnline) ,lastSeen: time };
+                } 
+                return conversation; 
+              });
+          
+              // Sort the updated conversations by updatedTime
+              return updatedConversations;
+              
+            });
+            
+            console.log(`UserId(${userId}): ${isOnline}`);
+           });
           }).catch(e => console.log('Connection failed: ', e));
   }
-}, [selectedConversation,connection]);   
+}, [connection]);   
+
+// JavaScript visibility change
+const handleVisibilityChange = async () => {
+  if (document.hidden) {
+    // If the document is hidden, stop the SignalR connection
+    if (connection) {
+      connection.stop().then(() => console.log('Disconnected due to tab change or minimization'));
+      virtualLogOut();
+     
+      
+    }
+  } else {
+    // If the document is visible again, start the SignalR connection
+    if (connection) {
+      await fetchConvDataOnline();
+      connection.start().then(() => console.log('Reconnected after tab change or restoration'));
+      virtualLogin();
+      
+    }
+  }
+};
+
+useEffect(() => { 
+  
+  document.addEventListener('visibilitychange', handleVisibilityChange);
+  return () => {
+    document.removeEventListener('visibilitychange', handleVisibilityChange);
+  };
+}, [connection]);
+
+
+// JavaScript visiblity Change
   /** UseEffects End ws Connection*/
   const selectedConversationRef = useRef(selectedConversation);
   const messagesRef = useRef(messages);
@@ -665,13 +752,94 @@ useEffect(() => {
   }
 }, [searchQueryUser]);
 const handleLogOut = (e) =>{
+  
+  const logoutToken = sessionStorage.getItem('Token');
+  navigate(`/`);
+
+  try {
+    const response = fetch(`http://localhost:5206/api/Users/logout`, {
+      method: 'PUT',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${logoutToken}`
+      }
+    });
+    if (response.ok) {
+      console.log("Logged Out");
+     
+    } else {
+      console.log("Failed to Logout");
+      throw new Error('Failed to Logout Backend');
+    }
+  } catch (error) {
+    console.error('Error Loggin Out Frontend');
+    
+  }
     sessionStorage.clear();
     console.log("Session Storage cleared");
-    navigate(`/`);
- } 
+    if (connection) {
+      connection.stop().then(() => console.log('Disconnected due to tab change or minimization'));
+    }
+    
+
+};
+const virtualLogOut = (e) =>{
+  
+  const logoutToken = sessionStorage.getItem('Token');
+  
+
+  try {
+    const response = fetch(`http://localhost:5206/api/Users/logout`, {
+      method: 'PUT',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${logoutToken}`
+      }
+    });
+    if (response.ok) {
+      console.log("Logged Out Virtually, Just For setting Presence");
+     
+    } else {
+      console.log("Failed to Logout");
+      throw new Error('Failed to Logout Backend');
+    }
+  } catch (error) {
+    console.error('Error Loggin Out Frontend');
+    
+  }
+    
+    
+
+};
+const virtualLogin = (e) =>{
+  
+  try {
+    const response = fetch(`http://localhost:5206/api/Users/virtualLogin`, {
+      method: 'PUT',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${sessionStorage.getItem('Token')}`
+      }
+    });
+    if (response.ok) {
+      console.log("Logged In Out Virtually, Just for setting Presence");
+     
+    } else {
+      console.log("Failed to Logout");
+      throw new Error('Failed to Logout Backend');
+    }
+  } catch (error) {
+    console.error('Error Loggin Out Frontend');
+    
+  }
+    
+    
+
+};
+
 const handleMessage = (e) =>{
   setSendMessage(e.target.value);
-}
+};
 const insertMessage = (newMessage) => {
   setMessages(prevMessages => {
     const updatedMessages = [...prevMessages, newMessage]; // Add the new message to the existing array
@@ -765,7 +933,7 @@ const handleSendMessage = async (e) => {
   } catch (error) {
     console.error('Error fetching messages:', error);
   }
-}
+};
 const handleAddContact = (e) => {
   /** 
   useEffect(() => {
@@ -912,7 +1080,7 @@ const handleNewUserClick =  (RecpientId,Name,LastName)=>{
   } 
 
 
-}
+};
 const handleDeleteMessage = async (messageId) => {
   try {
     const response = await fetch(`http://localhost:5206/api/Message/DeleteMessage?deleteMessage=${messageId}`, {
@@ -1554,6 +1722,8 @@ function formatDateTime(isoString) {
                 <div className='lastMessageContainer'><p className='lastMessage'> {conversation.message}</p>
                 <p className='lastUpdatedTime'> {formatDateTime(conversation.updatedTime)}</p>
                 <p className='newMessage'>{conversation.notificationCount}</p>
+                {conversation.status === "true" ?(<p>Online</p>):(<p>{formatDateTime(conversation.lastSeen)}</p>)}
+
                 
              </div>
             </div>
