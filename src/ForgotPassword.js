@@ -147,64 +147,78 @@ function ForgotPassword () {
   return (
     <div className="container">
           
-          <div className="content">
+          <div className="contentSignUp">
             {activeTab === 'ForgotPassword' && (
-               <div className="container">
-               <h2>Forgot Password </h2>
-               <form onSubmit={handleSubmitForgot}>
-                 <label>Email</label>
+               <div className="formContainer">
+               
+               <form className='formSignUp' onSubmit={handleSubmitForgot}>
+               <span className='logo'>Fonkagram</span>
+              
                  <input 
+                 className='emailInput'
+                 placeholder='Email'
                    type="email" 
                    required 
                    value={email} 
                    onChange={handleEmailChange} 
                    disabled={isLoading} // Disable input field while loading
                  /> 
-                 <br/><br/>
-                 <button disabled={isLoading}>Submit</button>
-               </form>
-               {goodMessage && <p style={{color: 'green'}}>{goodMessage}</p>}
+
+                 <button className='buttonSignUp' disabled={isLoading}>Submit</button>
+                 <p className='login'><Link to="/">Back to login page</Link></p>
+            
+          {errorMessage && <p className='errorMessage'>{errorMessage}</p>}
+          {goodMessage && <p className='goodMessage'>{goodMessage}</p>}
+          {isLoading && <p className='isLoading'>Loading...</p>}
           
-               {errorMessage && <p style={{ color: 'red' }}>{errorMessage}</p>}
-               {isLoading && <p>Loading...</p>}
+               </form>
+               
                
              </div>
          
             )}
             {activeTab === 'V_ForgotPassword' && ( 
-              <div className="container">
-              <h2>Verify Code</h2>
-              <form onSubmit={handleSubmitVerifyPassword}>
-                <label>Verification Number</label>
+              <div className="formContainer">
+          
+              <form className='formSignUp' onSubmit={handleSubmitVerifyPassword}>
+              <span className='logo'>Fonkagram</span>
+          <span className='title'>Register</span>
+          
                 <input 
+                className='emailInput'
+                placeholder='Verification Number'
                   type="Number" 
                   required 
                   value={code} 
                   onChange={handleCodeChange} 
                   disabled={isLoading}
                 />
-                <br/><br/>
-                <label>New Password</label>
+                
                 <input 
+                    className='emailInput'
+                    placeholder='New Password'
                     type="current-password" 
                     required 
                     value={password} 
                     onChange={handlePasswordChange} 
                     disabled={isLoading} // Disable input field while loading
                   />
-                <label>ReEnter Password</label>
                 <input 
+                className='emailInput'
+                placeholder='Re Enter Password'
                     type="current-password" 
                     required 
                     value={rePassword} 
                     onChange={handleRePasswordChange} 
                     disabled={isLoading} // Disable input field while loading
                 /> 
-                <button disabled={isLoading} >Submit</button>
+                <button className='buttonSignUp' disabled={isLoading} >Submit</button>
+                <p className='login'><Link to="/">Back to login page</Link></p>
+            
+            {errorMessage && <p className='errorMessage'>{errorMessage}</p>}
+            {goodMessage && <p className='goodMessage'>{goodMessage}</p>}
+            {isLoading && <p className='isLoading'>Loading...</p>}
               </form>
-              {isLoading && <p>Loading...</p>}
-              {goodMessage && <p style={{color: 'green'}}>{goodMessage}</p>}
-          {errorMessage && <p style={{ color: 'red' }}>{errorMessage}</p>}
               
             </div>
             )}

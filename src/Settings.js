@@ -1,22 +1,21 @@
 import React, { useState } from 'react';
+import { renderToReadableStream } from 'react-dom/server';
 import { Link, useNavigate } from 'react-router-dom';
 
 function Settings() {
-  const [activeTab, setActiveTab] = useState('general');
-  const [firstName, setFirstName] = useState(sessionStorage.getItem('firstName'));
-  const [lastName, setLastName] = useState(sessionStorage.getItem('lastName'));
-  const [bio, setBio] = useState(sessionStorage.getItem('bio'));
+  const [activeTab, setActiveTab] = useState('editProfile');
+  // 
+  const [firstName, setFirstName] = useState(sessionStorage.getItem('Name'));
+  const [lastName, setLastName] = useState(sessionStorage.getItem('LastName'));
+  const [bio, setBio] = useState(sessionStorage.getItem('Bio'));
   const [oldPassword,setOldPassword]=useState('');
   const [newPassword,setNewPassword]=useState('');
-  
+  // I don't need messages
   const [errorMessage, setErrorMessage] = useState('');
   const [goodMessage, setgoodMessage] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const navigate = useNavigate(); // Access the history object
 
-  const showGeneralSettings = () => {
-    setActiveTab('general');
-  };
 
   const showEditProfileSettings = () => {
     setActiveTab('editProfile');
@@ -25,8 +24,12 @@ function Settings() {
   const showChangePasswordSettings = () => {
     setActiveTab('changePassword');
   };
+  const showDeleteSettings =()=>{
+    setActiveTab('Delete');
+  };
   const deleteAccount = () => {
-  setIsLoading(true); // Set loading state to true before making the API call
+    if (window.confirm('Are you sure you want to delete this item?')) {
+      setIsLoading(true); // Set loading state to true before making the API call
   fetch('http://localhost:5206/api/Users/DeleteAccount', {
     method: 'DELETE',
     headers: {
@@ -61,6 +64,10 @@ function Settings() {
     setErrorMessage('Connection Problem. Fetch Error.');
     clearErrorMessageAfterDelay(); // Set error message for the user
   });
+    }else{
+      return;
+    }
+    
   };
   
   const clearErrorMessageAfterDelay = () => {
@@ -203,102 +210,138 @@ const handleSubmitPassword = (e) => {
     clearErrorMessageAfterDelay(); // Set error message for the user
   });
 }
+/** here for DropDown */
+const [isOverlayVisible, setIsOverlayVisible] = useState(false);
+
+  const handleButtonClick = () => {
+    setIsOverlayVisible(true);
+  };
+
+  const handleCloseOverlay = () => {
+    setIsOverlayVisible(false);
+  };
+
 
   return (
-    <div className="container">
-      <h2>Settings</h2>
-      <div className="tabs">
-        <button onClick={showGeneralSettings}>General</button>
-        <button onClick={showEditProfileSettings}>Edit Profile</button>
-        <button onClick={showChangePasswordSettings}>Change Password</button>
-        <button onClick={deleteAccount}>Delete Account</button>     
+    <div className="Conversation">
+      <h2 className='Setting'>Settings</h2>
+      <div className="tabs"> 
+        <button className='buttonTab' onClick={showEditProfileSettings}>Edit Profile</button>
+        <button className='buttonTab' onClick={showChangePasswordSettings}>Change Password</button>
+        <button className='buttonTab' onClick={showDeleteSettings}>Delete Account</button>     
+        {/*Delete Account(DropDown,Shade) code Start */}
+        <div className="App">
+      <div className={`content ${isOverlayVisible ? 'faded' : ''}`}>
+        <button onClick={handleButtonClick}>Edit Profile</button>
       </div>
-      <div className="content">
-        {activeTab === 'general' && (
-          <div>
-            <h3>General Settings</h3>
-            <p>
-              Here is Where settings can be adjusted to users prefernce and style 
-            </p>
+
+      {isOverlayVisible && (
+        <div className="overlay">
+          <div className="overlay-content">
+
+          <form className='formSignUp' onSubmit={handleSubmitPassword}>
+          <span className='logo'>Fonkagram</span>
+          <span className='title'>Danger Zone</span>
+              Are you sure you want to delete this account?
+            <button className='buttonTabDelete' onClick={deleteAccount}  disabled={isLoading} >Delete</button>
+            
+          {isLoading && <p className='isLoading'>Loading...</p>}
+          <p className='login'><Link to="/chats">Go Back to Chats</Link></p>
+          
+          <span ><button className='logoutChat' onClick={handleLogOut}>Logout</button>
+           </span>
+              
+          </form>
+          
+        
+            <button onClick={handleCloseOverlay}>Close</button>
           </div>
-        )}
+        </div>
+      )}
+    </div>  
+    {/*Delete Account (Drop Down,Shade) code End */}
+        
+
+      </div>
+      <div className="contentSignUp">
         {activeTab === 'editProfile' && (
-          <div className="container">
-          <h3>Edit Profile Information</h3>
-          <form onSubmit={handleSubmitProfile}>
-            <label>First Name</label>
-            <br/><br/>
-            <input 
-              type="text" 
-              required 
-              value={firstName} 
-              onChange={handleFirstNameChange} 
-              disabled={isLoading}
-            />
-            <br/><br/>
-            <label>Last Name</label>
-            <br/><br/>
+          <div className="formContainer">
+          <form className='formSignUp' onSubmit={handleSubmitPassword}>
+          <span className='logo'>Fonkagram</span>
+          <span className='title'>Danger Zone</span>
+              Are you sure you want to delete this account?
+            <button className='buttonTabDelete' onClick={deleteAccount}  disabled={isLoading} >Delete</button>
             
-            <input 
-              type="text"  
-              value={lastName} 
-              onChange={handleLastNameChange} 
-              disabled={isLoading}
-            />
-            <br/><br/>
-            
-            <label>Bio (Any details such as age Occupation or City.)</label>
-            <br/><br/>
-            <input 
-              type="text"  
-              value={bio} 
-              onChange={handleBioChange} 
-              disabled={isLoading}
-            />
-            <br/><br/>
-  
-            <button disabled={isLoading} >Set</button>
+          {isLoading && <p className='isLoading'>Loading...</p>}
+          <p className='login'><Link to="/chats">Go Back to Chats</Link></p>
+          
+          <span ><button className='logoutChat' onClick={handleLogOut}>Logout</button>
+           </span>
+              
           </form>
           
           
         </div>
         )}
         {activeTab === 'changePassword' && (
-          <div className="container">
-          <h2>Change Password</h2>
-          <form onSubmit={handleSubmitPassword}>
-            <label>Old Password</label>
-            <input 
+          <div className="formContainer">
+          <form className='formSignUp' onSubmit={handleSubmitPassword}>
+          <span className='logo'>Fonkagram</span>
+          <span className='title'>Change Password</span>
+              <input 
+                className='emailInput'
+                placeholder='Old Password'
                 type="current-password" 
                 required 
                 value={oldPassword} 
                 onChange={handleOldPasswordChange} 
                 disabled={isLoading} // Disable input field while loading
               />
-              <br /><br />
-            <label>New Password</label>
+              
             <input 
+            className='emailInput'
+            placeholder='New Password'
                 type="current-password" 
                 required 
                 value={newPassword} 
                 onChange={handleNewPasswordChange} 
                 disabled={isLoading} // Disable input field while loading
             /> 
-            <button disabled={isLoading} >Submit</button>
+            <button className='buttonSignUp' disabled={isLoading} >Submit</button>
+            
+            {errorMessage && <p className='errorMessage'>{errorMessage}</p>}
+          {goodMessage && <p className='goodMessage'>{goodMessage}</p>}
+          {isLoading && <p className='isLoading'>Loading...</p>}
+          <p className='login'><Link to="/chats">Go Back to Chats</Link></p>
+            
+          <span ><button className='logoutChat' onClick={handleLogOut}>Logout</button>
+           </span>
+              
           </form>
-                  </div>
+        </div>
         )}
+         {activeTab === 'Delete' && (
+          <div className="formContainer">
+          <form className='formSignUp' onSubmit={handleSubmitPassword}>
+          <span className='logo'>Fonkagram</span>
+          <span className='title'>Danger Zone</span>
+              Are you sure you want to delete this account?
+            <button className='buttonTabDelete' onClick={deleteAccount}  disabled={isLoading} >Delete</button>
+            
+          {isLoading && <p className='isLoading'>Loading...</p>}
+          <p className='login'><Link to="/chats">Go Back to Chats</Link></p>
+          
+          <span ><button className='logoutChat' onClick={handleLogOut}>Logout</button>
+           </span>
+              
+          </form>
+        </div>
+        )}
+        
       </div>
-      <p>
-      {isLoading && <p>Loading...</p>}
-          {goodMessage && <p style={{color: 'green'}}>{goodMessage}</p>}
-          {errorMessage && <p style={{ color: 'red' }}>{errorMessage}</p>}
-
-        <button onClick={handleLogOut}>Logout</button>
-      </p>
+      
     </div>
   );
 }
 
 export default Settings;
- 

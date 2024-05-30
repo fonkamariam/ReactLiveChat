@@ -4,7 +4,7 @@ import { Link, useNavigate } from 'react-router-dom';
 function SignUp() {
   const [activeTab, setActiveTab] = useState('SignUp');
   const [goodMessage, setgoodMessage] = useState('');
-  
+  const[name,setName]=useState('');
   const [email, setEmailPara] = useState('');
   const [errorMessage, setErrorMessage] = useState('');
   const [password,setPassword]=useState('');
@@ -19,13 +19,15 @@ function SignUp() {
     }, 2000); // Clear error message after 2 seconds (3000 milliseconds)
   };
   
-  
   const handleCodeChange = (e) => {
     setCode(e.target.value);
   }
 
   const handleEmailChange = (e) => {
     setEmailPara(e.target.value);
+  }
+  const handleNameChange =(e)=>{
+    setName(e.target.value);
   }
   const handlePasswordChange = (e) => {
     setPassword(e.target.value);
@@ -68,7 +70,7 @@ function SignUp() {
       }else if (response.status === 20) {
         // Handle bad request
         setIsLoading(false);
-        setErrorMessage('Couldnt Send Email,check if email is valid and try again');
+        setErrorMessage('Could not Send Email, Try again later');
         clearErrorMessageAfterDelay();
       } else {
         // Handle other errors
@@ -97,6 +99,7 @@ function SignUp() {
         'Content-Type': 'application/json'
       }, 
       body: JSON.stringify({
+        name,name,
         email: email, // Use the email from the authData context
         password: password, // Use the password from the authData context
         vertificationNo: code // Use the code entered by the user
@@ -131,11 +134,12 @@ function SignUp() {
         sessionStorage.setItem('Token', data.token);
         sessionStorage.setItem('RefreshToken',data.refreshToken);
         sessionStorage.setItem('RefreshTokenExpiry',data.refreshTokenExpiry)
+        sessionStorage.setItem('Name',data.name);
         console.log("Check local Storage");
   
         setIsLoading(false);
         // Handle successful response and set user data state
-        navigate(`/insertProfile`);  
+        navigate(`/chats`);  
       }
       
     }).catch(error => {
@@ -144,75 +148,90 @@ function SignUp() {
       clearErrorMessageAfterDelay(); // Set error message for the user
     });
   }
+  const backToSignUp = ()=>{
+    setActiveTab('SignUp')
+  }
  return (
-<div className="container">
-      
-      <div className="content">
+      <div className="contentSignUp">
         {activeTab === 'SignUp' && (
-          <div className="container">
-          <h2>Sign Up Page</h2>
-          <form onSubmit={handleSubmitSignUp}>
-            <label>Email</label>
+          <div className="formContainer">
+          <form className='formSignUp' onSubmit={handleSubmitSignUp}>
+          <span className='logo'>Fonkagram</span>
+          <span className='title'>Register</span>
+            
+          <input 
+            className='emailInput'
+              type="text" 
+              placeholder='Name'
+              required 
+              value={name} 
+              onChange={handleNameChange} 
+              disabled={isLoading} // Disable input field while loading
+            />
+            
             <input 
+            className='emailInput'
               type="email" 
+              placeholder='Email'
               required 
               value={email} 
               onChange={handleEmailChange} 
               disabled={isLoading} // Disable input field while loading
             />
-            <label>Password</label>
             <input 
+            className='emailInput'
                 type="current-password" 
+                placeholder='Password'
                 required 
                 value={password} 
                 onChange={handlePasswordChange} 
                 disabled={isLoading} // Disable input field while loading
               />
-            <label>ReEnter Password</label>
             <input 
+            className='emailInput'
                 type="current-password" 
+                placeholder='Re-Enter Password'
                 required 
                 value={rePassword} 
                 onChange={handleRePasswordChange} 
                 disabled={isLoading} // Disable input field while loading
             />
-            
-            <br/><br/>
-            <button disabled={isLoading}>Register</button>
+            <p className='login'>You do have an account? <Link to="/">Login</Link></p>
+            <button className='buttonSignUp' disabled={isLoading}>Register</button>
+          
+          {errorMessage && <p className='errorMessage'>{errorMessage}</p>}
+          {goodMessage && <p className='goodMessage'>{goodMessage}</p>}
+          {isLoading && <p className='isLoading'>Loading...</p>}
           </form>
-          {errorMessage && <p style={{ color: 'red' }}>{errorMessage}</p>}
-          {isLoading && <p>Loading...</p>}
           
         </div>
      
         )}
         {activeTab === 'V_SignUp' && ( 
-          <div className="container">
-          <h2>Verify Code</h2>
-          <form onSubmit={handleSubmitVSignUp}>
-            <label>Verification Number</label>
+          <div className="formContainer">
+          <form className='formSignUp' onSubmit={handleSubmitVSignUp}>
+          <span className='logo'>Fonkagram</span>
+          <span className='title'>Enter verification number  </span>
             <input 
+            className='emailInput'
+            placeholder='Verification Number'
               type="Number" 
               required 
               value={code} 
               onChange={handleCodeChange} 
               disabled={isLoading}
             />
-            <br/><br/>
-            <button disabled={isLoading}>Enter</button>
+            
+            
+           <button className='buttonSignUp' onClick={backToSignUp}>Back to registration form</button>
+            <button className='buttonSignUp' disabled={isLoading}>Enter</button>
           </form>
-          {isLoading && <p>Loading...</p>}
-          {errorMessage && <p style={{ color: 'red' }}>{errorMessage}</p>}
+          {isLoading && <p className='isLoading'>Loading...</p>}
+          {errorMessage && <p className='errorMessage' style={{ color: 'red' }}>{errorMessage}</p>}
         </div>
         )}
       </div>
-      <p>
-      {goodMessage && <p style={{color: 'green'}}>{goodMessage}</p>}
-      <Link to="/forgotpassword">Forgot Password?</Link>
-      <br/><br/>
-      <Link to="/">Login</Link>
-     </p>
-    </div>
+     
   ); 
 }
 export default SignUp;

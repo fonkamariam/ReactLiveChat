@@ -1,9 +1,10 @@
 // LoginPage.js
-import React, { useState } from 'react';
+import React, { useEffect,useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 
-
 function LoginPage() {
+  
+  
   const [email,setEmail]=useState('');
   const [password,setPassword]=useState('');
   const [errorMessage, setErrorMessage] = useState('');
@@ -64,13 +65,15 @@ function LoginPage() {
       } 
     }).then(data => {
       if (data ) {
-      console.log("there is data");  
       sessionStorage.setItem('userId', data.id);
-      console.log(data.id);
+      console.log("Logged In");
       sessionStorage.setItem('Token', data.token); 
       sessionStorage.setItem('RefreshToken',data.refreshToken);
       sessionStorage.setItem('RefreshTokenExpiry',data.refreshTokenExpiry)
-         // it is an Object
+      sessionStorage.setItem('Name',data.name);
+      sessionStorage.setItem('LastName',data.lastName);
+      sessionStorage.setItem('Bio',data.bio );
+      // it is an Object
       setIsLoading(false); 
       // Handle successful response and set user data state
       navigate(`/chats`);
@@ -86,38 +89,41 @@ function LoginPage() {
   }
   
   return (
-    <div className="container">
-      <h2>Login Page</h2> 
-      <form onSubmit={handleSubmit}>
-      <label>Email</label>
+    <div className="formContainer">
+  
+      <form className='formSignUp' onSubmit={handleSubmit}>
+      <span className='logo'>Fonkagram</span>
+      <span className='title'>Login</span>
       <input 
+          placeholder='Email'
+          className='emailInput'
           type="email" 
           required 
           value={email} 
           onChange={handleEmailChange} 
           disabled={isLoading} // Disable input field while loading
         />
-      <br></br><br></br>
-      <label>Password</label>
+           
         <input 
-            type="current-password" 
+            placeholder='Password'
+            className='emailInput'
+            type="Password" 
             required 
             value={password} 
             onChange={handlePasswordChange} 
             disabled={isLoading} // Disable input field while loading
           />
-      <br></br><br></br>
-      <button disabled={isLoading}>Login</button>
+       <button className='buttonSignUp' disabled={isLoading}>Login</button>
+       
+      <p className='login'>You don't have an account? <Link to="/SignUp">Register</Link></p>
+      <p className='login'><Link to="/forgotpassword">ForgotPassword</Link></p>
+        
+          
+      {errorMessage && <p className='errorMessage'>{errorMessage}</p>}
+      {isLoading && <p className='isLoading'>Loading...</p>}
+          
       </form>
-      {errorMessage && <p style={{ color: 'red' }}>{errorMessage}</p>}
-      {isLoading && <p>Loading...</p>}
-      <p>
-      <Link to="/forgotpassword">Forgot Password?</Link>
-      <br></br>
-      <Link to="/signup">Sign Up</Link>
-      
-      </p>
-    </div>
+      </div>
   );
 }
 

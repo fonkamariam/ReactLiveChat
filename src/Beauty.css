@@ -1,0 +1,466 @@
+.formContainer{
+  background-color: #718ff4;
+  height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.formSignUp{
+  background-color: white;
+  display: flex;
+  padding: 20px 40px;
+  border-radius: 10px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 15px;
+}
+.logo{
+  color: black;
+  font-weight: bold;
+  font-size: 24px;
+}
+.title{
+  color: #5d5d8d;
+  font-size: 18px;
+  font-weight: bold;
+}
+.emailInput{
+  padding: 15px;
+  border: none;
+  width: 250px;
+  border-bottom: 1px solid #718ff4;
+}
+
+.buttonSignUp{
+  background-color: #718ff4;
+  color: black;
+  padding: 10px;
+  font-weight: bold;
+  border: none;
+  cursor: pointer;
+}
+.login{
+  color: #5d5d8d;
+  font-size: 15px;
+  margin-top: 10px;
+}
+.errorMessage{
+  color: red;
+  font-size: 18px;
+  margin-top: 10px;
+}
+.goodMessage{
+  color: green;
+  font-size: 18px;
+  margin-top: 10px;
+}
+.isLoading{
+  color: black;
+  font-size: 15px;
+  margin-top: 10px;
+}
+.Chats{
+  background-color:#718ff4;
+  height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.ChatContainer{
+border: 1px solid white;
+border-radius: 10px;
+width: 95%;
+height: 95%;
+display: flex;
+overflow: hidden;
+}
+.Conversation{
+  flex: 1;
+  border-right: 1px solid #3e3c61;
+  background-color: #3e3c61;
+}
+.Message{
+  flex: 2;
+}
+.InsideConversation{
+  display: flex;
+  align-items: center;
+  background-color: #2f2d52;
+  height: 50px;
+  padding: 10px;
+  justify-content: space-between;
+}
+.UserInfo{
+  color: #ddddf7;
+  gap: 15px;
+  margin-right: 25px;
+}
+.ProfilePicClass{
+  margin-bottom: 70%;
+   
+}
+.profilePicButton {
+  background: none;
+  border: none;
+  padding: 0;
+  cursor: pointer;
+  position: relative;
+  z-index: 2;
+}
+.profilePic{
+  width: 30px;
+  height: 30px;
+  border-radius: 50%;
+}
+/** 
+  */
+.dropdown2{
+  background-color:#f7f7fa;
+  margin-top: 65px; /* Space between button and dropdown */
+  box-shadow: 0 4px 8px rgba(254, 254, 254, 0.1);
+  width: 150px;
+  position:absolute;
+  text-align: left;
+  top: 100%; /* Position the dropdown below the button */
+  right: 45%;
+  transform: translateY(-45%);
+  border-radius: 20px;
+  border: none;
+  z-index: 1;
+}
+
+.oneUl{
+  list-style-type: none;
+  margin: 0;
+  padding: 0;
+}
+.oneLi{
+  padding: 10px;
+  cursor: pointer;
+}
+.oneLi:hover{
+  background-color: #f0f0f0;
+}
+.buttonSignUpNew{
+  border: none;
+  border-radius: 200px;
+  color: rgb(61, 52, 52);
+  font-weight: bold;
+
+}
+
+.chatLogo{
+  display: flex;
+  color: #ddddf7;
+  font-weight: bold;
+}
+.chatLogout{
+  background-color: #5d5d8d;
+  color: #262628;
+  font-size: 13px;
+  font-weight: bold;
+  border: none;
+  cursor: pointer;
+  gap: 10px;
+}
+.searhInput{
+  background-color: transparent;
+  border: none;
+  color: white;
+  &::placeholder{color: lightgray;}
+}
+.SearchUser{
+  padding: 10px;
+
+}
+.allConv{
+  overflow-y: auto;
+  overflow-x: hidden;
+}
+.SingleConv{
+  
+border-radius: 10px;
+padding: 10px;
+display: flex;
+align-items: center;
+gap: 10px;
+color: lightgrey;
+cursor: pointer;
+&:hover{background-color: #2f2d52;}
+}
+
+.Name{
+  font-size: 18px;
+  font-weight: 500;
+
+}
+.lastMessage{
+  font-size: 14px;
+  color: lightgray;
+}
+.Avatar{
+  width: 40px;
+  height: 40px;
+  border-radius: 100%;
+  object-fit: cover;
+}
+.Message{
+flex: 2;
+background-color: #ddddf7;
+overflow-y: auto;
+}
+.fuck{
+  overflow-y: auto;
+}
+.ForMessages{
+  overflow-y: auto;
+  flex-grow: 1;
+}
+.ForInputMessage{
+  flex-shrink: 0;
+}
+.topChat{
+ height: 50px;
+ background-color: #5d5b8d;
+ align-items: center;
+ padding: 10px;
+ color: lightgray;
+}
+.Texts{
+  padding: 10px;
+  height: calc(100% - 160px);
+  
+}
+.sendMessage{
+  height: 50px;
+  background-color: white;
+  padding: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between  ;
+}
+.messageInput{
+  width: 100%;
+  border: none;
+  outline: none;
+  color: #2f2d52;
+  font-size: 18px;
+  &::placeholder{color: rgb(145, 141, 141);}
+}
+.send{
+  border: none;
+  outline: none;
+  font-weight: bold;
+  padding: 10px 15px;
+  color: rgb(42, 40, 40);
+  background-color:#829aea;
+  cursor: pointer;
+  margin-left: 260%;
+}
+.SingleText{
+  display: flex;
+  gap: 20px;
+  flex-direction: column;
+  color: gray;
+  font-weight:300;
+  margin-bottom: 20px;
+
+
+}
+.imgForText{
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  object-fit: cover;
+}
+.MessageContent{
+display:flex;
+flex-direction: column;
+gap: 10px;
+}
+.SingleMessage{
+    padding: 10px; /* Optional: adds padding around the text */
+    border-radius: 0px 10px 10px 10px; /* Optional: rounds the corners */
+    max-width: max-content; /* Optional: ensures it doesn’t overflow the container */
+    justify-content: space-between;
+    align-items: center;
+    word-wrap: break-word;
+    background-color: #9999a0;
+}
+.timeStamp{
+  margin-left: 10px; /* Space between text and timestamp */
+  font-size: 0.8em;
+  font-weight: bolder; /* Optional: smaller font size for the timestamp */
+}         
+.MessageContentR{
+    display: flex;
+    flex-direction: column; /* Stack messages vertically */
+    align-items: flex-end; /* Align messages to the right */
+    gap: 10px; /* Optional: space between messages */
+}
+.SingleMessageR{
+  display: flex; /* Make the <p> a flex container */
+  justify-content: space-between; /* Distribute space between the text and timestamp */
+  align-items: center; /* Center the timestamp vertically with the text */
+  background-color: #f0f0f0; /* Optional: background color */
+  padding: 10px; /* Optional: padding around the text */
+  border-radius: 5px; /* Optional: rounded corners */
+  max-width: 100%; /* Ensure it doesn’t overflow the container */
+  word-wrap: break-word; /* Ensure long words wrap to the next line */
+  text-align: right; /* Align text to the right */
+}
+.timeStampR{
+    margin-left: 10px; /* Space between text and timestamp */
+    font-size: 0.9em; /* Optional: smaller font size for the timestamp */
+    direction: ltr; /* Keep timestamp left-to-right */
+    text-align: left;
+    font-weight: bold; /* Align timestamp to the left */
+} 
+.logoutChat{
+  margin-left: 20px;
+  background-color:  #2f2d52;
+  color: lightblue;
+  padding: 10px;
+  font-weight: bold;
+  border: none;
+  cursor: pointer;
+}
+/*Settings*/
+.buttonTab{
+  background-color: #3e3c61;
+  color: lightgray;
+  padding: 10px;
+  font-weight: bold;
+  border: none;
+  cursor: pointer; 
+}
+.buttonTabDelete{
+  background-color:red;
+  color: lightgray;
+  padding: 10px;
+  font-weight: bold;
+  border: none;
+  cursor: pointer; 
+}
+.Setting{
+  margin-left: 45%;
+  color: white;
+}
+/**Testing*/
+.App {
+  font-family: Arial, sans-serif;
+  text-align: center;
+}
+
+.content {
+  transition: opacity 0.3s ease;
+}
+
+.faded {
+  opacity: 0.5;
+  pointer-events: none; /* This makes the content divs inaccessible */
+}
+
+.overlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 200%;
+  background-color: rgba(0, 0, 0, 0.7);
+  display: flex;
+  
+  
+  z-index: 1000; /* Ensure the overlay is on top */
+}
+
+.overlaycontent {
+  background-color: white;
+  padding: 20px;
+  border-radius: 5px;
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+  justify-content: center;
+}
+
+
+.App1 {
+  font-family: Arial, sans-serif;
+  text-align: center;
+  margin-top: 50px;
+  position: relative;
+}
+
+.button {
+  padding: 10px 20px;
+  font-size: 16px;
+  cursor: pointer;
+}
+.mineEp{
+  background-color:#f7f7fa;
+  box-shadow: 0 4px 8px rgba(254, 254, 254, 0.1);
+  width: 350px;
+  position:absolute;
+  text-align: left;
+  top: 1%; /* Position the dropdown below the button */
+  right: 2%;
+  left: 0%;
+  transform: translateY(-40%);
+  transform: translateX(-50%);
+  border-radius: 20px;
+  border: none;
+  
+}
+.mineClose{
+  margin-left: 140px;
+  padding: 15px;
+  border: none;
+  cursor: pointer;
+  &:hover{background-color: #2f2d52;}
+  font-weight: bolder;
+
+}
+.mineContact{
+  background-color:#f7f7fa;
+  box-shadow: 0 4px 8px rgba(254, 254, 254, 0.1);
+  width: 350px;
+  position:absolute;
+  text-align: left;
+  top: 1%; /* Position the dropdown below the button */
+  right: 2%;
+  left: 0%;
+  transform: translateY(-40%);
+  transform: translateX(-50%);
+  border-radius: 20px;
+  border: none;
+  overflow: scroll;
+}
+.isLoadingConv{
+  color: white;
+  margin-top: 50%;
+  margin-left: 25%;
+}
+.lastMessageContainer {
+  display: flex;
+  justify-content: space-between;
+  align-items: center; /* Center vertically if needed */
+}
+
+
+.lastUpdatedTime {
+  white-space: nowrap; /* Prevent wrapping */
+  color: rgb(207, 200, 200); /* Adjust color as needed */
+  margin-left: 160px;
+
+}
+.isLoadingMessage{
+  margin-top: 34%;
+  margin-left: 33%;
+  font-weight: bolder;
+}
+.newMessage{
+  color: #262628;
+  margin-left: 15px;
+  border-radius: 10px;
+  background-color: rgb(15, 252, 228);
+}

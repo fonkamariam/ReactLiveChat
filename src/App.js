@@ -6,6 +6,7 @@ import InsertProfile from './InsertProfile';
 import Settings from './Settings';
 import SignUp from './SignUp';
 import ForgotPassword from './ForgotPassword';
+import './Beauty.css';
 function App() {
   
   useEffect(() => {
@@ -77,8 +78,10 @@ function App() {
   }, []); // Empty dependency array ensures the effect runs only after the initial render
 
   return (
+    
     <Router>
       <div>
+       
         <Routes>
           <Route path='/settings' element={<Settings />} />
           <Route path= "/insertProfile" element={<InsertProfile />} />
