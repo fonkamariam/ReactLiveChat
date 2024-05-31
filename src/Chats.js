@@ -2,6 +2,7 @@ import userEvent from '@testing-library/user-event';
 import React, { useState ,useEffect,useRef } from 'react';
 import { Link, useNavigate} from 'react-router-dom';
 import { HttpTransportType, HubConnectionBuilder, LogLevel } from "@microsoft/signalr";                   
+import * as signalR from '@microsoft/signalr';
 
 function Chats() {
   const [connection, setConnection] = useState(null);  
@@ -31,6 +32,7 @@ function Chats() {
   const [goodMessage, setgoodMessage] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [varOnce, setVarOnce] = useState(false);
+  const [deletedMessageId,setDeletedMessageId] = useState(false);
   const fetchConvDataOnline = async () => {
     const keys = Object.keys(sessionStorage); 
     
@@ -66,11 +68,12 @@ function Chats() {
     };
   /** UseEffects Start MessageWs */
   useEffect(() => {
-    if (messageWs && messageWs.length > 1) { // Ensure messageWs is not null and has at least 2 messages
+    if (messageWs) { // Ensure messageWs is not null
+
       setConversations(prevConversations => {
         const updatedConversations = prevConversations.map(conversation => {
           if (conversation.convId === selectedWsConv && conversation.messageId === selectedWsMid) {
-            return { ...conversation, message: messageWs.at(-1).content, updatedTime: messageWs.at(-1).timeStamp, messageId: messageWs.at(-1).id };
+            return { ...conversation, message: messageWs.at(-2).content, updatedTime: messageWs.at(-2).timeStamp, messageId: messageWs.at(-1).id };
           }
           return conversation;
         });
@@ -78,6 +81,7 @@ function Chats() {
         // Sort the updated conversations by updatedTime
         return updatedConversations.sort((a, b) => new Date(b.updatedTime) - new Date(a.updatedTime));
       });
+      
 
       setMessagesWs(null); // Reset messageWs if needed
       setSelectedWsConv(null);
@@ -365,97 +369,99 @@ useEffect(() => {
                   console.log("Problem Updating Message for Reciever in signalR");
                 } 
               }else if (message.type === 'UPDATE' && message.record.deleted === true ){
-                /**  
-                console.log("Delete");
-                  if (currentSelectedConversation && message.record.convId === currentSelectedConversation) {
-                    console.log("Selected Conv and delete");
-                    // for Message State
-                      console.log("About to delete from Message state");
-                      if (messages.length === 1 ) {
-                        console.log("Message length = One");
-                        setMessages([]);
-                        sessionStorage.removeItem(`${message.record.convId}`);
-                        
-                        
-                      }else{
-                        
-                        console.log("selected Conversation and more than one text in Message ");
-                        setMessages(messages.filter(message => message.id !== message.record.id));
-                        console.log("Message Filtered");
-                        
-                        const xy = JSON.parse(sessionStorage.getItem(`${message.record.convId}`));
-                        if (xy!== null) {
-                          for (let index = 0; index < xy.length; index++) {
-                            if ( xy[index].id === message.record.id) {
-                              xy.splice(index,1);  
-                              break; 
-                            } 
-                        }
-                        sessionStorage.setItem(`${selectedConversation}`,JSON.stringify(xy))
-                        console.log("Setted Session Storage");
-                        
-                        }
-                        
-                        
-
-                      }
-                      // for conversation State
-                      console.log("Going to set Conversation");
-                        
-                      setConversations(prevConversations => {
-                        console.log(currMessage);
-                        console.log(currMessage.at(-2));
-                        if (currMessage.at(-2)){
-                          console.log("Not the last text");
-                          
-                          const updatedConversations = prevConversations.map(conversation => {
-                            if (conversation.convId === currentSelectedConversation && conversation.messageId === message.record.id) {
-                              return { ...conversation, message: currMessage.at(-2).content, updatedTime:currMessage.at(-2).timeStamp,messageId:currMessage.at(-2).id};
+                
+                //  1) if the created Variable equals message.record.id, we ignore it.
+                if (deletedMessageId === message.record.id){
+                  console.log("FOR ME, there is a deleted message and it concerns me");
+                  if ( selectedConversationRef.current!==null && message.record.convId === selectedConversationRef.current) {
+                        console.log("Selected Conv and delete");
+                        // for Message State
+                          console.log("About to delete from Message state");
+                          if (messages.length === 1 ) {
+                            console.log("Message length = One");
+                            setMessages([]);
+                            sessionStorage.removeItem(`${message.record.convId}`);
+                            console.log("One Text Only");
+                            
+                            const updatedConversations1 = prevConversations
+                              .filter(conversation => conversation.convId !== selectedConversationRef.current) // Exclude the conversation with the specified convId
+                              .sort((a, b) => new Date(b.updatedTime) - new Date(a.updatedTime)); // Sort the remaining conversations by updatedTime
+                              setSelectedConversation(null);
+                              return updatedConversations1;
+                            
+                          }else{
+                            console.log("selected Conversation and more than one text in Message ");
+                            setMessages(messages.filter(message => message.id !== message.record.id));
+                            console.log("Message Filtered");
+                            
+                            const xy = JSON.parse(sessionStorage.getItem(`${message.record.convId}`));
+                            if (xy!== null) {
+                              for (let index = 0; index < xy.length; index++) {
+                                if ( xy[index].id === message.record.id) {
+                                  xy.splice(index,1);  
+                                  break; 
+                                } 
                             }
-                            return conversation;
+                            sessionStorage.setItem(`${selectedConversation}`,JSON.stringify(xy))
+                            console.log("Setted Session Storage");
+                            const updatedConversations = prevConversations.map(conversation => {
+                              if (conversation.convId === message.record.convId && conversation.messageId === message.record.id) {
+                                return { ...conversation, message: currMessage.at(-2).content, updatedTime:currMessage.at(-2).timeStamp,messageId:currMessage.at(-2).id};
+                              }
+                              return conversation;
+                            });
+                        
+                            // Sort the updated conversations by updatedTime
+                            updatedConversations.sort((a, b) => new Date(b.updatedTime) - new Date(a.updatedTime));
+                            console.log("Updated Conversation");
+                          
+                            }
+                            
+                            
+
+                          } 
+                      
+                  }else if (!selectedConversationRef.current && sessionStorage.getItem(`${message.record.convId}`)){                    
+                        console.log("Not Seclected Conv but sessionStorage");
+                        setConversations(prevConversations => {
+                          const updatedConversations = prevConversations.map(conversation => {
+                            if (conversation.convId === message.record.convId && conversation.messageId === message.record.id) {
+                              const Parsed = JSON.parse(sessionStorage.getItem(`${message.record.convId}`));
+                              return { ...conversation, message: Parsed.at(-2).content, updatedTime: Parsed.at(-2).timeStamp, messageId:Parsed.at(-2).id};
+                            }
+                            return conversation; 
                           });
                       
                           // Sort the updated conversations by updatedTime
-                          updatedConversations.sort((a, b) => new Date(b.updatedTime) - new Date(a.updatedTime));
-                          console.log("Updated Conversation");
-                        
-                        }else{
-                          console.log("One Text Only");
-                          const updatedConversations1 = prevConversations
-                          .filter(conversation => conversation.convId !== currentSelectedConversation) // Exclude the conversation with the specified convId
-                          .sort((a, b) => new Date(b.updatedTime) - new Date(a.updatedTime)); // Sort the remaining conversations by updatedTime
-                          setSelectedConversation(null);
-                          return updatedConversations1;
-                          
-                        }
-                      });
-                        
-                  }else if (!selectedConversation && sessionStorage.getItem(`${message.record.convId}`)){                    
-                    console.log("Not Seclected Conv but sessionStorage");
-                    setConversations(prevConversations => {
-                      const updatedConversations = prevConversations.map(conversation => {
-                        if (conversation.convId === message.record.convId && conversation.messageId === message.record.id) {
-                          const Parsed = JSON.parse(sessionStorage.getItem(`${message.record.convId}`));
-                          return { ...conversation, message: Parsed.at(-2).content, updatedTime: Parsed.at(-2).timeStamp, messageId:Parsed.at(-2).id};
-                        }
-                        return conversation; 
-                      });
-                  
-                      // Sort the updated conversations by updatedTime
-                      return updatedConversations.sort((a, b) => new Date(b.updatedTime) - new Date(a.updatedTime));
-                    });
+                          return updatedConversations.sort((a, b) => new Date(b.updatedTime) - new Date(a.updatedTime));
+                        });
+                        //setted message state
+                        const xy = JSON.parse(sessionStorage.getItem(`${message.record.convId}`));
+                            if (xy!== null) {
+                              for (let index = 0; index < xy.length; index++) {
+                                if ( xy[index].id === message.record.id) {
+                                  xy.splice(index,1);  
+                                  break; 
+                                } 
+                            }
+                            sessionStorage.setItem(`${selectedConversation}`,JSON.stringify(xy))
+                            console.log("Setted Session Storage");
+                          }
 
-                  }else if (!selectedConversation && !sessionStorage.getItem(`${message.record.convId}`)){
-                    console.log("No Sc and No Ss");
-                    setSelectedWsConv(message.record.convId);
-                    setSelectedWsMid(message.record.id);
-                    const check = await handleConversationClickWs(message.record.convId);
-                    
+                  }else if (!selectedConversationRef.current && !sessionStorage.getItem(`${message.record.convId}`)){
+                        console.log("No Sc and No Ss");
+                        setSelectedWsConv(message.record.convId);
+                        setSelectedWsMid(message.record.id);
+                        const check = await handleConversationClickWs(message.record.convId);
+                        
                   }else{
-                    console.log("problem at deleting message for conversation");
+                        console.log("problem at deleting message for conversation");
                   }
+                }else{
+                  console.log("Not for me, i am the one deleting the message");
+                }
               
-               */
+              
                   
               
               }else{
@@ -549,8 +555,6 @@ const handleVisibilityChange = async () => {
     if (connection) {
       connection.stop().then(() => console.log('Disconnected due to tab change or minimization'));
       virtualLogOut();
-     
-      
     }
   } else {
     // If the document is visible again, start the SignalR connection
@@ -562,14 +566,45 @@ const handleVisibilityChange = async () => {
     }
   }
 };
+useEffect(() => {
+  const handleVisibilityChange = async () => {
+    if (document.visibilityState === 'visible') {
+      if (connection.state === signalR.HubConnectionState.Disconnected) {
+        try {
+          await connection.start();
+          console.log('Connection started.');
+          await fetchConvDataOnline();
+          virtualLogin();
+      
+        } catch (error) {
+          console.error('Error starting connection:', error);
+        }
+      } else {
+        console.log('Connection is already in progress or connected.');
+      }
+    } else {
+      if (connection.state === signalR.HubConnectionState.Connected) {
+        try {
+          await connection.stop();
+          console.log('Connection stopped.');
+          virtualLogOut();
+        } catch (error) {
+          console.error('Error stopping connection:', error);
+        }
+      } else {
+        console.log('Connection is already disconnected.');
+      }
+    }
+  };
 
-useEffect(() => { 
-  
   document.addEventListener('visibilitychange', handleVisibilityChange);
+
   return () => {
     document.removeEventListener('visibilitychange', handleVisibilityChange);
   };
 }, [connection]);
+
+
 
 
 // JavaScript visiblity Change
@@ -783,13 +818,13 @@ const handleLogOut = (e) =>{
     
 
 };
-const virtualLogOut = (e) =>{
+const virtualLogOut = async (e) =>{
   
   const logoutToken = sessionStorage.getItem('Token');
   
 
   try {
-    const response = fetch(`http://localhost:5206/api/Users/logout`, {
+    const response = await fetch(`http://localhost:5206/api/Users/logout`, {
       method: 'PUT',
       headers: {
         'Content-Type': 'application/json',
@@ -797,24 +832,24 @@ const virtualLogOut = (e) =>{
       }
     });
     if (response.ok) {
-      console.log("Logged Out Virtually, Just For setting Presence");
+      console.log("VIRTUAL LOG OUT SUCCESS");
      
     } else {
-      console.log("Failed to Logout");
-      throw new Error('Failed to Logout Backend');
+      console.log("LOGOUT VIRTUAL to Logout BACKEND");
+      throw new Error('Failed VIRTUAL LOGOUT BACKEND');
     }
   } catch (error) {
-    console.error('Error Loggin Out Frontend');
+    console.error('VIRTUAL LOG OUT Frontend');
     
   }
     
     
 
 };
-const virtualLogin = (e) =>{
+const virtualLogin = async (e) =>{
   
   try {
-    const response = fetch(`http://localhost:5206/api/Users/virtualLogin`, {
+    const response = await fetch(`http://localhost:5206/api/Users/virtualLogin`, {
       method: 'PUT',
       headers: {
         'Content-Type': 'application/json',
@@ -822,14 +857,14 @@ const virtualLogin = (e) =>{
       }
     });
     if (response.ok) {
-      console.log("Logged In Out Virtually, Just for setting Presence");
+      console.log("VIRTUAL LOG in SUCCESS");
      
     } else {
       console.log("Failed to Logout");
-      throw new Error('Failed to Logout Backend');
+      throw new Error('FAIL: VIRTUAL LOG IN');
     }
   } catch (error) {
-    console.error('Error Loggin Out Frontend');
+    console.error('FAIL: VIRTUAL LOG IN');
     
   }
     
@@ -934,36 +969,6 @@ const handleSendMessage = async (e) => {
     console.error('Error fetching messages:', error);
   }
 };
-const handleAddContact = (e) => {
-  /** 
-  useEffect(() => {
-    // Fetch user data from API
-    const fetchAddContact = async () => {
-      try {
-        const response = await fetch('http://localhost:5206/api/Contact/AddContact', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${sessionStorage.getItem('Token')}`
-          },body: addContact
-        });
-        if (response.ok) {
-          // No data
-          console.log("Got All Conversation");
-          
-        } else {
-          throw new Error('Failed to fetch user data');
-        }
-      } catch (error) {
-        console.error('Error fetching user data:', error);
-        // Handle error
-      }
-    };
-    fetchAddContact(); // Call fetchData function when component mounts
-    
-  }, []);
-  */
-}
 const handleConversationClick = async (convId,recpientId,Name,LastName) => {
   setForSearchUser(false);
   setMessages([]);
@@ -1027,7 +1032,7 @@ const handleConversationClickWs = async (convId) => {
       const messagesData = await messagesResponse.json();
       sessionStorage.setItem(`${convId}`,JSON.stringify(messagesData));
       setMessagesWs(messagesData); // Update messages state with the fetched messages
-      return;
+      return; 
     } else {
       throw new Error('Failed to fetch messages');
     }
@@ -1092,12 +1097,18 @@ const handleDeleteMessage = async (messageId) => {
     });
     if (response.ok) {
       console.log("Ok Deleted");
-      /** 
+      /** From Deleter Perspective.
+      1) Is the messageId being deleted the recent messageId in the conversation, Update the Conversation
+          Is the messageId being deleted the last messageId in the conversation, Delete the Conversation  
+      2) Delete the message from the MessagesState and Sort
+      3) Delete the message from the SessionStorage.
+      4) Create a variable and update the variable with the message Id, so that when it comes from the Ws, it is igonred.
+     */
       if (messages.at(-2)) {
         setConversations(prevConversations => {
                       
           const updatedConversations = prevConversations.map(conversation => {
-            if (conversation.convId === selectedConversation && conversation.messageId === messageId) {
+            if (conversation.convId === selectedConversationRef.current && conversation.messageId === messageId) {
               return { ...conversation, message: messages.at(-2).content, updatedTime:messages.at(-2).timeStamp,messageId:messages.at(-2).id};
             }
             return conversation;
@@ -1128,7 +1139,7 @@ const handleDeleteMessage = async (messageId) => {
       }
       sessionStorage.setItem(`${selectedConversation}`,JSON.stringify(xy))
       }
-    */
+      setDeletedMessageId(messageId);
       
     } else {
       throw new Error('Failed to delete message');
@@ -1707,7 +1718,7 @@ function formatDateTime(isoString) {
               ))} 
             </div>)}
           </div>
-          {isLoading && <p key='keyConv' className='isLoadingConv'>Loading Conversations...</p>}
+          {isLoading && <p className='isLoadingConv'>Loading Conversations...</p>}
           
           {conversations.length > 0 ?
           (
