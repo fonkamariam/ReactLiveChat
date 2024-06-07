@@ -7,6 +7,7 @@ import Settings from './Settings';
 import SignUp from './SignUp';
 import ForgotPassword from './ForgotPassword';
 import './Beauty.css';
+
 function App() {
   
   useEffect(() => {

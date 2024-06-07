@@ -114,7 +114,7 @@ function LoginPage() {
             disabled={isLoading} // Disable input field while loading
           />
        <button className='buttonSignUp' disabled={isLoading}>Login</button>
-       
+
       <p className='login'>You don't have an account? <Link to="/SignUp">Register</Link></p>
       <p className='login'><Link to="/forgotpassword">ForgotPassword</Link></p>
         

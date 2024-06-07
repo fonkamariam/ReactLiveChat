@@ -1529,71 +1529,52 @@ function formatDateTime(isoString) {
 
 // For Settings code End
 
-    
+/**
+<div className="singleConvInfo">
+                <span><button onClick={()=>handleDeleteConversation(conversation.convId)}> Delete Conv</button></span>
+                <span className='Name'>{conversation.userName} {conversation.lastName}</span>
+                <div className='lastMessageContainer'><p className='lastMessage'> {conversation.message}</p>
+                <p className='lastUpdatedTime'> {formatDateTime(conversation.updatedTime)}</p>
+                <p className='newMessage'>{conversation.notificationCount}</p>
+                {conversation.status === "true" ?(<p>Online</p>):(<p>{formatDateTime(conversation.lastSeen)}</p>)}
+
+                
+             </div>
+            </div> 
+*/    
   return(
-    <div className='Chats'>
-      
-      <div className='ChatContainer'>
-          <div className='Conversation'>
-          <div className='InsideConversation'>
+  <div className='wrapper'>
+   <div className='container'>
+      <div className='left'>
+          <div className='top'>
           <span className='chatLogo'>Fonkagram</span>
+          
+          <label className="SB">
+          <input type="text"
+          placeholder="Search By Email" 
+          value={searchQueryUser} 
+          onChange={(e) => setSearchQueryUser(e.target.value)} />
+          </label>
+      <div className="SearchUser"> 
+          
+        {searchResultUser.length > 0 && ( 
+        <div className="SearchResultUser"> 
+              {searchResultUser.map(result => (
+                <div key={result.id}>
+                  <button onClick={()=>handleNewUserClick(result.id,result.name,result.lastName)}>Name: {result.name} {result.lastName} <br /> Email:{result.email}</button>
+                </div>
+              ))} 
+        </div>
+       )}
+          </div>
           <div className="App1">
           <div className='ProfilePicClass'>
-
-          
-        <button onClick={handleButtonClick1} ref={buttonRef} className='profilePicButton'>
-          <img className='profilePic' src="https://cdn-icons-png.flaticon.com/256/3524/3524659.png" alt="Profile" />
-        </button>
-         
+             <button onClick={handleButtonClick1} ref={buttonRef} className='profilePicButton'>
+          <img className='profilePic' src="https://cdn-icons-png.flaticon.com/256/3524/3524659.png" alt="Profile" /></button>
           </div>
           {isDropdownVisible && (
             <div className="dropdown2" ref={dropdownRef}>
               <ul className='oneUl'>
-          
-          {/*Contacts Start*/}
-          <li className='oneLi'>
-            <div>
-            <div className="App">
-            <div className={`content ${ContactIsOverlayVisible ? 'faded' : ''}`}>
-            <button className='buttonSignUpNew' onClick={ContacthandleButtonClick}>Contacts</button>
-            </div>
-
-            {ContactIsOverlayVisible && (
-            <div className="mineContact">
-  
-            <div className='formSignUp' >
-            <span className='logo'>Fonkagram</span>
-            <span className='title'>Contacts</span>
-            
-            <div className='SingleConv'>
-            <img className='Avatar' src="https://cdn4.iconfinder.com/data/icons/button-apps/2000/button_green__user-512.png" alt="" />
-            <div className="singleConvInfo">
-              <span className='Name'>Barok</span>
-              <p className='lastMessage'> Class</p>
-            </div>
-            
-          </div>
-          <div className='SingleConv'>
-            <img className='Avatar' src="https://cdn4.iconfinder.com/data/icons/button-apps/2000/button_green__user-512.png" alt="" />
-            <div className="singleConvInfo">
-              <span className='Name'>Barok</span>
-              <p className='lastMessage'> Class</p>
-            </div>
-            
-          </div>
-          
-            </div>
-
-            <button className='mineClose' onClick={handleCloseOverlay}>Close</button>
-            </div>
-            
-            )}
-            </div>  
-            </div>
-            </li>
-          {/*Contacts End*/}
-          
-          
           {/*Edit Profile(DropDown,Shade) code Start */} 
             <li className='oneLi' >
               <div className="App">
@@ -1700,11 +1681,10 @@ function formatDateTime(isoString) {
             </div>
             </li>
           {/*Change Password End*/}
-            
           {/*Delete Account Start*/}
-                <li className='oneLi'>
-            {/*Delete Account(DropDown,Shade) code Start */}
-            <div className="App">
+          <li className='oneLi'>
+          {/*Delete Account(DropDown,Shade) code Start */}
+          <div className="App">
           <div className={`content ${DaIsOverlayVisible ? 'faded' : ''}`}>
             <button className='buttonSignUpNew' onClick={DahandleButtonClick}>Delete Account</button>
           </div>
@@ -1746,78 +1726,56 @@ function formatDateTime(isoString) {
               </ul>
             </div>
           )}
-
-    </div>
-    </div>
-      
-          <div className="SearchUser"> 
-          <input 
-            className='searhInput'
-            type="text"
-            placeholder="Search Users by Email"
-            value={searchQueryUser}
-            onChange={(e) => setSearchQueryUser(e.target.value)}
-          /> 
-        {searchResultUser.length > 0 && ( 
-        <div className="SearchResultUser"> 
-              {searchResultUser.map(result => (
-                <div key={result.id}>
-                  <button onClick={()=>handleNewUserClick(result.id,result.name,result.lastName)}>Name: {result.name} {result.lastName} <br /> Email:{result.email}</button>
-                </div>
-              ))} 
-            </div>)}
           </div>
+      </div>
+            
+          
           {isLoading && <p className='isLoadingConv'>Loading Conversations...</p>}
           
           {conversations.length > 0 ?
           (
-          <div className="allConv">
+          <ul className="people">
            {conversations.map(conversation =>(
-
-              <div key={conversation.convId} className='SingleConv' onClick={() => handleConversationClick(conversation.convId,conversation.userId,conversation.userName,conversation.lastName)}>
-              <img className='Avatar' src="https://cdn4.iconfinder.com/data/icons/button-apps/2000/button_green__user-512.png" alt="" />
-              <div className="singleConvInfo">
-                <span><button onClick={()=>handleDeleteConversation(conversation.convId)}> Delete Conv</button></span>
-                <span className='Name'>{conversation.userName} {conversation.lastName}</span>
-                <div className='lastMessageContainer'><p className='lastMessage'> {conversation.message}</p>
-                <p className='lastUpdatedTime'> {formatDateTime(conversation.updatedTime)}</p>
-                <p className='newMessage'>{conversation.notificationCount}</p>
-                {conversation.status === "true" ?(<p>Online</p>):(<p>{formatDateTime(conversation.lastSeen)}</p>)}
-
-                
-             </div>
-            </div>
-              </div>
+              <li key={conversation.convId} className='person' onClick={() => handleConversationClick(conversation.convId,conversation.userId,conversation.userName,conversation.lastName)}>
+              <img className='avatar' src="https://cdn4.iconfinder.com/data/icons/button-apps/2000/button_green__user-512.png" alt="" />
+              <span className='name'>{conversation.userName} {conversation.lastName}</span>
+              <span className='time'>{formatDateTime(conversation.updatedTime)}</span>
+              <span className='preview'>{conversation.message}</span>
+              </li>
            ))}
           
-          </div>
+          </ul>
           ):( 
            <div>{!isLoading && <p className='isLoadingConv'>No Conversations...</p>}
            </div> 
           )}
          </div>
-        <div className='Message'>
-        <div className='fu'>
+
+
+        <div className='right'>
+        
         {messages.length > 0 || forSearchUser === true ? (
-          <div className='topChat'>
-          <span>{selectedName} {selectedLastName}</span> <br />
-          <span>Last seen recently</span>
+          <div className='top'>
+          
+          <span className='name'>{selectedName} {selectedLastName}</span> <br />
+          <span className='time'>Last seen recently</span>
+         
          </div>
         ):(
           <div></div>
         )}
-        </div>
+        
 
         <div className='ForMessages'>
           {messages.length > 0 || forSearchUser === true ? (
           messages.map(message=>( 
             <div key={message.id}>
-           <div className='Texts'>
+           
             {message.senderId !== Number(sessionStorage.getItem('userId'))?(
               <div key={message.id} className="MessageContent">
                 {editMessageId !== message.id ?(
-                  <p className='SingleMessage'>
-                  {message.content}
+                <p className='SingleMessage'>
+                {message.content}
                 <span className='timeStamp'>{formatDateTime(message.timeStamp)}</span>
                 <span className='timeStamp'>{message.edited === true ?("edited"):("")}</span>
                 
@@ -1865,18 +1823,19 @@ function formatDateTime(isoString) {
             )}
            </div>
            
-            </div>
+            
           ))
         ):(
           <p className='isLoadingMessage'>Select a chat to start messaging</p>
         )}
         </div>
-        <div key='keySearch' className='ForInputMessage'>
-          {messages.length > 0 || forSearchUser === true ? (
-          <div className='sendMessage'>
+        
+       {(messages.length > 0 || forSearchUser === true) ? (
+          <div className='write'>
+         
           <form key= 'unique' onSubmit={handleSendMessage}>
           <input 
-          className='messageInput' 
+        
           type="text" 
           placeholder='Type here...'
           required
@@ -1885,18 +1844,20 @@ function formatDateTime(isoString) {
           disabled={isLoadingMessage}
           />
           
-          <button className='send' onClick={handleSendMessage} disabled={sendMessage.length===0}>
+         
+          </form> 
+          
+          
+          <button onClick={handleSendMessage} disabled={sendMessage.length===0}>
           {isLoadingMessage ? "Sending..." : errorMessage ? "Failed to Send" : "Send"}
           </button>
-          </form>
-        </div>
-          
+          </div>
         ):(
          <div></div>
-         )}
+        )}
         </div>
         
-         </div>
+         
          
       </div>
 

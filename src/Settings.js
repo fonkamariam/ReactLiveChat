@@ -1,10 +1,15 @@
-import React, { useState } from 'react';
+import React, { useState ,useRef,useEffect} from 'react';
 import { renderToReadableStream } from 'react-dom/server';
 import { Link, useNavigate } from 'react-router-dom';
+import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
+import { faPaperPlane, faEdit, faTrashAlt,faSmile ,faCog, faUserEdit, faKey, faSignOutAlt, faTrash} from '@fortawesome/free-solid-svg-icons';
+import { MdEdit } from 'react-icons/md';
+import Picker from '@emoji-mart/react';
+import dataXXX from '@emoji-mart/data';
 
 function Settings() {
   const [activeTab, setActiveTab] = useState('editProfile');
-  // 
+  
   const [firstName, setFirstName] = useState(sessionStorage.getItem('Name'));
   const [lastName, setLastName] = useState(sessionStorage.getItem('LastName'));
   const [bio, setBio] = useState(sessionStorage.getItem('Bio'));
@@ -220,127 +225,382 @@ const [isOverlayVisible, setIsOverlayVisible] = useState(false);
   const handleCloseOverlay = () => {
     setIsOverlayVisible(false);
   };
+  const [searchQueryUser, setSearchQueryUser] = useState('');
+  const [selectedConversation, setSelectedConversation] = useState(null);
+  const [messages, setMessages] = useState([]);
+  const [newMessage, setNewMessage] = useState('');
+  const [showEmojiPicker, setShowEmojiPicker] = useState(false);
+  const [filteredUsers, setFilteredUsers] = useState([]);
+  const [showSettings, setShowSettings] = useState(false);
+  const [modalContent, setModalContent] = useState(null);
+  const settingsRef = useRef(null);
+  const modalRef = useRef(null);
+  // Sample conversation data for illustration purposes
+  const handleSendMessage = () => {
+    if (newMessage.trim() !== '') {
+      const newMessageObj = { id: Date.now(), content: newMessage, timeStamp: new Date().toLocaleString() };
+      setMessages([...messages, newMessageObj]);
+      setNewMessage('');
+      setShowEmojiPicker(false);
+    }
+  };
 
+ 
 
-  return (
-    <div className="Conversation">
-      <h2 className='Setting'>Settings</h2>
-      <div className="tabs"> 
-        <button className='buttonTab' onClick={showEditProfileSettings}>Edit Profile</button>
-        <button className='buttonTab' onClick={showChangePasswordSettings}>Change Password</button>
-        <button className='buttonTab' onClick={showDeleteSettings}>Delete Account</button>     
-        {/*Delete Account(DropDown,Shade) code Start */}
-        <div className="App">
-      <div className={`content ${isOverlayVisible ? 'faded' : ''}`}>
-        <button onClick={handleButtonClick}>Edit Profile</button>
+  const handleEditMessage = (id) => {
+    const messageContent = prompt('Edit your message:');
+    if (messageContent) {
+      setMessages(messages.map(msg => msg.id === id ? { ...msg, content: messageContent } : msg));
+    }
+  };
+
+  const handleDeleteMessage = (id) => {
+    setMessages(messages.filter(msg => msg.id !== id));
+  };
+  const handleDeleteConversation = (conv) =>{
+     setSelectedConversation(selectedConversation.filter(convv=> convv !== conv));
+  };
+  // Sample conversation data for illustration purposes
+  const conversations = [
+    {
+      id: 1,
+      firstName: 'John',
+      lastName: 'Doe',
+      online: true,
+      notifications: 2,
+      lastMessage: 'Hey, how are you?',
+      lastMessageTime: '12:34PM',
+    },
+    {
+      id: 2,
+      firstName: 'Jane',
+      lastName: 'Smith',
+      online: false,
+      notifications: 0,
+      lastMessage: 'Let\'s meet tomorrow.',
+      lastMessageTime: '2024-05-29 11:22:00',
+    },{
+      id: 3,
+      firstName: 'John',
+      lastName: 'Doe',
+      online: true,
+      notifications: 2,
+      lastMessage: 'Hey, how are you?',
+      lastMessageTime: '2024-05-29 12:34:00',
+    },{
+      id: 4,
+      firstName: 'John',
+      lastName: 'Doe',
+      online: true,
+      notifications: 2,
+      lastMessage: 'Hey, how are you?',
+      lastMessageTime: '2024-05-29 12:34:00',
+    },{
+      id: 5,
+      firstName: 'John',
+      lastName: 'Doe',
+      online: true,
+      notifications: 2,
+      lastMessage: 'Hey, how are you?',
+      lastMessageTime: '2024-05-29 12:34:00',
+    },{
+      id: 6,
+      firstName: 'John',
+      lastName: 'Doe',
+      online: true,
+      notifications: 2,
+      lastMessage: 'Hey, how are you?',
+      lastMessageTime: '2024-05-29 12:34:00',
+    },{
+      id: 7,
+      firstName: 'John',
+      lastName: 'Doe',
+      online: true,
+      notifications: 2,
+      lastMessage: 'Hey, how are you?',
+      lastMessageTime: '2024-05-29 12:34:00',
+    },{
+      id: 8,
+      firstName: 'John',
+      lastName: 'Doe',
+      online: true,
+      notifications: 2,
+      lastMessage: 'Hey, how are you?',
+      lastMessageTime: '2024-05-29 12:34:00',
+    }
+    // Add more sample conversations as needed
+  ];
+  const users = [
+    { id: 1, email: 'john.doe@example.com', firstName: 'John', lastName: 'Doe' },
+    { id: 2, email: 'jane.smith@example.com', firstName: 'Jane', lastName: 'Smith' },
+    { id: 3, email: 'alice.jones@example.com', firstName: 'Alice', lastName: 'Jones' },
+    // Add more mock users as needed
+  ];
+  const handleSearch = (e) => {
+    const query = e.target.value;
+    setSearchQueryUser(query);
+    if (query) {
+      const filtered = users.filter(user => user.email.toLowerCase().includes(query.toLowerCase()));
+      setFilteredUsers(filtered);
+    } else {
+      setFilteredUsers([]);
+    }
+  };
+
+  const handleUserSelect = (user) => {
+    console.log("Selected user:", user);
+    // Perform actions when a user is selected (e.g., start a conversation)
+    setSearchQueryUser(user.email);
+    setFilteredUsers([]);
+  };
+  const openModal = (content) => {
+    setModalContent(content);
+  };
+  const closeModal = () => {
+    setModalContent(null);
+  };
+  const handleOverlayClick = (e) => {
+    if (e.target === e.currentTarget) {
+      closeModal();
+    }
+  };
+ 
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (settingsRef.current && !settingsRef.current.contains(event.target)  && !modalContent) {
+        setShowSettings(false);
+      }
+    };
+
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, [settingsRef,modalContent]);
+  const openUserModal = (user) => {
+    setModalContent(
+      <div className="p-4">
+        <h2 className="text-xl font-semibold">{user.firstName} {user.lastName}</h2>
+        <p><strong>Email:</strong> {user.email}</p>
+        <p><strong>Bio:</strong> {user.bio}</p>
+        <p><strong>Age:</strong> {user.age}</p>
+        <button onClick={() => setModalContent(null)} className="mt-4 text-blue-500">Close</button>
       </div>
-
-      {isOverlayVisible && (
-        <div className="overlay">
-          <div className="overlay-content">
-
-          <form className='formSignUp' onSubmit={handleSubmitPassword}>
-          <span className='logo'>Fonkagram</span>
-          <span className='title'>Danger Zone</span>
-              Are you sure you want to delete this account?
-            <button className='buttonTabDelete' onClick={deleteAccount}  disabled={isLoading} >Delete</button>
-            
-          {isLoading && <p className='isLoading'>Loading...</p>}
-          <p className='login'><Link to="/chats">Go Back to Chats</Link></p>
-          
-          <span ><button className='logoutChat' onClick={handleLogOut}>Logout</button>
-           </span>
-              
-          </form>
-          
-        
-            <button onClick={handleCloseOverlay}>Close</button>
+    );
+  };
+    return (
+      <div className="flex h-screen relative">
+        {modalContent && (
+        <div 
+          className="fixed inset-0 bg-gray-800 bg-opacity-75 flex items-center justify-center z-50"
+          onClick={handleOverlayClick}
+        >
+          <div 
+          ref={modalRef}
+            className="bg-white p-4 rounded-lg shadow-lg w-1/3 relative"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <button onClick={closeModal} className="absolute top-2 right-2 text-gray-600">X</button>
+            {modalContent}
           </div>
         </div>
       )}
-    </div>  
-    {/*Delete Account (Drop Down,Shade) code End */}
-        
+        {/* Left Sidebar */}
+        <div className="w-1/4 bg-gray-100 border-r border-gray-300 flex flex-col">
+          {/* Search Bar */}
+          <div className="p-4 flex items-center relative">
+          <input
+            type="text"
+            placeholder="Search Users by Email"
+            value={searchQueryUser}
+            onChange={handleSearch}
+            className="input input-bordered w-full p-2 rounded-md"
+          />
+          <FontAwesomeIcon 
+            icon={faCog} 
+            className="ml-2 cursor-pointer text-gray-600 hover:text-gray-800" 
+            onClick={() => setShowSettings(!showSettings)} 
+          />
+          {showSettings && (
+            <div ref={settingsRef} className="absolute top-full mt-1 right-0 w-48 bg-white border border-gray-300 rounded-md shadow-lg z-10">
+               
+              <div className="p-2 hover:bg-gray-200 cursor-pointer flex items-center" onClick={() => openModal('Edit Profile')}>
+                <FontAwesomeIcon icon={faUserEdit} className="mr-2" /> Edit Profile
+              </div>
+              <div className="p-2 hover:bg-gray-200 cursor-pointer flex items-center" onClick={() => openModal('Change Password')}>
+                <FontAwesomeIcon icon={faKey} className="mr-2" /> Change Password
+              </div>
+              <div className="p-2 hover:bg-gray-200 cursor-pointer flex items-center" onClick={() => openModal('Delete Account')}>
+                <FontAwesomeIcon icon={faTrash} className="mr-2" /> Delete Account
+              </div>
+              <div className="p-2 hover:bg-gray-200 cursor-pointer flex items-center" onClick={() => openModal('Logout')}>
+                <FontAwesomeIcon icon={faSignOutAlt} className="mr-2" /> Logout
+              </div>
+            </div>
+          )}
+          {filteredUsers.length > 0 && (
+            <div className="absolute top-full mt-1 w-full bg-white border border-gray-300 rounded-md shadow-lg z-10">
+              {filteredUsers.map(user => (
+                <div
+                  key={user.id}
+                  className="p-2 hover:bg-gray-200 cursor-pointer"
+                  onClick={() => handleUserSelect(user)}
+                >
+                  {user.email}
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+          {/* Conversations List */}
+        <div className="overflow-y-auto flex-grow p-2">
+          {conversations.map((conv) => (
+            <div 
+              key={conv.id}   
+              className={` group p-4 flex items-start cursor-pointer hover:bg-gray-300 rounded-lg ${selectedConversation.id === conv.id ? 'bg-gray-300' : ''}`}
+              onClick={() => setSelectedConversation(conv)}
+            >
+              <button
+                className="relative right-3 text-red-500  hidden group-hover:block"
+                onClick={(e) => { e.stopPropagation(); handleDeleteConversation(conv); }}
+              >
+                <FontAwesomeIcon icon={faTrashAlt} />
+              </button>
+              
+              <div className="w-12 h-12 rounded-full bg-blue-500 text-white flex items-center justify-center mr-3 text-lg font-semibold">
+                {conv.firstName.charAt(0)}
+              </div>
+              <div className="flex-1">
+                <div className="flex justify-between items-center">
+                  <div>
+                    <div className="text-lg font-semibold">
+                      {conv.firstName} {conv.lastName}
+                      <span className={`ml-2 inline-block w-3 h-3 rounded-full ${conv.online ? 'bg-green-500' : 'bg-gray-500'}`}></span>
+                    </div>
+                    <div className="text-sm text-gray-500">{conv.lastMessage}</div>
+                  </div>
+                  <div className="text-sm text-gray-500 text-right">
+                    <div>{conv.lastMessageTime}</div>
+                    {conv.notifications > 0 && (
+                      <div className="bg-red-500 text-white rounded-full w-5 h-5 flex items-center justify-center text-xs">
+                        {conv.notifications}
+                      </div>
+                    )}
+                  </div>
+                </div>
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
 
+        {/* Right Content */}
+        <div className="flex flex-col w-3/4">
+          {/* Conversation Info */}
+          
+          {selectedConversation ? (
+            <div className="p-4 bg-gray-200 border-b border-gray-300">
+            <div onClick={() => openUserModal(selectedConversation)}  className="cursor-pointer">
+              <h2 className="text-lg font-semibold">
+                {selectedConversation.firstName} {selectedConversation.lastName}
+              </h2> 
+              <div className="text-sm text-gray-500">
+                {selectedConversation.online ? 'Online' : `Last seen: ${selectedConversation.lastMessageTime}`}
+              </div>
+            </div>
+            </div>
+          ) : (
+            <div></div>
+          )}
+       
+  
+          {/* Messages */}
+          <div className="flex-1 overflow-y-auto p-4 flex justify-center items-center">
+          {selectedConversation ? (
+            messages.length ? (
+              messages.map((message) => (
+                <div key={message.id} className="chat chat-end">
+                <div className="bg-blue-100 p-2 rounded-md flex flex-col space-y-2">
+                    <div className="message-content flex flex-col space-y-1">
+                      <div className="text-gray-900 overflow-hidden">
+                        {message}
+                      </div>
+                      <div className="text-right text-xs text-gray-500">
+                        2:03PM
+                      </div>
+                    </div>
+
+                    <div className="flex items-center justify-between">
+                      <button
+                        className="ml-2 text-gray-600 hover:text-gray-800"
+                        onClick={() => handleEditMessage(message.id)}
+                      >
+                        <MdEdit />
+                      </button>
+                      <button
+                        className="ml-2 text-red-600 hover:text-red-800"
+                        onClick={() => handleDeleteMessage(message.id)}
+                      >
+                        <FontAwesomeIcon icon={faTrashAlt} />
+                      </button>
+                    </div>
+                  </div>
+                  </div>
+
+            ))
+            ) : (
+            <div className="text-center text-gray-600">No messages</div>
+              )
+            ) : (
+              <div className="text-center text-gray-600">
+                <p>Welcome Mr.Harry Kane </p>
+               <p>Select a conversation to view messages</p> 
+                
+              </div>
+            )}
+          </div>
+  
+          {/* Input Field */}
+        {selectedConversation && (
+          <div className="p-4 bg-gray-200 border-t border-gray-300 flex items-center">
+            <input
+              type="text"
+              placeholder="Type your message..."
+              value={newMessage}
+              onChange={(e) => setNewMessage(e.target.value)}
+              className="input input-bordered flex-1 p-2 rounded-md"
+              onKeyDown={(e) => {
+                if (e.key === 'Enter') {
+                  handleSendMessage();
+                }
+              }}
+            />
+            <button 
+              onClick={() => setShowEmojiPicker(!showEmojiPicker)}
+              className="btn btn-secondary ml-2"
+            >
+              <FontAwesomeIcon icon={faSmile} />
+            </button>
+            <button 
+              onClick={handleSendMessage}
+              className="btn btn-primary ml-2"
+            >
+              <FontAwesomeIcon icon={faPaperPlane} />
+            </button>
+          </div>
+        )}
       </div>
-      <div className="contentSignUp">
-        {activeTab === 'editProfile' && (
-          <div className="formContainer">
-          <form className='formSignUp' onSubmit={handleSubmitPassword}>
-          <span className='logo'>Fonkagram</span>
-          <span className='title'>Danger Zone</span>
-              Are you sure you want to delete this account?
-            <button className='buttonTabDelete' onClick={deleteAccount}  disabled={isLoading} >Delete</button>
-            
-          {isLoading && <p className='isLoading'>Loading...</p>}
-          <p className='login'><Link to="/chats">Go Back to Chats</Link></p>
-          
-          <span ><button className='logoutChat' onClick={handleLogOut}>Logout</button>
-           </span>
-              
-          </form>
-          
-          
+        {/* Emoji Picker */}
+      {showEmojiPicker && (
+        <div className="absolute bottom-20 right-10 z-50">
+          <Picker dataXX={dataXXX} 
+            onEmojiSelect={(e) => { 
+              setNewMessage(newMessage + e.native);
+            }}
+          />
         </div>
-        )}
-        {activeTab === 'changePassword' && (
-          <div className="formContainer">
-          <form className='formSignUp' onSubmit={handleSubmitPassword}>
-          <span className='logo'>Fonkagram</span>
-          <span className='title'>Change Password</span>
-              <input 
-                className='emailInput'
-                placeholder='Old Password'
-                type="current-password" 
-                required 
-                value={oldPassword} 
-                onChange={handleOldPasswordChange} 
-                disabled={isLoading} // Disable input field while loading
-              />
-              
-            <input 
-            className='emailInput'
-            placeholder='New Password'
-                type="current-password" 
-                required 
-                value={newPassword} 
-                onChange={handleNewPasswordChange} 
-                disabled={isLoading} // Disable input field while loading
-            /> 
-            <button className='buttonSignUp' disabled={isLoading} >Submit</button>
-            
-            {errorMessage && <p className='errorMessage'>{errorMessage}</p>}
-          {goodMessage && <p className='goodMessage'>{goodMessage}</p>}
-          {isLoading && <p className='isLoading'>Loading...</p>}
-          <p className='login'><Link to="/chats">Go Back to Chats</Link></p>
-            
-          <span ><button className='logoutChat' onClick={handleLogOut}>Logout</button>
-           </span>
-              
-          </form>
-        </div>
-        )}
-         {activeTab === 'Delete' && (
-          <div className="formContainer">
-          <form className='formSignUp' onSubmit={handleSubmitPassword}>
-          <span className='logo'>Fonkagram</span>
-          <span className='title'>Danger Zone</span>
-              Are you sure you want to delete this account?
-            <button className='buttonTabDelete' onClick={deleteAccount}  disabled={isLoading} >Delete</button>
-            
-          {isLoading && <p className='isLoading'>Loading...</p>}
-          <p className='login'><Link to="/chats">Go Back to Chats</Link></p>
-          
-          <span ><button className='logoutChat' onClick={handleLogOut}>Logout</button>
-           </span>
-              
-          </form>
-        </div>
-        )}
-        
-      </div>
-      
-    </div>
+      )}
+      </div>  
   );
 }
 
