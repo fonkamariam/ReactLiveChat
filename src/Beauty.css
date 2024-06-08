@@ -8,7 +8,10 @@
   margin-bottom: 5px;
   word-wrap: break-word;
 }
-
+.message-fade-out {
+  transition: opacity 0.5s ease-out;
+  opacity: 0;
+}
 
 .timestampXXX {
   position: absolute;

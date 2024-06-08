@@ -2,10 +2,11 @@ import React, { useState ,useRef,useEffect} from 'react';
 import { renderToReadableStream } from 'react-dom/server';
 import { Link, useNavigate } from 'react-router-dom';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { faPaperPlane, faEdit, faTrashAlt,faSmile ,faCog, faUserEdit, faKey, faSignOutAlt, faTrash} from '@fortawesome/free-solid-svg-icons';
+import { faPaperPlane, faEdit, faTrashAlt,faSmile ,faCog, faUserEdit, faKey, faSignOutAlt, faTrash,faCheck,faTimes,faSpinner } from '@fortawesome/free-solid-svg-icons';
 import { MdEdit } from 'react-icons/md';
 import Picker from '@emoji-mart/react';
 import dataXXX from '@emoji-mart/data';
+import TextareaAutosize from 'react-textarea-autosize';
 
 function Settings() {
   const [activeTab, setActiveTab] = useState('editProfile');
@@ -230,36 +231,70 @@ const [isOverlayVisible, setIsOverlayVisible] = useState(false);
   const [messages, setMessages] = useState([]);
   const [newMessage, setNewMessage] = useState('');
   const [showEmojiPicker, setShowEmojiPicker] = useState(false);
+  const [showEmojiPickerEDIT,setShowEmojiPickerEDIT] = useState(false);
   const [filteredUsers, setFilteredUsers] = useState([]);
   const [showSettings, setShowSettings] = useState(false);
   const [modalContent, setModalContent] = useState(null);
+  const [editMessageId, setEditMessageId] = useState(null);
+  const [editMessageContent, setEditMessageContent] = useState('');
+  const [sendingMessage, setSendingMessage] = useState(false); // State for tracking sending status
+
+  
+  const emojiPickerRef = useRef(null);
   const settingsRef = useRef(null);
   const modalRef = useRef(null);
+  const useOutsideClick = (ref,callback)=>{
+    useEffect(() => {
+      function handleClick(event) {
+        if (ref.current && !ref.current.contains(event.target)) {
+          callback();
+        }
+      }
+  
+      document.addEventListener('mousedown', handleClick);
+  
+      return () => {
+        document.removeEventListener('mousedown', handleClick);
+      };
+    }, [ref, callback]);
+  }
   // Sample conversation data for illustration purposes
   const handleSendMessage = () => {
     if (newMessage.trim() !== '') {
+      setSendingMessage(true); // Set sending state to true when sending a message
+
       const newMessageObj = { id: Date.now(), content: newMessage, timeStamp: new Date().toLocaleString() };
-      setMessages([...messages, newMessageObj]);
-      setNewMessage('');
-      setShowEmojiPicker(false);
+
+      // Simulate API call delay
+      setTimeout(() => {
+        setMessages(prevMessages => [...prevMessages, newMessageObj]);
+        setNewMessage('');
+        setSendingMessage(false); // Reset sending state after message is sent
+      }, 1000); // Adjust the timeout duration as needed to simulate network delay
     }
   };
-
+/**Now when displaying messages i want the delete and edit button to appear only when i hover above it. and also when a single message is deleted, i want there to be an animation. */
  
+const handleEditMessage = (id) => {
+  const messageToEdit = messages.find((msg) => msg.id === id);
+  setEditMessageId(id);
+  setEditMessageContent(messageToEdit.content);
+};
 
-  const handleEditMessage = (id) => {
-    const messageContent = prompt('Edit your message:');
-    if (messageContent) {
-      setMessages(messages.map(msg => msg.id === id ? { ...msg, content: messageContent } : msg));
-    }
-  };
-
-  const handleDeleteMessage = (id) => {
-    setMessages(messages.filter(msg => msg.id !== id));
-  };
-  const handleDeleteConversation = (conv) =>{
-     setSelectedConversation(selectedConversation.filter(convv=> convv !== conv));
-  };
+  
+const handleDeleteMessage = (id) => {
+  const messageElement = document.getElementById(`message-${id}`);
+  if (messageElement) {
+    messageElement.classList.add('message-fade-out');
+    setTimeout(() => {
+      setMessages(messages.filter(message => message.id !== id));
+    }, 500); // Time should match the CSS transition duration
+  }
+};
+const handleDeleteConversation = (id) =>{
+    conversations.filter(conv=> conv.id !== id);
+};
+  
   // Sample conversation data for illustration purposes
   const conversations = [
     {
@@ -278,7 +313,7 @@ const [isOverlayVisible, setIsOverlayVisible] = useState(false);
       online: false,
       notifications: 0,
       lastMessage: 'Let\'s meet tomorrow.',
-      lastMessageTime: '2024-05-29 11:22:00',
+      lastMessageTime: '11:22PM',
     },{
       id: 3,
       firstName: 'John',
@@ -286,7 +321,7 @@ const [isOverlayVisible, setIsOverlayVisible] = useState(false);
       online: true,
       notifications: 2,
       lastMessage: 'Hey, how are you?',
-      lastMessageTime: '2024-05-29 12:34:00',
+      lastMessageTime: '12:34PM',
     },{
       id: 4,
       firstName: 'John',
@@ -294,7 +329,7 @@ const [isOverlayVisible, setIsOverlayVisible] = useState(false);
       online: true,
       notifications: 2,
       lastMessage: 'Hey, how are you?',
-      lastMessageTime: '2024-05-29 12:34:00',
+      lastMessageTime: '12:34PM',
     },{
       id: 5,
       firstName: 'John',
@@ -302,7 +337,7 @@ const [isOverlayVisible, setIsOverlayVisible] = useState(false);
       online: true,
       notifications: 2,
       lastMessage: 'Hey, how are you?',
-      lastMessageTime: '2024-05-29 12:34:00',
+      lastMessageTime: '12:34PM',
     },{
       id: 6,
       firstName: 'John',
@@ -310,7 +345,7 @@ const [isOverlayVisible, setIsOverlayVisible] = useState(false);
       online: true,
       notifications: 2,
       lastMessage: 'Hey, how are you?',
-      lastMessageTime: '2024-05-29 12:34:00',
+      lastMessageTime: '12:34PM',
     },{
       id: 7,
       firstName: 'John',
@@ -318,7 +353,7 @@ const [isOverlayVisible, setIsOverlayVisible] = useState(false);
       online: true,
       notifications: 2,
       lastMessage: 'Hey, how are you?',
-      lastMessageTime: '2024-05-29 12:34:00',
+      lastMessageTime: '12:34PM',
     },{
       id: 8,
       firstName: 'John',
@@ -326,7 +361,7 @@ const [isOverlayVisible, setIsOverlayVisible] = useState(false);
       online: true,
       notifications: 2,
       lastMessage: 'Hey, how are you?',
-      lastMessageTime: '2024-05-29 12:34:00',
+      lastMessageTime: '12:34PM',
     }
     // Add more sample conversations as needed
   ];
@@ -364,7 +399,7 @@ const [isOverlayVisible, setIsOverlayVisible] = useState(false);
       closeModal();
     }
   };
- 
+  
   useEffect(() => {
     const handleClickOutside = (event) => {
       if (settingsRef.current && !settingsRef.current.contains(event.target)  && !modalContent) {
@@ -388,6 +423,22 @@ const [isOverlayVisible, setIsOverlayVisible] = useState(false);
       </div>
     );
   };
+  const handleKeyDown = (e) => {
+    if (e.key === 'Enter' && e.ctrlKey) {
+      e.preventDefault();
+      setNewMessage(prev => prev + '\n');
+    } else if (e.key === 'Enter' && !e.ctrlKey) {
+      e.preventDefault();
+      handleSendMessage();
+    }
+  };
+  const handleSaveEditedMessage = () => {
+    setMessages(messages.map((msg) => (msg.id === editMessageId ? { ...msg, content: editMessageContent } : msg)));
+    setEditMessageId(null);
+    setEditMessageContent('');
+  };
+  //useOutsideClick(emojiPickerRef, () => setShowEmojiPicker(false));
+  useOutsideClick(emojiPickerRef,() => setShowEmojiPickerEDIT(false));
     return (
       <div className="flex h-screen relative">
         {modalContent && (
@@ -457,12 +508,12 @@ const [isOverlayVisible, setIsOverlayVisible] = useState(false);
           {conversations.map((conv) => (
             <div 
               key={conv.id}   
-              className={` group p-4 flex items-start cursor-pointer hover:bg-gray-300 rounded-lg ${selectedConversation.id === conv.id ? 'bg-gray-300' : ''}`}
+              className={` group p-4 flex items-start cursor-pointer  ${selectedConversation && selectedConversation.id === conv.id ? 'bg-gray-300' : ''}`}
               onClick={() => setSelectedConversation(conv)}
             >
               <button
                 className="relative right-3 text-red-500  hidden group-hover:block"
-                onClick={(e) => { e.stopPropagation(); handleDeleteConversation(conv); }}
+                onClick={(e) => { e.stopPropagation(); handleDeleteConversation(conv.id); }}
               >
                 <FontAwesomeIcon icon={faTrashAlt} />
               </button>
@@ -515,35 +566,78 @@ const [isOverlayVisible, setIsOverlayVisible] = useState(false);
        
   
           {/* Messages */}
-          <div className="flex-1 overflow-y-auto p-4 flex justify-center items-center">
+          <div className="flex-1 overflow-y-auto p-4">
           {selectedConversation ? (
             messages.length ? (
               messages.map((message) => (
-                <div key={message.id} className="chat chat-end">
-                <div className="bg-blue-100 p-2 rounded-md flex flex-col space-y-2">
-                    <div className="message-content flex flex-col space-y-1">
-                      <div className="text-gray-900 overflow-hidden">
-                        {message}
+                <div key={message.id} id={`message-${message.id}`} className="mb-4">
+                <div className=''>
+                    <div className="chat chat-end">
+                      {editMessageId === message.id ? (
+                        <div className="group chat-bubble bg-blue-500 text-white p-2 rounded-lg max-w-xs md:max-w-md break-words">
+                      <form key={message.id} onSubmit={handleEditMessage}>
+                        <TextareaAutosize
+                          type="text"
+                          value={editMessageContent}
+                          onChange={(e) => setEditMessageContent(e.target.value)}
+                          required
+                          className=''
+                        /> 
+                            <button type="submit" className="ml-2 text-gray-600">
+                              <FontAwesomeIcon icon={faCheck} />
+                            </button>
+                            <button type="button" onClick={() => setEditMessageId(null)} className="ml-2 text-red-600">
+                              <FontAwesomeIcon icon={faTimes} />
+                            </button>
+                            
+                      </form>
+                        <div className="flex items-center justify-between mt-1">
+                          
+                          <button
+                            onClick={() => setShowEmojiPickerEDIT(!showEmojiPickerEDIT)} ref={emojiPickerRef}
+                            className="btn btn-secondary ml-2 size-0"
+                          >
+                            <FontAwesomeIcon icon={faSmile} size='sm' />
+                          </button>
+                          {showEmojiPickerEDIT && (
+                            <div className="absolute top-10 right-5 z-25">
+                              <Picker dataXX={dataXXX} 
+                                onEmojiSelect={(e) => { 
+                                  setEditMessageContent(editMessageContent + e.native);
+                                }}
+                              />
+                            </div>
+                          )}
+                        </div>
                       </div>
-                      <div className="text-right text-xs text-gray-500">
-                        2:03PM
-                      </div>
-                    </div>
 
-                    <div className="flex items-center justify-between">
+                      ):(
+                        <div className="group chat-bubble bg-blue-500 text-white p-2 rounded-lg max-w-xs md:max-w-md break-words">
+                        {message.content}
+                        <div className="flex items-center justify-between mt-1">
                       <button
-                        className="ml-2 text-gray-600 hover:text-gray-800"
+                        className="ml-2 text-gray-600 hidden group-hover:block"
                         onClick={() => handleEditMessage(message.id)}
                       >
                         <MdEdit />
                       </button>
                       <button
-                        className="ml-2 text-red-600 hover:text-red-800"
+                        className="ml-2 text-red-600 hidden group-hover:block"
                         onClick={() => handleDeleteMessage(message.id)}
                       >
                         <FontAwesomeIcon icon={faTrashAlt} />
                       </button>
                     </div>
+                      </div>
+                      )}
+                      
+                      <div className="chat-footer opacity-50">
+                        2:03PM
+                      </div>
+                      
+                    </div>
+                    
+                    
                   </div>
                   </div>
 
@@ -563,30 +657,26 @@ const [isOverlayVisible, setIsOverlayVisible] = useState(false);
           {/* Input Field */}
         {selectedConversation && (
           <div className="p-4 bg-gray-200 border-t border-gray-300 flex items-center">
-            <input
-              type="text"
-              placeholder="Type your message..."
-              value={newMessage}
-              onChange={(e) => setNewMessage(e.target.value)}
-              className="input input-bordered flex-1 p-2 rounded-md"
-              onKeyDown={(e) => {
-                if (e.key === 'Enter') {
-                  handleSendMessage();
-                }
-              }}
-            />
+            
+          <TextareaAutosize  
+          placeholder="Type your message..."
+          value={newMessage}
+          onChange={(e) => setNewMessage(e.target.value)}
+          className="textarea textarea-bordered flex-1 p-2 resize-none rounded-md overflow-hidden"
+          onKeyDown={handleKeyDown}
+          minRows={1}
+          
+         
+        />
             <button 
               onClick={() => setShowEmojiPicker(!showEmojiPicker)}
               className="btn btn-secondary ml-2"
             >
               <FontAwesomeIcon icon={faSmile} />
             </button>
-            <button 
-              onClick={handleSendMessage}
-              className="btn btn-primary ml-2"
-            >
-              <FontAwesomeIcon icon={faPaperPlane} />
-            </button>
+            <button onClick={handleSendMessage} disabled={sendingMessage}>
+          {sendingMessage ? <FontAwesomeIcon icon={faSpinner} spin /> : <FontAwesomeIcon icon={faPaperPlane} />}
+        </button>
           </div>
         )}
       </div>
