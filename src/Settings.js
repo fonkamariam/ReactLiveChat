@@ -2,11 +2,15 @@ import React, { useState ,useRef,useEffect} from 'react';
 import { renderToReadableStream } from 'react-dom/server';
 import { Link, useNavigate } from 'react-router-dom';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { faPaperPlane, faEdit, faTrashAlt,faSmile ,faCog, faUserEdit, faKey, faSignOutAlt, faTrash,faCheck,faTimes,faSpinner } from '@fortawesome/free-solid-svg-icons';
+import { faPaperPlane, faPause, faTrashAlt,faSmile ,faCog, faUserEdit, faKey, faSignOutAlt, faTrash,faCheck,faTimes,faSpinner,faPaperclip,faMicrophone, faStop, faPlay,faTimesCircle,faDownload} from '@fortawesome/free-solid-svg-icons';
 import { MdEdit } from 'react-icons/md';
 import Picker from '@emoji-mart/react';
 import dataXXX from '@emoji-mart/data';
 import TextareaAutosize from 'react-textarea-autosize';
+import RecordRTC from 'recordrtc';
+import WaveSurfer from 'wavesurfer.js';
+import { storage } from './firebaseConfig';
+import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 
 function Settings() {
   const [activeTab, setActiveTab] = useState('editProfile');
@@ -238,11 +242,376 @@ const [isOverlayVisible, setIsOverlayVisible] = useState(false);
   const [editMessageId, setEditMessageId] = useState(null);
   const [editMessageContent, setEditMessageContent] = useState('');
   const [sendingMessage, setSendingMessage] = useState(false); // State for tracking sending status
+  const [fullscreenImage, setFullscreenImage] = useState(null);
+  const [isUploading, setIsUploading] = useState(false);
+  const [uploadingMessageId, setUploadingMessageId] = useState(null);
+  const [isDownloading, setIsDownloading] = useState(false);
+  const [downloadingMessageId, setDownloadingMessageId] = useState(null);
+// Live wave form
 
+
+  // Voice Message
+  const [audioURL, setAudioURL] = useState('');
+  const [isRecording, setIsRecording] = useState(false);
+  const recorderRef = useRef(null);
+
+  const [currentAudioId, setCurrentAudioId] = useState(null);
+  const [isPlaying, setIsPlaying] = useState(false);
+  const [currentAudioURL, setCurrentAudioURL] = useState(null);
   
+  const [recordingDuration, setRecordingDuration] = useState(0);
+
+  const waveformRecordingRef = useRef(null);
+  const recordingIntervalRef = useRef(null);
+  const [elapsedTimes, setElapsedTimes] = useState({});
+  const [playbackPositions, setPlaybackPositions] = useState({});
+
+  const audioRef = useRef(null);
+  const durationsRef = useRef({});
+  const waveformRefs = useRef({});
+  const fileInputRef = useRef(null);
   const emojiPickerRef = useRef(null);
   const settingsRef = useRef(null);
   const modalRef = useRef(null);
+
+  // for voice message
+  const stopCurrentAudio = () => {
+    
+    if (audioRef.current) {
+      audioRef.current.pause();
+      audioRef.current.currentTime = 0;
+    }
+    
+    setIsPlaying(false);
+    setCurrentAudioId(null);
+    setElapsedTimes({});
+  };
+  useEffect(() => {
+    stopCurrentAudio();
+  }, [selectedConversation]);
+
+
+  const handleStartRecording = async () => {
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      recorderRef.current = new RecordRTC(stream, { type: 'audio' });
+      recorderRef.current.startRecording();
+
+      setIsRecording(true);
+      setRecordingDuration(0);
+
+      recordingIntervalRef.current = setInterval(() => {
+        setRecordingDuration(prevDuration => prevDuration + 1);
+      }, 1000);
+
+      // Setup waveform for recording
+      if (waveformRecordingRef.current === null) {
+        waveformRecordingRef.current = WaveSurfer.create({
+          container: '#waveform-recording',
+          waveColor: '#ddd',
+          progressColor: '#4a90e2',
+          cursorWidth: 0,
+          height: 20,
+          barWidth: 2,
+        });
+      }
+    } catch (err) {
+      console.error('Error accessing microphone:', err);
+    }
+  };
+
+
+  const handleStopRecordingOld = () => {
+    recorderRef.current.stopRecording(() => {
+      const audioURL = URL.createObjectURL(recorderRef.current.getBlob());
+      setAudioURL(audioURL);
+      const newMessageObj = { id: Date.now(), content: audioURL, timeStamp: new Date().toLocaleString(), isAudio: true };
+      setMessages(prevMessages => [...prevMessages, newMessageObj]);
+    });
+    setIsRecording(false);
+  };
+
+const handleStopRecording = () => {
+  recorderRef.current.stopRecording(async () => {
+    const blob = recorderRef.current.getBlob();
+    const audioURL = URL.createObjectURL(blob);
+    const messageId = Date.now();
+
+    // Add a temporary message with a loading icon
+    const newMessageObj = { id: messageId, content: audioURL, timeStamp: new Date().toLocaleString(), isAudio: true, isUploading: true };
+    setMessages(prevMessages => [...prevMessages, newMessageObj]);
+    setUploadingMessageId(messageId);
+    setIsUploading(true);
+
+    // Upload to Firebase Storage
+    const storageRef = ref(storage, `audioMessages/${messageId}.webm`);
+    try {
+      await uploadBytes(storageRef, blob);
+      const downloadURL = await getDownloadURL(storageRef);
+
+      // Update the message with the final URL
+      setMessages(prevMessages => prevMessages.map(msg => {
+        if (msg.id === messageId) {
+          return { ...msg, content: downloadURL, isUploading: false };
+        }
+        return msg;
+      }));
+      setIsUploading(false);
+    } catch (error) {
+      console.error('Error uploading audio:', error);
+      // Remove the message if upload fails
+      setMessages(prevMessages => prevMessages.filter(msg => msg.id !== messageId));
+      setIsUploading(false);
+    }
+  });
+
+  setIsRecording(false);
+  clearInterval(recordingIntervalRef.current);
+};
+
+  
+  const blobToBase64 = (blob) => {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.readAsDataURL(blob);
+      reader.onloadend = () => {
+        resolve(reader.result);
+      };
+      reader.onerror = reject;
+    });
+  };
+  
+  const base64ToBlob = (base64, contentType) => {
+    const byteCharacters = atob(base64.split(',')[1]);
+    const byteArrays = [];
+    for (let i = 0; i < byteCharacters.length; i++) {
+      byteArrays.push(byteCharacters.charCodeAt(i));
+    }
+    const byteArray = new Uint8Array(byteArrays);
+    return new Blob([byteArray], { type: contentType });
+  };
+  
+const handlePlayAudio = async (audioURL, messageId) => {
+  if (currentAudioId === messageId) {
+    if (isPlaying) {
+      // Pause the audio
+      if (audioRef.current) {
+        const currentTime = audioRef.current.currentTime;
+        setPlaybackPositions(prev => ({ ...prev, [messageId]: currentTime }));
+        audioRef.current.pause();
+      }
+      setIsPlaying(false);
+    } else {
+      // Resume the audio
+      const storedAudio = localStorage.getItem(`audioBlob_${messageId}`);
+      if (storedAudio) {
+        const blob = base64ToBlob(storedAudio, 'audio/webm');
+        const audio = new Audio(URL.createObjectURL(blob));
+
+        audioRef.current = audio;
+
+        // Set the currentTime to the last saved position
+        const currentTime = playbackPositions[messageId] || 0;
+        audio.currentTime = currentTime;
+
+        audio.addEventListener('timeupdate', () => {
+          setElapsedTimes(prev => ({ ...prev, [messageId]: audio.currentTime }));
+        });
+
+        audio.addEventListener('ended', () => {
+          stopCurrentAudio();
+        });
+
+        audio.play().then(() => {
+          setIsPlaying(true);
+          setCurrentAudioId(messageId);
+        }).catch(error => {
+          console.error('Playback failed:', error);
+        });
+      }
+    }
+  } else {
+    // Play new audio
+    stopCurrentAudio();
+
+    const storedAudio = localStorage.getItem(`audioBlob_${messageId}`);
+    if (storedAudio) {
+      const blob = base64ToBlob(storedAudio, 'audio/webm');
+      const audio = new Audio(URL.createObjectURL(blob));
+
+      audioRef.current = audio;
+
+      audio.addEventListener('timeupdate', () => {
+        setElapsedTimes(prev => ({ ...prev, [messageId]: audio.currentTime }));
+      });
+
+      audio.addEventListener('ended', () => {
+        stopCurrentAudio();
+      });
+
+      audio.play().then(() => {
+        setIsPlaying(true);
+        setCurrentAudioId(messageId);
+      }).catch(error => {
+        console.error('Playback failed:', error);
+      });
+    } else {
+      handleDownloadAudio(audioURL, messageId);
+    }
+  }
+};
+
+
+  
+  const handleDownloadAudio = async (audioURL, messageId) => {
+  try {
+    setIsDownloading(true);
+    setDownloadingMessageId(messageId);
+
+    const response = await fetch(audioURL);
+    const blob = await response.blob();
+
+    const base64 = await blobToBase64(blob);
+    localStorage.setItem(`audioBlob_${messageId}`, base64);
+
+    setIsDownloading(false);
+    handlePlayAudio(URL.createObjectURL(blob), messageId);
+  } catch (error) {
+    console.error('Error downloading audio:', error);
+    setIsDownloading(false);
+  }
+};
+const handleConversationChange = (conversationId) => {
+  setSelectedConversation(conversationId);
+  stopCurrentAudio();
+};
+  
+  useEffect(() => {
+    messages.forEach(message => {
+      if (message.isAudio && !waveformRefs.current[message.id]) {
+        const container = document.getElementById(`waveform-${message.id}`);
+        if (container) {
+          const waveform = WaveSurfer.create({
+            container: `#waveform-${message.id}`,
+            waveColor: '#ddd',
+            progressColor: '#4a90e2',
+            cursorColor: '#4a90e2',
+            height: 20,
+          });
+  
+          waveform.on('ready', () => {
+            const duration = waveform.getDuration();
+            durationsRef.current[message.id] = duration;
+            container.style.width = `${Math.min(duration, 60) * 10}px`; // Scale 10px per second, max 600px
+            const durationSpan = container.querySelector('.duration');
+            if (durationSpan) {
+              durationSpan.innerText = `${Math.floor(duration / 60)}:${Math.floor(duration % 60).toString().padStart(2, '0')}`;
+            }
+          });
+  
+          const audioBlobURL = localStorage.getItem(message.content);
+          if (audioBlobURL) {
+            waveform.load(audioBlobURL);
+          } else {
+            waveform.load(message.content);
+          }
+  
+          waveform.on('play', () => {
+            setCurrentAudioId(message.id);
+            setIsPlaying(true);
+          });
+          waveform.on('pause', () => {
+            setIsPlaying(false);
+          });
+          waveform.on('finish', () => {
+            setIsPlaying(false);
+            setCurrentAudioId(null);
+          });
+  
+          waveformRefs.current[message.id] = waveform;
+        }
+      }
+    });
+  
+    return () => {
+      // Cleanup WaveSurfer instances on unmount
+      Object.values(waveformRefs.current).forEach(waveform => waveform.destroy());
+    };
+  }, [messages]);
+  const handlePauseAudio = () => {
+    if (currentAudioId !== null) {
+      const waveform = waveformRefs.current[currentAudioId];
+      if (waveform && isPlaying) {
+        waveform.pause();
+      }
+    }
+  };
+
+  const handleCloseAudio = () => {
+    if (currentAudioId !== null) {
+      const waveform = waveformRefs.current[currentAudioId];
+      if (waveform) {
+        waveform.stop();
+      }
+      setIsPlaying(false);
+      setCurrentAudioId(null);
+    }
+  };
+  const OldHandlePlayPauseAudio = (id) => {
+    console.log("waveformRef's",waveformRefs.current);
+    const waveform = waveformRefs.current[id];
+    console.log("waveform",waveform);
+    if (waveform) {
+      if (isPlaying && currentAudioId === id) {
+        waveform.pause();
+      } else {
+        if (currentAudioId !== null && waveformRefs.current[currentAudioId]) {
+          waveformRefs.current[currentAudioId].pause();
+        }
+        waveform.play();
+      }
+    }
+  };
+  const handlePlayPauseAudio = async (audioURL, messageId) => {
+    let audioBlobURL = localStorage.getItem(audioURL);
+  
+    if (!audioBlobURL) {
+      try {
+        const response = await fetch(audioURL);
+        const blob = await response.blob();
+        audioBlobURL = URL.createObjectURL(blob);
+        localStorage.setItem(audioURL, audioBlobURL);
+      } catch (error) {
+        console.error('Error fetching audio from URL:', error);
+        return;
+      }
+    }
+  
+    const waveform = waveformRefs.current[messageId];
+  
+    if (waveform) {
+      if (isPlaying && currentAudioId === messageId) {
+        waveform.pause();
+      } else {
+        if (currentAudioId !== null && waveformRefs.current[currentAudioId]) {
+          waveformRefs.current[currentAudioId].pause();
+        }
+        waveform.load(audioBlobURL);
+        waveform.play();
+      }
+      setCurrentAudioId(messageId);
+      setIsPlaying(!isPlaying);
+    }
+  };
+  
+
+  const handleImageClick = (src) => {
+    setFullscreenImage(src);
+  };
+
+  const closeFullscreenImage = () => {
+    setFullscreenImage(null);
+  };
   const useOutsideClick = (ref,callback)=>{
     useEffect(() => {
       function handleClick(event) {
@@ -281,13 +650,27 @@ const handleEditMessage = (id) => {
   setEditMessageContent(messageToEdit.content);
 };
 
-  
+const handleFileChange = (event) => {
+  const file = event.target.files[0];
+  if (file) {
+    const reader = new FileReader();
+    reader.onloadend = () => {
+      const newMessageObj = { id: Date.now(), content: reader.result, timeStamp: new Date().toLocaleString(), isImage: true };
+      setMessages([...messages, newMessageObj]);
+    };
+    reader.readAsDataURL(file);
+  }
+};
 const handleDeleteMessage = (id) => {
   const messageElement = document.getElementById(`message-${id}`);
   if (messageElement) {
     messageElement.classList.add('message-fade-out');
     setTimeout(() => {
+    if (currentAudioId === id) {
+    stopCurrentAudio();
+  }
       setMessages(messages.filter(message => message.id !== id));
+
     }, 500); // Time should match the CSS transition duration
   }
 };
@@ -439,6 +822,8 @@ const handleDeleteConversation = (id) =>{
   };
   //useOutsideClick(emojiPickerRef, () => setShowEmojiPicker(false));
   useOutsideClick(emojiPickerRef,() => setShowEmojiPickerEDIT(false));
+  useOutsideClick(emojiPickerRef,() => setShowEmojiPicker(false));
+  
     return (
       <div className="flex h-screen relative">
         {modalContent && (
@@ -509,7 +894,7 @@ const handleDeleteConversation = (id) =>{
             <div 
               key={conv.id}   
               className={` group p-4 flex items-start cursor-pointer  ${selectedConversation && selectedConversation.id === conv.id ? 'bg-gray-300' : ''}`}
-              onClick={() => setSelectedConversation(conv)}
+              onClick={() => handleConversationChange(conv)}
             >
               <button
                 className="relative right-3 text-red-500  hidden group-hover:block"
@@ -559,18 +944,38 @@ const handleDeleteConversation = (id) =>{
                 {selectedConversation.online ? 'Online' : `Last seen: ${selectedConversation.lastMessageTime}`}
               </div>
             </div>
+            
             </div>
+            
           ) : (
             <div></div>
           )}
-       
+       {/* Fullscreen Image Modal */}
+      {fullscreenImage && (
+        <div className="fixed inset-0 bg-black bg-opacity-75 flex items-center justify-center z-50" onClick={closeFullscreenImage}>
+          <img src={fullscreenImage} alt="Fullscreen" className="max-w-full max-h-full" />
+        </div>
+      )}
+       <div className="flex justify-center mt-2"> 
+        </div>
   
           {/* Messages */}
-          <div className="flex-1 overflow-y-auto p-4">
-          {selectedConversation ? (
-            messages.length ? (
-              messages.map((message) => (
-                <div key={message.id} id={`message-${message.id}`} className="mb-4">
+          
+        <div className="flex-1 overflow-y-auto p-4">
+        {selectedConversation ? (
+          messages.length ? ( 
+            messages.map((message) => (
+            <div key={message.id} id={`message-${message.id}`} className="mb-4">
+            {currentAudioId !== null && message.isAudio && (
+              <div className="flex justify-between mt-2">
+              <button onClick={() => handlePlayPauseAudio(message.content,message.id)}> 
+              <FontAwesomeIcon icon={isPlaying && currentAudioId === message.id ? faPause : faPlay} />
+              </button> 
+            <button onClick={handleCloseAudio} className="text-red-500">
+              <FontAwesomeIcon icon={faStop} />  
+            </button> 
+          </div> 
+           )} 
                 <div className=''>
                     <div className="chat chat-end">
                       {editMessageId === message.id ? (
@@ -613,8 +1018,68 @@ const handleDeleteConversation = (id) =>{
 
                       ):(
                         <div className="group chat-bubble bg-blue-500 text-white p-2 rounded-lg max-w-xs md:max-w-md break-words">
-                        {message.content}
-                        <div className="flex items-center justify-between mt-1">
+                        {message.isImage ? (
+                          <div>
+                          <img src={message.content} alt="attachment" className="rounded-lg max-w-full cursor-pointer" 
+                          onClick={() => handleImageClick(message.content)}
+                          />
+                          <div className="flex items-center justify-between mt-1" >
+          
+                      <button
+                        className="ml-2 text-red-600 hidden group-hover:block"
+                        onClick={() => handleDeleteMessage(message.id)}
+                      >
+                        <FontAwesomeIcon icon={faTrashAlt} />
+                      </button>
+                    </div>
+                          </div>
+                        ) : message.isAudio?(
+                        <div>
+                            {isUploading && uploadingMessageId === message.id && (
+                                <FontAwesomeIcon icon={faSpinner} spin className="mr-2" />
+                            )}
+                            {!isUploading && (
+                              <>
+                                {isDownloading && downloadingMessageId === message.id ? (
+                                  <FontAwesomeIcon icon={faSpinner} spin className="mr-2" />
+                                ) : (
+                                  <button onClick={() => handlePlayAudio(message.content, message.id)} className="mr-2">
+                                    <FontAwesomeIcon icon={isPlaying && currentAudioId === message.id ? faPause : faPlay} />
+                                  </button>
+                                )}
+                              </>
+                            )}
+                          <div id={`waveform-${message.id}`} className="rounded-lg max-w-full">
+                          <span className="duration" 
+                            id='{`duration-${message.id}`}'>
+                            
+                            {isPlaying && currentAudioId === message.id
+                          ? `${Math.floor((elapsedTimes[message.id] || 0) / 60)}:${Math.floor((elapsedTimes[message.id] || 0) % 60).toString().padStart(2, '0')}`
+                          : durationsRef.current[message.id]
+                            ? `${Math.floor(durationsRef.current[message.id] / 60)}:${Math.floor(durationsRef.current[message.id] % 60).toString().padStart(2, '0')}`
+                            : '0:00'}
+                            
+                            </span>
+                        </div>
+                          
+                        
+                        
+                            <div className="flex items-center justify-between mt-1" >
+              
+                            <button
+                              className="ml-2 text-red-600 hidden group-hover:block"
+                              onClick={() => handleDeleteMessage(message.id)}
+                            >
+                              <FontAwesomeIcon icon={faTrashAlt} />
+                            </button>
+                            </div>
+                          
+                      </div>
+                      ): (
+                          
+                          <div>
+                          {message.content}
+                          <div className="flex items-center justify-between mt-1" >
                       <button
                         className="ml-2 text-gray-600 hidden group-hover:block"
                         onClick={() => handleEditMessage(message.id)}
@@ -628,6 +1093,10 @@ const handleDeleteConversation = (id) =>{
                         <FontAwesomeIcon icon={faTrashAlt} />
                       </button>
                     </div>
+                    </div>
+                        )}
+                        
+                        
                       </div>
                       )}
                       
@@ -640,7 +1109,6 @@ const handleDeleteConversation = (id) =>{
                     
                   </div>
                   </div>
-
             ))
             ) : (
             <div className="text-center text-gray-600">No messages</div>
@@ -653,11 +1121,34 @@ const handleDeleteConversation = (id) =>{
               </div>
             )}
           </div>
-  
+          
+            
           {/* Input Field */}
         {selectedConversation && (
           <div className="p-4 bg-gray-200 border-t border-gray-300 flex items-center">
-            
+          {isRecording ?(
+          <div className="flex items-center w-full justify-between">
+            <span className="mr-2">{Math.floor(recordingDuration / 60)}:{(recordingDuration % 60).toString().padStart(2, '0')}</span>
+            <div id="waveform-recording" className="flex-1"></div>
+            <button onClick={handleStopRecording} className="ml-2 text-red-600 text-lg">
+              <FontAwesomeIcon icon={faStop} size="lg" />
+            </button>
+          </div>
+          ):(
+          <div className='flex items-center w-full'>
+          <input 
+            type="file"
+            accept="image/*"
+            ref={fileInputRef}
+            style={{ display: 'none' }}
+            onChange={handleFileChange}
+          />
+          <button
+            onClick={() => fileInputRef.current.click()}
+            className="btn btn-secondary ml-2"
+          >
+            <FontAwesomeIcon icon={faPaperclip} />
+          </button>
           <TextareaAutosize  
           placeholder="Type your message..."
           value={newMessage}
@@ -665,18 +1156,21 @@ const handleDeleteConversation = (id) =>{
           className="textarea textarea-bordered flex-1 p-2 resize-none rounded-md overflow-hidden"
           onKeyDown={handleKeyDown}
           minRows={1}
-          
-         
-        />
+        /> 
             <button 
               onClick={() => setShowEmojiPicker(!showEmojiPicker)}
               className="btn btn-secondary ml-2"
-            >
+            > 
               <FontAwesomeIcon icon={faSmile} />
-            </button>
+            </button> 
+            <button onClick={isRecording ? handleStopRecording : handleStartRecording} className="btn ml-2">
+          <FontAwesomeIcon icon={isRecording ? faStop : faMicrophone} />
+        </button> 
             <button onClick={handleSendMessage} disabled={sendingMessage}>
           {sendingMessage ? <FontAwesomeIcon icon={faSpinner} spin /> : <FontAwesomeIcon icon={faPaperPlane} />}
-        </button>
+        </button> 
+          </div>
+          )}
           </div>
         )}
       </div>
