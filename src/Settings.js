@@ -1,8 +1,7 @@
 import React, { useState ,useRef,useEffect} from 'react';
-import { renderToReadableStream } from 'react-dom/server';
 import { Link, useNavigate } from 'react-router-dom';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { faPaperPlane, faPause, faTrashAlt,faSmile ,faCog, faUserEdit, faKey, faSignOutAlt, faTrash,faCheck,faTimes,faSpinner,faPaperclip,faMicrophone, faStop, faPlay,faTimesCircle,faDownload} from '@fortawesome/free-solid-svg-icons';
+import { faPaperPlane, faCloudDownload, faPause, faTrashAlt,faSmile ,faCog, faUserEdit, faKey, faSignOutAlt, faTrash,faCheck,faTimes,faSpinner,faPaperclip,faMicrophone, faStop, faPlay,faTimesCircle,faDownload} from '@fortawesome/free-solid-svg-icons';
 import { MdEdit } from 'react-icons/md';
 import Picker from '@emoji-mart/react';
 import dataXXX from '@emoji-mart/data';
@@ -273,7 +272,10 @@ const [isOverlayVisible, setIsOverlayVisible] = useState(false);
   const emojiPickerRef = useRef(null);
   const settingsRef = useRef(null);
   const modalRef = useRef(null);
-
+  
+  const isAudioDownloaded = (messageId) => {
+    return localStorage.getItem(`audioBlob_${messageId}`) !== null;
+  };
   // for voice message
   const stopCurrentAudio = () => {
     
@@ -320,17 +322,6 @@ const [isOverlayVisible, setIsOverlayVisible] = useState(false);
     }
   };
 
-
-  const handleStopRecordingOld = () => {
-    recorderRef.current.stopRecording(() => {
-      const audioURL = URL.createObjectURL(recorderRef.current.getBlob());
-      setAudioURL(audioURL);
-      const newMessageObj = { id: Date.now(), content: audioURL, timeStamp: new Date().toLocaleString(), isAudio: true };
-      setMessages(prevMessages => [...prevMessages, newMessageObj]);
-    });
-    setIsRecording(false);
-  };
-
 const handleStopRecording = () => {
   recorderRef.current.stopRecording(async () => {
     const blob = recorderRef.current.getBlob();
@@ -344,7 +335,7 @@ const handleStopRecording = () => {
     setIsUploading(true);
 
     // Upload to Firebase Storage
-    const storageRef = ref(storage, `audioMessages/${messageId}.webm`);
+    const storageRef = ref(storage, `FonkaGram/Recordings/${messageId}.webm`);
     try {
       await uploadBytes(storageRef, blob);
       const downloadURL = await getDownloadURL(storageRef);
@@ -368,8 +359,7 @@ const handleStopRecording = () => {
   setIsRecording(false);
   clearInterval(recordingIntervalRef.current);
 };
-
-  
+ 
   const blobToBase64 = (blob) => {
     return new Promise((resolve, reject) => {
       const reader = new FileReader();
@@ -379,8 +369,7 @@ const handleStopRecording = () => {
       };
       reader.onerror = reject;
     });
-  };
-  
+  }; 
   const base64ToBlob = (base64, contentType) => {
     const byteCharacters = atob(base64.split(',')[1]);
     const byteArrays = [];
@@ -461,8 +450,6 @@ const handlePlayAudio = async (audioURL, messageId) => {
   }
 };
 
-
-  
   const handleDownloadAudio = async (audioURL, messageId) => {
   try {
     setIsDownloading(true);
@@ -484,8 +471,7 @@ const handlePlayAudio = async (audioURL, messageId) => {
 const handleConversationChange = (conversationId) => {
   setSelectedConversation(conversationId);
   stopCurrentAudio();
-};
-  
+}; 
   useEffect(() => {
     messages.forEach(message => {
       if (message.isAudio && !waveformRefs.current[message.id]) {
@@ -546,7 +532,6 @@ const handleConversationChange = (conversationId) => {
       }
     }
   };
-
   const handleCloseAudio = () => {
     if (currentAudioId !== null) {
       const waveform = waveformRefs.current[currentAudioId];
@@ -650,15 +635,37 @@ const handleEditMessage = (id) => {
   setEditMessageContent(messageToEdit.content);
 };
 
-const handleFileChange = (event) => {
+const handleFileChange = async (event) => {
   const file = event.target.files[0];
   if (file) {
-    const reader = new FileReader();
-    reader.onloadend = () => {
-      const newMessageObj = { id: Date.now(), content: reader.result, timeStamp: new Date().toLocaleString(), isImage: true };
-      setMessages([...messages, newMessageObj]);
-    };
-    reader.readAsDataURL(file);
+    const messageId = Date.now().toString();
+    const storageRef = ref(storage, `FonkaGram/Images/${messageId}.${file.name.split('.').pop()}`);
+
+    try {
+      // Add a temporary message with a loading icon
+      const newMessageObj = { id: messageId, content: URL.createObjectURL(file), timeStamp: new Date().toLocaleString(), isImage: true, isUploading: true };
+      setMessages(prevMessages => [...prevMessages, newMessageObj]);
+      setUploadingMessageId(messageId);
+      setIsUploading(true);
+
+      // Upload to Firebase Storage
+      await uploadBytes(storageRef, file);
+      const downloadURL = await getDownloadURL(storageRef);
+
+      // Update the message with the final URL
+      setMessages(prevMessages => prevMessages.map(msg => {
+        if (msg.id === messageId) {
+          return { ...msg, content: downloadURL, isUploading: false };
+        }
+        return msg;
+      }));
+      setIsUploading(false);
+    } catch (error) {
+      console.error('Error uploading image:', error);
+      // Remove the message if upload fails
+      setMessages(prevMessages => prevMessages.filter(msg => msg.id !== messageId));
+      setIsUploading(false);
+    }
   }
 };
 const handleDeleteMessage = (id) => {
@@ -772,7 +779,96 @@ const handleDeleteConversation = (id) =>{
     setFilteredUsers([]);
   };
   const openModal = (content) => {
-    setModalContent(content);
+   if (content === 'EditProfile'){
+        setModalContent(
+            <div className="edit-profile-container">
+              <form className="form-sign-up" onSubmit={handleSubmitProfile}>
+                <span className="title">Edit Profile</span> <br />
+                <label>Name</label>
+                <input
+                  className="email-input"
+                  type="text"
+                  placeholder="Name"
+                  required
+                  value={firstName}
+                  onChange={handleFirstNameChange}
+                  disabled={isLoading}
+                />
+                <label>Last Name</label>
+                <input
+                  className="email-input"
+                  placeholder="LastName"
+                  type="text"
+                  value={lastName}
+                  onChange={handleLastNameChange}
+                  disabled={isLoading}
+                />
+                <label>Bio</label>
+                <input
+                  className="email-input"
+                  type="text"
+                  value={bio}
+                  onChange={handleBioChange}
+                  disabled={isLoading}
+                />
+                <button className="button-sign-up" disabled={isLoading}>
+                  Set
+                </button>
+                {errorMessage && <p className="error-message">{errorMessage}</p>}
+                {goodMessage && <p className="good-message">{goodMessage}</p>}
+                {isLoading && <p className="is-loading">Loading...</p>}
+              </form>
+            </div>
+          );
+  }else if (content === 'ChangePassword'){
+        setModalContent(
+          <div className="edit-profile-container">
+              <form className="form-sign-up" onSubmit={handleSubmitProfile}>
+                <span className="title">Change Password</span> <br />
+                <input
+                  className="email-input"
+                  placeholder='Old Password'
+                  type="current-password" 
+                  required 
+                  value={oldPassword}
+                  onChange={handleOldPasswordChange}
+                  disabled={isLoading} // Disable input field while loading
+                />
+                <input
+                  className="email-input"
+                  placeholder='New Password'
+                  type="current-password" 
+                  required 
+                  value={newPassword}
+                  onChange={handleNewPasswordChange}
+                  disabled={isLoading} // Disable input field while loading
+                /> 
+                
+                <button className="button-sign-up" disabled={isLoading}>
+                  Submit
+                </button>
+                {errorMessage && <p className="error-message">{errorMessage}</p>}
+                {goodMessage && <p className="good-message">{goodMessage}</p>}
+                {isLoading && <p className="is-loading">Loading...</p>}
+              </form>
+            </div>
+        );
+  }else if (content === 'DeleteAccount'){
+        setModalContent(
+          <div className="edit-profile-container">
+              <form className="form-sign-up" onSubmit={handleSubmitProfile}>
+                <span className="title">Danger Zone</span> <br />
+                  Are you sure you want to delete this account? <br /><br />
+                <button className='buttonTabDelete' onClick={deleteAccount}  disabled={isLoading} >Delete</button>
+              
+              {isLoading && <p className='isLoading'>Loading...</p>}
+                
+            </form>
+            </div>
+        );
+  }else{
+       console.log("Problem in settings display");
+  }
   };
   const closeModal = () => {
     setModalContent(null);
@@ -827,20 +923,22 @@ const handleDeleteConversation = (id) =>{
     return (
       <div className="flex h-screen relative">
         {modalContent && (
-        <div 
-          className="fixed inset-0 bg-gray-800 bg-opacity-75 flex items-center justify-center z-50"
-          onClick={handleOverlayClick}
-        >
-          <div 
+      <div
+        className="modal-overlay"
+        onClick={handleOverlayClick}
+      >
+        <div
           ref={modalRef}
-            className="bg-white p-4 rounded-lg shadow-lg w-1/3 relative"
-            onClick={(e) => e.stopPropagation()}
-          >
-            <button onClick={closeModal} className="absolute top-2 right-2 text-gray-600">X</button>
-            {modalContent}
-          </div>
+          className="modal-content"
+          onClick={(e) => e.stopPropagation()}
+        >
+          <button onClick={closeModal} className="close-button">
+            X
+          </button>
+          {modalContent}
         </div>
-      )}
+      </div>
+    )}
         {/* Left Sidebar */}
         <div className="w-1/4 bg-gray-100 border-r border-gray-300 flex flex-col">
           {/* Search Bar */}
@@ -860,16 +958,17 @@ const handleDeleteConversation = (id) =>{
           {showSettings && (
             <div ref={settingsRef} className="absolute top-full mt-1 right-0 w-48 bg-white border border-gray-300 rounded-md shadow-lg z-10">
                
-              <div className="p-2 hover:bg-gray-200 cursor-pointer flex items-center" onClick={() => openModal('Edit Profile')}>
+              <div className="p-2 hover:bg-gray-200 cursor-pointer flex items-center" 
+              onClick={() => openModal('EditProfile')}>
                 <FontAwesomeIcon icon={faUserEdit} className="mr-2" /> Edit Profile
               </div>
-              <div className="p-2 hover:bg-gray-200 cursor-pointer flex items-center" onClick={() => openModal('Change Password')}>
+              <div className="p-2 hover:bg-gray-200 cursor-pointer flex items-center" onClick={() => openModal('ChangePassword')}>
                 <FontAwesomeIcon icon={faKey} className="mr-2" /> Change Password
               </div>
-              <div className="p-2 hover:bg-gray-200 cursor-pointer flex items-center" onClick={() => openModal('Delete Account')}>
+              <div className="p-2 hover:bg-gray-200 cursor-pointer flex items-center" onClick={() => openModal('DeleteAccount')}>
                 <FontAwesomeIcon icon={faTrash} className="mr-2" /> Delete Account
               </div>
-              <div className="p-2 hover:bg-gray-200 cursor-pointer flex items-center" onClick={() => openModal('Logout')}>
+              <div className="p-2 hover:bg-gray-200 cursor-pointer flex items-center" onClick={() => handleLogOut()}>
                 <FontAwesomeIcon icon={faSignOutAlt} className="mr-2" /> Logout
               </div>
             </div>
@@ -944,7 +1043,16 @@ const handleDeleteConversation = (id) =>{
                 {selectedConversation.online ? 'Online' : `Last seen: ${selectedConversation.lastMessageTime}`}
               </div>
             </div>
-            
+            <div>
+            {isPlaying && (
+              <div className="flex justify-between mt-2">
+              
+            <button onClick={stopCurrentAudio} className="text-red-500">
+              <FontAwesomeIcon icon={faStop} />  
+            </button> 
+          </div> 
+           )} 
+           </div>
             </div>
             
           ) : (
@@ -966,16 +1074,7 @@ const handleDeleteConversation = (id) =>{
           messages.length ? ( 
             messages.map((message) => (
             <div key={message.id} id={`message-${message.id}`} className="mb-4">
-            {currentAudioId !== null && message.isAudio && (
-              <div className="flex justify-between mt-2">
-              <button onClick={() => handlePlayPauseAudio(message.content,message.id)}> 
-              <FontAwesomeIcon icon={isPlaying && currentAudioId === message.id ? faPause : faPlay} />
-              </button> 
-            <button onClick={handleCloseAudio} className="text-red-500">
-              <FontAwesomeIcon icon={faStop} />  
-            </button> 
-          </div> 
-           )} 
+            
                 <div className=''>
                     <div className="chat chat-end">
                       {editMessageId === message.id ? (
@@ -1019,19 +1118,19 @@ const handleDeleteConversation = (id) =>{
                       ):(
                         <div className="group chat-bubble bg-blue-500 text-white p-2 rounded-lg max-w-xs md:max-w-md break-words">
                         {message.isImage ? (
-                          <div>
-                          <img src={message.content} alt="attachment" className="rounded-lg max-w-full cursor-pointer" 
-                          onClick={() => handleImageClick(message.content)}
-                          />
-                          <div className="flex items-center justify-between mt-1" >
-          
-                      <button
-                        className="ml-2 text-red-600 hidden group-hover:block"
-                        onClick={() => handleDeleteMessage(message.id)}
-                      >
-                        <FontAwesomeIcon icon={faTrashAlt} />
-                      </button>
-                    </div>
+                         
+                          <div className='image-container'>
+                            {isUploading && uploadingMessageId === message.id && (
+                              <FontAwesomeIcon icon={faSpinner} spin className="mr-2"/>
+                            )}
+                            {!isUploading && (
+                              <img src={message.content} alt="Uploaded" onClick={() => handleImageClick(message.content)} className="uploaded-image cursor-pointer" />
+                            )}
+                            <div className="flex items-center justify-between mt-1">
+                              <button className="ml-2 text-red-600 hidden group-hover:block" onClick={() => handleDeleteMessage(message.id)}>
+                                <FontAwesomeIcon icon={faTrashAlt} />
+                              </button>
+                            </div>
                           </div>
                         ) : message.isAudio?(
                         <div>
@@ -1040,14 +1139,20 @@ const handleDeleteConversation = (id) =>{
                             )}
                             {!isUploading && (
                               <>
-                                {isDownloading && downloadingMessageId === message.id ? (
-                                  <FontAwesomeIcon icon={faSpinner} spin className="mr-2" />
-                                ) : (
+                              {isDownloading && downloadingMessageId === message.id ? (
+                                <FontAwesomeIcon icon={faSpinner} spin className="mr-2" />
+                              ) : (
+                                isAudioDownloaded(message.id) ? (
                                   <button onClick={() => handlePlayAudio(message.content, message.id)} className="mr-2">
                                     <FontAwesomeIcon icon={isPlaying && currentAudioId === message.id ? faPause : faPlay} />
                                   </button>
-                                )}
-                              </>
+                                ) : (
+                                  <button onClick={() => handleDownloadAudio(message.content, message.id)} className="mr-2">
+                                    <FontAwesomeIcon icon={faCloudDownload} />
+                                  </button>
+                                )
+                              )}
+                            </>
                             )}
                           <div id={`waveform-${message.id}`} className="rounded-lg max-w-full">
                           <span className="duration" 
@@ -1075,7 +1180,7 @@ const handleDeleteConversation = (id) =>{
                             </div>
                           
                       </div>
-                      ): (
+                        ): (
                           
                           <div>
                           {message.content}
@@ -1095,8 +1200,6 @@ const handleDeleteConversation = (id) =>{
                     </div>
                     </div>
                         )}
-                        
-                        
                       </div>
                       )}
                       
@@ -1112,7 +1215,7 @@ const handleDeleteConversation = (id) =>{
             ))
             ) : (
             <div className="text-center text-gray-600">No messages</div>
-              )
+            )
             ) : (
               <div className="text-center text-gray-600">
                 <p>Welcome Mr.Harry Kane </p>

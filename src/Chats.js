@@ -3,7 +3,19 @@ import React, { useState ,useEffect,useRef } from 'react';
 import { Link, useNavigate} from 'react-router-dom';
 import { HttpTransportType, HubConnectionBuilder, LogLevel } from "@microsoft/signalr";                   
 import * as signalR from '@microsoft/signalr';
+// Intergration
+import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
+import { faPaperPlane, faCloudDownload, faPause, faTrashAlt,faSmile ,faCog, faUserEdit, faKey, faSignOutAlt, faTrash,faCheck,faTimes,faSpinner,faPaperclip,faMicrophone, faStop, faPlay,faTimesCircle,faDownload} from '@fortawesome/free-solid-svg-icons';
+import { MdEdit } from 'react-icons/md';
+import Picker from '@emoji-mart/react';
+import dataXXX from '@emoji-mart/data';
+import TextareaAutosize from 'react-textarea-autosize';
+import RecordRTC from 'recordrtc';
+import WaveSurfer from 'wavesurfer.js';
+import { storage } from './firebaseConfig';
+import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 
+// Integration end
 function Chats() {
   const [connection, setConnection] = useState(null);  
   const [newMessagesCount, setNewMessagesCount] = useState({});
@@ -22,17 +34,64 @@ function Chats() {
   const navigate = useNavigate(); // Access the history object
   const [searchQuery, setSearchQuery] = useState('');
   const [searchQueryUser, setSearchQueryUser] = useState('');
-  
   const [addContact,setAddContact] = useState('');
   const [searchResults, setSearchResults] = useState([]);
   const [searchResultUser, setSearchResultUser] = useState([]);
-  
   const [sendMessage, setSendMessage] = useState('');
   const [errorMessage, setErrorMessage] = useState('');
   const [goodMessage, setgoodMessage] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [varOnce, setVarOnce] = useState(false);
+  const [selectedOnlineStatus,setSelectedOnlineStatus] = useState(null);
+  const [selectedLastSeen,setSelectedLastSeen] = useState(null);
+  const [selectedBio,setSelectedBio] = useState(null);
+  const [selectedEmail,setSelectedEmail] = useState(null);
+  // Variable Integration start
+  //const [searchQueryUser, setSearchQueryUser] = useState('');
+  //const [selectedConversation, setSelectedConversation] = useState(null);
+  //const [messages, setMessages] = useState([]);
+  const [newMessage, setNewMessage] = useState('');
+  const [showEmojiPicker, setShowEmojiPicker] = useState(false);
+  const [showEmojiPickerEDIT,setShowEmojiPickerEDIT] = useState(false);
+  const [filteredUsers, setFilteredUsers] = useState([]);
+  const [showSettings, setShowSettings] = useState(false);
+  const [modalContent, setModalContent] = useState(null);
+  //const [editMessageId, setEditMessageId] = useState(null);
+  //const [editMessageContent, setEditMessageContent] = useState('');
+  const [sendingMessage, setSendingMessage] = useState(false); // State for tracking sending status
+  const [fullscreenImage, setFullscreenImage] = useState(null);
+  const [isUploading, setIsUploading] = useState(false);
+  const [uploadingMessageId, setUploadingMessageId] = useState(null);
+  const [isDownloading, setIsDownloading] = useState(false);
+  const [downloadingMessageId, setDownloadingMessageId] = useState(null);
+// Live wave form
+
+
+  // Voice Message
+  const [audioURL, setAudioURL] = useState('');
+  const [isRecording, setIsRecording] = useState(false);
+  const recorderRef = useRef(null);
+
+  const [currentAudioId, setCurrentAudioId] = useState(null);
+  const [isPlaying, setIsPlaying] = useState(false);
+  const [currentAudioURL, setCurrentAudioURL] = useState(null);
   
+  const [recordingDuration, setRecordingDuration] = useState(0);
+
+  const waveformRecordingRef = useRef(null);
+  const recordingIntervalRef = useRef(null);
+  const [elapsedTimes, setElapsedTimes] = useState({});
+  const [playbackPositions, setPlaybackPositions] = useState({});
+
+  const audioRef = useRef(null);
+  const durationsRef = useRef({});
+  const waveformRefs = useRef({});
+  const fileInputRef = useRef(null);
+  const emojiPickerRef = useRef(null);
+  const settingsRef = useRef(null);
+  const modalRef = useRef(null);
+  // Variable Integration end
+
   const fetchConvDataOnline = async () => {
     const keys = Object.keys(sessionStorage); 
     
@@ -795,6 +854,12 @@ useEffect(() => async ()=>{
   const [firstName, setFirstName] = useState(sessionStorage.getItem('Name'));
   const [lastName, setLastName] = useState(sessionStorage.getItem('LastName'));
   const [bio, setBio] = useState(sessionStorage.getItem('Bio'));
+  
+  const [editProfileModal,setEditProfileModal] = useState(false);
+  const [changePasswordModal,setChangePasswordModal]= useState(false);
+  const [deleteAccountModal,setDeleteAccountModal] = useState(false);
+  const [viewUserModal,setViewUserModal] = useState(false);
+
   const [oldPassword,setOldPassword]=useState('');
   const [newPassword,setNewPassword]=useState(''); 
   const [isLoadingMessage, setIsLoadingMessage] =useState(false);
@@ -926,7 +991,7 @@ const insertMessage = (newMessage) => {
   });
 };
 const handleSendMessage = async (e) => {
-  e.preventDefault();
+  
   setIsLoadingMessage(true);
   setVarOnce(true);
   try {
@@ -937,8 +1002,8 @@ const handleSendMessage = async (e) => {
         'Authorization': `Bearer ${sessionStorage.getItem('Token')}`
       },  
       body: JSON.stringify({
-        content: sendMessage, // Use the email from the authData context
-        recpientId: selectedRecpientId, // Use the password from the authData context
+        content: sendMessage, 
+        recpientId: selectedRecpientId,
         messageType: "text"
       })  
     });
@@ -1011,18 +1076,23 @@ const handleSendMessage = async (e) => {
     console.error('Error fetching messages:', error);
   }
 };
-const handleConversationClick = async (convId,recpientId,Name,LastName) => {
+const handleConversationClick = async (convId,recpientId,Name,LastName,onlineStatus,lastSeen,bio,email) => {
+  setIsLoading(true);
   setForSearchUser(false);
   setMessages([]);
   setSelectedConversation(convId); // Set the selected conversation 
   setSelectedRecpientId(recpientId);
   setSelectedName(Name);
   setSelectedLastName(LastName);
-  
+  setSelectedOnlineStatus(onlineStatus);
+  setSelectedLastSeen(lastSeen);
+  setSelectedBio(bio);
+  setSelectedEmail(email);
   
   const storedMessages = sessionStorage.getItem(`${convId}`);
   if (storedMessages !== null) {
     const rMd = JSON.parse(storedMessages);
+    setIsLoading(false);
     setMessages(rMd);
     return;
   } 
@@ -1037,6 +1107,7 @@ const handleConversationClick = async (convId,recpientId,Name,LastName) => {
     if (messagesResponse.ok) {
       const messagesData = await messagesResponse.json();
       sessionStorage.setItem(`${convId}`,JSON.stringify(messagesData));
+      setIsLoading(false);
       setMessages(messagesData); // Update messages state with the fetched messages
       setConversations(prevConversations =>{ 
         const updatedConversations = prevConversations.map(conversation => {
@@ -1368,6 +1439,7 @@ const clearErrorMessageAfterDelay = () => {
   }, 2000); // Clear error message after 3 seconds (3000 milliseconds)
 };
 const handleFirstNameChange = (e) => {
+  console.log("FirstName change");
   setFirstName(e.target.value);
 }
 const handleLastNameChange = (e) => {
@@ -1379,7 +1451,7 @@ const handleBioChange = (e) => {
 
 const handleSubmitProfile = (e) => {
   e.preventDefault();
-  
+  console.log("Inside Submit Profile");
   setIsLoading(true); // Set loading state to true before making the API call
   fetch('http://localhost:5206/api/UserProfile/UpdatUserProfile', {
     method: 'PUT',
@@ -1396,10 +1468,10 @@ const handleSubmitProfile = (e) => {
   .then(response => {
     if (response.ok) {
       setIsLoading(false);
-      console.log('OK,Updated');
-      sessionStorage.setItem('firstName', firstName);
-      sessionStorage.setItem('lastName', lastName);
-      sessionStorage.setItem('bio', bio);
+      sessionStorage.setItem('Name', firstName);
+      sessionStorage.setItem('LastName', lastName);
+      sessionStorage.setItem('Bio', bio);
+      
       setgoodMessage('Successfully Updated');  
       clearErrorMessageAfterDelay();  
   
@@ -1526,6 +1598,474 @@ function formatDateTime(isoString) {
     return `${month}/${day}`;
   }
 }
+// FUNCTION INTEGRATION START
+const isAudioDownloaded = (messageId) => {
+  return localStorage.getItem(`audioBlob_${messageId}`) !== null;
+};
+// for voice message
+const stopCurrentAudio = () => {
+  
+  if (audioRef.current) {
+    audioRef.current.pause();
+    audioRef.current.currentTime = 0;
+  }
+  
+  setIsPlaying(false);
+  setCurrentAudioId(null);
+  setElapsedTimes({});
+};
+useEffect(() => {
+  stopCurrentAudio();
+}, [selectedConversation]);
+
+
+const handleStartRecording = async () => {
+  try {
+    const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+    recorderRef.current = new RecordRTC(stream, { type: 'audio' });
+    recorderRef.current.startRecording();
+
+    setIsRecording(true);
+    setRecordingDuration(0);
+
+    recordingIntervalRef.current = setInterval(() => {
+      setRecordingDuration(prevDuration => prevDuration + 1);
+    }, 1000);
+
+    // Setup waveform for recording
+    if (waveformRecordingRef.current === null) {
+      waveformRecordingRef.current = WaveSurfer.create({
+        container: '#waveform-recording',
+        waveColor: '#ddd',
+        progressColor: '#4a90e2',
+        cursorWidth: 0,
+        height: 20,
+        barWidth: 2,
+      });
+    }
+  } catch (err) {
+    console.error('Error accessing microphone:', err);
+  }
+};
+
+const handleStopRecording = () => {
+recorderRef.current.stopRecording(async () => {
+  const blob = recorderRef.current.getBlob();
+  const audioURL = URL.createObjectURL(blob);
+  const messageId = Date.now();
+
+  // Add a temporary message with a loading icon
+  const newMessageObj = { id: messageId, content: audioURL, timeStamp: new Date().toLocaleString(), isAudio: true, isUploading: true };
+  setMessages(prevMessages => [...prevMessages, newMessageObj]);
+  setUploadingMessageId(messageId);
+  setIsUploading(true);
+
+  // Upload to Firebase Storage
+  const storageRef = ref(storage, `FonkaGram/Recordings/${messageId}.webm`);
+  try {
+    await uploadBytes(storageRef, blob);
+    const downloadURL = await getDownloadURL(storageRef);
+   
+   
+  setIsLoadingMessage(true);
+  setVarOnce(true);
+    try {
+      const messagesResponse1 = await fetch('http://localhost:5206/api/Message/SendMessage', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${sessionStorage.getItem('Token')}`
+        },  
+        body: JSON.stringify({
+          content: downloadURL, 
+          recpientId: selectedRecpientId,
+          messageType: "audio"
+        })  
+      });
+      if (messagesResponse1.ok) {
+        const data = await messagesResponse1.json();
+        if (selectedConversation === null) { 
+          setConversations(prevConversations => {
+            // Create a new array that includes the previous conversations and the new one
+            const updatedConversations12 = [
+              ...prevConversations,
+              {
+                convId: data.convId,
+                message: 'Voice Message',
+                updatedTime: data.timeStamp,
+                messageId: data.id,
+                userId: data.recpientId,
+                userName: selectedName,
+                lastName: selectedLastName
+              }
+            ];
+          
+            // Sort the updated conversations array by updatedTime
+            updatedConversations12.sort((a, b) => new Date(b.updatedTime) - new Date(a.updatedTime));
+          
+            // Return the sorted array to update the state
+            return updatedConversations12;
+          });
+          setSelectedConversation(data.convId); 
+        }else{
+          setConversations(prevConversations => {
+          const updatedConversations = prevConversations.map(conversation => {
+            
+            if (conversation.convId === selectedConversation) {
+              
+              return { ...conversation, message: 'Voice Message', updatedTime:data.timeStamp ,messageId: data.id}; 
+            }
+            return conversation; 
+          });
+      
+          // Sort the updated conversations by updatedTime
+          return updatedConversations.sort((a, b) => new Date(b.updatedTime) - new Date(a.updatedTime));
+        });}
+        
+        const newMessage = {
+          content: data.content,
+          convId: data.convId,
+          deleted: data.deleted,
+          id: data.id,
+          messageType: data.messageType,
+          recpientId: data.recpientId,
+          senderId: data.senderId,
+          status:data.status,
+          timeStamp: data.timeStamp
+        };
+        
+        insertMessage(newMessage);
+        const ParsedMessage = JSON.parse(sessionStorage.getItem(`${selectedConversation}`));
+        if (ParsedMessage!== null) {
+        ParsedMessage.push(newMessage);
+        sessionStorage.setItem(`${selectedConversation}`,JSON.stringify(ParsedMessage))
+        }
+        setIsLoadingMessage(false); 
+        setSendMessage('');
+      } else {
+        throw new Error('Failed to fetch messages');
+      }
+    } catch (error) {
+      console.error('Error fetching messages:', error);
+    }
+
+    // Update the message with the final URL
+    setMessages(prevMessages => prevMessages.map(msg => {
+      if (msg.id === messageId) {
+        return { ...msg, content: downloadURL, isUploading: false };
+      } 
+      return msg;
+    }));
+    setIsUploading(false);
+  } catch (error) {
+    console.error('Error uploading audio:', error);
+    // Remove the message if upload fails
+    setMessages(prevMessages => prevMessages.filter(msg => msg.id !== messageId));
+    setIsUploading(false);
+  }
+});
+
+setIsRecording(false);
+clearInterval(recordingIntervalRef.current);
+};
+
+const blobToBase64 = (blob) => {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.readAsDataURL(blob);
+    reader.onloadend = () => {
+      resolve(reader.result);
+    };
+    reader.onerror = reject;
+  });
+}; 
+const base64ToBlob = (base64, contentType) => {
+  const byteCharacters = atob(base64.split(',')[1]);
+  const byteArrays = [];
+  for (let i = 0; i < byteCharacters.length; i++) {
+    byteArrays.push(byteCharacters.charCodeAt(i));
+  }
+  const byteArray = new Uint8Array(byteArrays);
+  return new Blob([byteArray], { type: contentType });
+};
+
+const handlePlayAudio = async (audioURL, messageId) => {
+if (currentAudioId === messageId) {
+  if (isPlaying) {
+    // Pause the audio
+    if (audioRef.current) {
+      const currentTime = audioRef.current.currentTime;
+      setPlaybackPositions(prev => ({ ...prev, [messageId]: currentTime }));
+      audioRef.current.pause();
+    }
+    setIsPlaying(false);
+  } else {
+    // Resume the audio
+    const storedAudio = localStorage.getItem(`audioBlob_${messageId}`);
+    if (storedAudio) {
+      const blob = base64ToBlob(storedAudio, 'audio/webm');
+      const audio = new Audio(URL.createObjectURL(blob));
+
+      audioRef.current = audio;
+
+      // Set the currentTime to the last saved position
+      const currentTime = playbackPositions[messageId] || 0;
+      audio.currentTime = currentTime;
+
+      audio.addEventListener('timeupdate', () => {
+        setElapsedTimes(prev => ({ ...prev, [messageId]: audio.currentTime }));
+      });
+
+      audio.addEventListener('ended', () => {
+        stopCurrentAudio();
+      });
+
+      audio.play().then(() => {
+        setIsPlaying(true);
+        setCurrentAudioId(messageId);
+      }).catch(error => {
+        console.error('Playback failed:', error);
+      });
+    }
+  }
+} else {
+  // Play new audio
+  stopCurrentAudio();
+
+  const storedAudio = localStorage.getItem(`audioBlob_${messageId}`);
+  if (storedAudio) {
+    const blob = base64ToBlob(storedAudio, 'audio/webm');
+    const audio = new Audio(URL.createObjectURL(blob));
+
+    audioRef.current = audio;
+
+    audio.addEventListener('timeupdate', () => {
+      setElapsedTimes(prev => ({ ...prev, [messageId]: audio.currentTime }));
+    });
+
+    audio.addEventListener('ended', () => {
+      stopCurrentAudio();
+    });
+
+    audio.play().then(() => {
+      setIsPlaying(true);
+      setCurrentAudioId(messageId);
+    }).catch(error => {
+      console.error('Playback failed:', error);
+    });
+  } else {
+    handleDownloadAudio(audioURL, messageId);
+  }
+}
+};
+
+const handleDownloadAudio = async (audioURL, messageId) => {
+try {
+  setIsDownloading(true);
+  setDownloadingMessageId(messageId);
+
+  const response = await fetch(audioURL);
+  const blob = await response.blob();
+
+  const base64 = await blobToBase64(blob);
+  localStorage.setItem(`audioBlob_${messageId}`, base64);
+
+  setIsDownloading(false);
+  handlePlayAudio(URL.createObjectURL(blob), messageId);
+} catch (error) {
+  console.error('Error downloading audio:', error);
+  setIsDownloading(false);
+}
+};
+const handleConversationChange = (conversationId) => {
+setSelectedConversation(conversationId);
+stopCurrentAudio();
+}; 
+useEffect(() => {
+  messages.forEach(message => {
+    if (message.isAudio && !waveformRefs.current[message.id]) {
+      const container = document.getElementById(`waveform-${message.id}`);
+      if (container) {
+        const waveform = WaveSurfer.create({
+          container: `#waveform-${message.id}`,
+          waveColor: '#ddd',
+          progressColor: '#4a90e2',
+          cursorColor: '#4a90e2',
+          height: 20,
+        });
+
+        waveform.on('ready', () => {
+          const duration = waveform.getDuration();
+          durationsRef.current[message.id] = duration;
+          container.style.width = `${Math.min(duration, 60) * 10}px`; // Scale 10px per second, max 600px
+          const durationSpan = container.querySelector('.duration');
+          if (durationSpan) {
+            durationSpan.innerText = `${Math.floor(duration / 60)}:${Math.floor(duration % 60).toString().padStart(2, '0')}`;
+          }
+        });
+
+        const audioBlobURL = localStorage.getItem(message.content);
+        if (audioBlobURL) {
+          waveform.load(audioBlobURL);
+        } else {
+          waveform.load(message.content);
+        }
+
+        waveform.on('play', () => {
+          setCurrentAudioId(message.id);
+          setIsPlaying(true);
+        });
+        waveform.on('pause', () => {
+          setIsPlaying(false);
+        });
+        waveform.on('finish', () => {
+          setIsPlaying(false);
+          setCurrentAudioId(null);
+        });
+
+        waveformRefs.current[message.id] = waveform;
+      }
+    }
+  });
+
+  return () => {
+    // Cleanup WaveSurfer instances on unmount
+    Object.values(waveformRefs.current).forEach(waveform => waveform.destroy());
+  };
+}, [messages]);
+
+const handleImageClick = (src) => {
+  setFullscreenImage(src);
+};
+
+const closeFullscreenImage = () => {
+  setFullscreenImage(null);
+};
+const useOutsideClick = (ref,callback)=>{
+  useEffect(() => {
+    function handleClick(event) {
+      if (ref.current && !ref.current.contains(event.target)) {
+        callback();
+      }
+    }
+
+    document.addEventListener('mousedown', handleClick);
+
+    return () => {
+      document.removeEventListener('mousedown', handleClick);
+    };
+  }, [ref, callback]);
+}
+const handleFileChange = async (event) => {
+  const file = event.target.files[0];
+  if (file) {
+    const messageId = Date.now().toString();
+    const storageRef = ref(storage, `FonkaGram/Images/${messageId}.${file.name.split('.').pop()}`);
+
+    try {
+      // Add a temporary message with a loading icon
+      const newMessageObj = { id: messageId, content: URL.createObjectURL(file), timeStamp: new Date().toLocaleString(), isImage: true, isUploading: true };
+      setMessages(prevMessages => [...prevMessages, newMessageObj]);
+      setUploadingMessageId(messageId);
+      setIsUploading(true);
+
+      // Upload to Firebase Storage
+      await uploadBytes(storageRef, file);
+      const downloadURL = await getDownloadURL(storageRef);
+
+      // Update the message with the final URL
+      setMessages(prevMessages => prevMessages.map(msg => {
+        if (msg.id === messageId) {
+          return { ...msg, content: downloadURL, isUploading: false };
+        }
+        return msg;
+      }));
+      setIsUploading(false);
+    } catch (error) {
+      console.error('Error uploading image:', error);
+      // Remove the message if upload fails
+      setMessages(prevMessages => prevMessages.filter(msg => msg.id !== messageId));
+      setIsUploading(false);
+    }
+  }
+};
+
+const openModal = (content) => {
+if (content === 'EditProfile'){
+    setModalContent(
+        <div>Yeah Edit Profile</div>
+    );
+    setEditProfileModal(true);
+}else if (content === 'ChangePassword'){
+    setModalContent(
+       <div>changePassword</div>
+    );
+    setChangePasswordModal(true);
+}else if (content === 'DeleteAccount'){
+    setModalContent(
+      <div>DeleteAccount</div>
+    );
+    setDeleteAccountModal(true);
+}else{
+   console.log("Problem in settings display");
+}
+};
+const closeModal = () => {
+  setModalContent(null);
+  setEditProfileModal(false);
+  setChangePasswordModal(false);
+  setDeleteAccountModal(false);
+  setViewUserModal(false);
+};
+const handleOverlayClick = (e) => {
+  if (e.target === e.currentTarget) {
+    closeModal();
+    setEditProfileModal(false);
+    setChangePasswordModal(false);
+    setDeleteAccountModal(false);
+    setViewUserModal(false);
+
+  }
+};
+
+useEffect(() => {
+  const handleClickOutside = (event) => {
+    if (settingsRef.current && !settingsRef.current.contains(event.target)  && !modalContent) {
+      setShowSettings(false);
+    }
+  };
+
+  document.addEventListener('mousedown', handleClickOutside);
+  return () => {
+    document.removeEventListener('mousedown', handleClickOutside);
+  };
+}, [settingsRef,modalContent]);
+const openUserModal = () => {
+  setModalContent(
+    <div>user Info modal</div>
+     );
+  setViewUserModal(true);
+};
+const handleKeyDown = (e) => {
+  if (e.key === 'Enter' && e.ctrlKey) {
+    e.preventDefault();
+    setNewMessage(prev => prev + '\n');
+  } else if (e.key === 'Enter' && !e.ctrlKey) {
+    e.preventDefault();
+    handleSendMessage();
+  }
+};
+const handleSaveEditedMessage = () => {
+  setMessages(messages.map((msg) => (msg.id === editMessageId ? { ...msg, content: editMessageContent } : msg)));
+  setEditMessageId(null);
+  setEditMessageContent('');
+};
+//useOutsideClick(emojiPickerRef, () => setShowEmojiPicker(false));
+useOutsideClick(emojiPickerRef,() => setShowEmojiPickerEDIT(false));
+useOutsideClick(emojiPickerRef,() => setShowEmojiPicker(false));
+
+
+// FUCNTION INTEGRATION END
 
 // For Settings code End
 
@@ -1543,328 +2083,586 @@ function formatDateTime(isoString) {
             </div> 
 */    
   return(
-  <div className='wrapper'>
-   <div className='container'>
-      <div className='left'>
-          <div className='top'>
-          <span className='chatLogo'>Fonkagram</span>
-          
-          <label className="SB">
-          <input type="text"
-          placeholder="Search By Email" 
-          value={searchQueryUser} 
-          onChange={(e) => setSearchQueryUser(e.target.value)} />
-          </label>
-      <div className="SearchUser"> 
-          
-        {searchResultUser.length > 0 && ( 
-        <div className="SearchResultUser"> 
-              {searchResultUser.map(result => (
-                <div key={result.id}>
-                  <button onClick={()=>handleNewUserClick(result.id,result.name,result.lastName)}>Name: {result.name} {result.lastName} <br /> Email:{result.email}</button>
-                </div>
-              ))} 
+  <div className='flex h-screen relative'>
+    {modalContent && (
+        <div 
+          className="fixed inset-0 bg-gray-800 bg-opacity-75 flex items-center justify-center z-50"
+          onClick={handleOverlayClick}
+        > 
+          <div 
+          ref={modalRef}
+            className="bg-white p-4 rounded-lg shadow-lg w-1/3 relative"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <button onClick={closeModal} className="absolute top-2 right-2 text-gray-600">X</button>
+            {editProfileModal && (
+            <div className="edit-profile-container">
+          <form className="form-sign-up" onSubmit={handleSubmitProfile}>
+            <span className="title">Edit Profile</span> <br />
+            <label>Name</label>
+            <input
+              className="email-input"
+              type="text"
+              placeholder="Name"
+              required
+              value={firstName}
+              onChange={handleFirstNameChange}
+              disabled={isLoading}
+            />
+            <label>Last Name</label>
+            <input
+              className="email-input"
+              placeholder="LastName"
+              type="text"
+              value={lastName}
+              onChange={handleLastNameChange}
+              disabled={isLoading}
+            />
+            <label>Bio</label>
+            <input
+              className="email-input"
+              type="text"
+              value={bio}
+              onChange={handleBioChange}
+              disabled={isLoading}
+            />
+            <button className="button-sign-up" disabled={isLoading}>
+              Set
+            </button>
+            {errorMessage && <p className="error-message">{errorMessage}</p>}
+            {goodMessage && <p className="good-message">{goodMessage}</p>}
+            {isLoading && <p className="is-loading">Loading...</p>}
+          </form>
         </div>
-       )}
-          </div>
-          <div className="App1">
-          <div className='ProfilePicClass'>
-             <button onClick={handleButtonClick1} ref={buttonRef} className='profilePicButton'>
-          <img className='profilePic' src="https://cdn-icons-png.flaticon.com/256/3524/3524659.png" alt="Profile" /></button>
-          </div>
-          {isDropdownVisible && (
-            <div className="dropdown2" ref={dropdownRef}>
-              <ul className='oneUl'>
-          {/*Edit Profile(DropDown,Shade) code Start */} 
-            <li className='oneLi' >
-              <div className="App">
-                <div className={`content ${EpIsOverlayVisible ? 'faded' : ''}`}>
-                  <button className='buttonSignUpNew' onClick={EphandleButtonClick}>Edit Profile</button>
-                </div>
-
-                {EpIsOverlayVisible && (
-                  <div className="mineEp">
-  
-                    <form className='formSignUp' onSubmit={handleSubmitProfile}>
-                    <span className='logo'>Fonkagram</span>
-                    <span className='title'>Edit Profile</span>
-                      <label >Name</label>
-                      <input 
-                      className='emailInput'
-                        type="text"
-                        placeholder='Name' 
-                        required 
-                        value={firstName} 
-                        onChange={handleFirstNameChange} 
-                        disabled={isLoading}
-                      />  
-                      <label >Last Name</label>
-                      
-                      <input 
-                      className='emailInput'
-                      placeholder='LastName'
-                        type="text"  
-                        value={lastName} 
-                        onChange={handleLastNameChange} 
-                        disabled={isLoading}
-                      /> 
-                      <label>Bio  </label>
-                      <input 
-                      className='emailInput'
-                        type="text"  
-                        value={bio} 
-                        onChange={handleBioChange} 
-                        disabled={isLoading}
-                      />
-                      <button className='buttonSignUp' disabled={isLoading}>Set</button>
-                      
-                      {errorMessage && <p className='errorMessage'>{errorMessage}</p>}
-                    {goodMessage && <p className='goodMessage'>{goodMessage}</p>}
-                    {isLoading && <p className='isLoading'>Loading...</p>}
-                    </form>
-                      <button className='mineClose' onClick={handleCloseOverlay}>Close</button>
-                    </div>
-                  
-                )}
-              </div>  
-           
-            </li>
-          {/*Edit Profile (Drop Down,Shade) code End */}
-
-          {/*Change Password Start*/}
-            <li className='oneLi'>
-            <div>
-            <div className="App">
-            <div className={`content ${FpIsOverlayVisible ? 'faded' : ''}`}>
-            <button className='buttonSignUpNew' onClick={FphandleButtonClick}>Change Password</button>
-            </div>
-
-            {FpIsOverlayVisible && (
-            <div className="mineEp">
-  
-            <form className='formSignUp' onSubmit={handleSubmitPassword} >
-            <span className='logo'>Fonkagram</span>
-            <span className='title'>Change Password</span>
-            <input 
-              className='emailInput'
+            )}
+            {changePasswordModal && (
+            <div className="edit-profile-container">
+          <form className="form-sign-up" onSubmit={handleSubmitProfile}>
+            <span className="title">Change Password</span> <br />
+            <input
+              className="email-input"
               placeholder='Old Password'
               type="current-password" 
-              
               required 
               value={oldPassword}
               onChange={handleOldPasswordChange}
               disabled={isLoading} // Disable input field while loading
             />
-
-            <input 
-            className='emailInput'
-            placeholder='New Password'
+            <input
+              className="email-input"
+              placeholder='New Password'
               type="current-password" 
               required 
               value={newPassword}
               onChange={handleNewPasswordChange}
               disabled={isLoading} // Disable input field while loading
             /> 
-            <button className='buttonSignUp' disabled={isLoading} >Submit</button>
-
-            {errorMessage && <p className='errorMessage'>{errorMessage}</p>}
-            {goodMessage && <p className='goodMessage'>{goodMessage}</p>}
-            {isLoading && <p className='isLoading'>Loading...</p>}
             
-            </form>
-
-            <button className='mineClose' onClick={handleCloseOverlay}>Close</button>
-            </div>
-            
+            <button className="button-sign-up" disabled={isLoading}>
+              Submit
+            </button>
+            {errorMessage && <p className="error-message">{errorMessage}</p>}
+            {goodMessage && <p className="good-message">{goodMessage}</p>}
+            {isLoading && <p className="is-loading">Loading...</p>}
+          </form>
+        </div>
             )}
-            </div>  
-            </div>
-            </li>
-          {/*Change Password End*/}
-          {/*Delete Account Start*/}
-          <li className='oneLi'>
-          {/*Delete Account(DropDown,Shade) code Start */}
-          <div className="App">
-          <div className={`content ${DaIsOverlayVisible ? 'faded' : ''}`}>
-            <button className='buttonSignUpNew' onClick={DahandleButtonClick}>Delete Account</button>
-          </div>
-
-          {DaIsOverlayVisible && (
-            <div className="mineEp">
-  
-              <form className='formSignUp' onSubmit={handleSubmitPassword}>
-              <span className='logo'>Fonkagram</span>
-              <span className='title'>Danger Zone</span>
-                  Are you sure you want to delete this account?
-                <button className='buttonTabDelete' onClick={deleteAccount}  disabled={isLoading} >Delete</button>
-                
-              {isLoading && <p className='isLoading'>Loading...</p>}
-                  
-              </form>
-              
+            {deleteAccountModal && (
+            <div className="edit-profile-container">
+          <form className="form-sign-up" onSubmit={handleSubmitProfile}>
+            <span className="title">Danger Zone</span> <br />
+              Are you sure you want to delete this account? <br /><br />
+            <button className='buttonTabDelete' onClick={deleteAccount}  disabled={isLoading} >Delete</button>
+          
+          {isLoading && <p className='isLoading'>Loading...</p>}
             
-                <button className='mineClose' onClick={handleCloseOverlay}>Close</button>
+        </form>
+        </div>
+            )}
+            {viewUserModal &&(
+               <div className="p-4">
+                <h2 className="text-xl font-semibold">{selectedName} {selectedLastName}</h2>
+                <p><strong>Email:</strong> {selectedEmail}</p>
+                <p><strong>Bio:</strong> {selectedBio}</p>
+                <button onClick={() => {setModalContent(null);setViewUserModal(false);}} className="mt-4 text-blue-500">Close</button>
+               </div>
+            )}
+          </div>
+        </div>
+    )}
+    {/*Left Side Bar*/}
+      <div className='w-1/4 bg-gray-100 border-r border-gray-300 flex flex-col'>
+      {/* Search Bar */}
+      <div className="p-4 flex items-center relative">
+          <input type="text"
+          placeholder="Search Users By Email" 
+          value={searchQueryUser} 
+          onChange={(e) => setSearchQueryUser(e.target.value)} 
+          className='input input-bordered w-full p-2 rounded-md'
+          />
+          <FontAwesomeIcon 
+            icon={faCog} 
+            className="ml-2 cursor-pointer text-gray-600 hover:text-gray-800" 
+            onClick={() => setShowSettings(!showSettings)} 
+          />
+          {showSettings && (
+            <div ref={settingsRef} className="absolute top-full mt-1 right-0 w-48 bg-white border border-gray-300 rounded-md shadow-lg z-10">
+               
+              <div className="p-2 hover:bg-gray-200 cursor-pointer flex items-center" onClick={() => openModal('EditProfile')}>
+                <FontAwesomeIcon icon={faUserEdit} className="mr-2" /> Edit Profile
               </div>
-            
-          )}
-        </div>  
-        {/*Delete Account (Drop Down,Shade) code End */}
-
-              </li>
-          {/*Delete Account End*/}
-
-          {/*Log Out*/}
-                <li className='oneLi'>
-                <div className="App">
-            <button className='buttonSignUpNew' onClick={handleLogOut}>Logout</button>
-      
-          </div>
-              
-                
-                </li>
-          {/*Log Out*/}
-              </ul>
+              <div className="p-2 hover:bg-gray-200 cursor-pointer flex items-center" onClick={() => openModal('ChangePassword')}>
+                <FontAwesomeIcon icon={faKey} className="mr-2" /> Change Password
+              </div>
+              <div className="p-2 hover:bg-gray-200 cursor-pointer flex items-center" onClick={() => openModal('DeleteAccount')}>
+                <FontAwesomeIcon icon={faTrash} className="mr-2" /> Delete Account
+              </div>
+              <div className="p-2 hover:bg-gray-200 cursor-pointer flex items-center" onClick={() => handleLogOut()}>
+                <FontAwesomeIcon icon={faSignOutAlt} className="mr-2" /> Logout
+              </div>
             </div>
           )}
-          </div>
-      </div>
-            
-          
-          {isLoading && <p className='isLoadingConv'>Loading Conversations...</p>}
-          
-          {conversations.length > 0 ?
-          (
-          <ul className="people">
-           {conversations.map(conversation =>(
-              <li key={conversation.convId} className='person' onClick={() => handleConversationClick(conversation.convId,conversation.userId,conversation.userName,conversation.lastName)}>
-              <img className='avatar' src="https://cdn4.iconfinder.com/data/icons/button-apps/2000/button_green__user-512.png" alt="" />
-              <span className='name'>{conversation.userName} {conversation.lastName}</span>
-              <span className='time'>{formatDateTime(conversation.updatedTime)}</span>
-              <span className='preview'>{conversation.message}</span>
-              </li>
-           ))}
-          
-          </ul>
-          ):( 
-           <div>{!isLoading && <p className='isLoadingConv'>No Conversations...</p>}
-           </div> 
+          {searchResultUser.length > 0 && ( 
+            <div className="absolute top-full mt-1 w-full bg-white border border-gray-300 rounded-md shadow-lg z-10"> 
+              {searchResultUser.map(result => (
+                <div 
+                key={result.id}
+                className='p-2 hover:bg-gray-200 cursor-pointer'
+                onClick={()=>handleNewUserClick(result.id,result.name,result.lastName)}
+                >
+              <div className="w-12 h-12 rounded-full bg-blue-500 text-white flex items-center justify-center mr-3 text-lg font-semibold">
+                {result.name.charAt(0)}
+              </div>
+              <div className="flex-1">
+                <div className="flex justify-between items-center">
+                  <div>
+                    <div className="text-lg font-semibold">
+                      {result.name} {result.lastName}
+                      </div>
+                    <div className="text-sm text-gray-500">{result.email}</div>
+                  </div>
+                  
+                </div>
+              </div>
+
+                </div>
+              ))} 
+            </div>
           )}
-         </div>
-
-
-        <div className='right'>
+      </div> 
+     
+      {/* Conversations List */}
+      <div className="overflow-y-auto flex-grow p-2">    
+        {conversations.length > 0 ?(
+          <>
+            {conversations.map(conversation =>(
+              <div 
+                  key={conversation.convId}   
+                  className={` group p-4 flex items-start cursor-pointer  ${selectedConversation && selectedConversation.id === conversation.convId ? 'bg-gray-300' : ''}`}
+                  onClick={() =>{ 
+                  handleConversationChange(conversation.convId);
+                  handleConversationClick(conversation.convId,conversation.userId,conversation.userName,conversation.lastName,conversation.status,conversation.lastSeen,conversation.bio,conversation.email);
+                  }}
+                >
+                  <button
+                    className="relative right-3 text-red-500  hidden group-hover:block"
+                    onClick={(e) => { e.stopPropagation(); handleDeleteConversation(conversation.convId); }}
+                  >
+                    <FontAwesomeIcon icon={faTrashAlt} />
+                  </button>
+                  
+                  <div className="w-12 h-12 rounded-full bg-blue-500 text-white flex items-center justify-center mr-3 text-lg font-semibold">
+                    {conversation.userName.charAt(0)}
+                  </div>
+                  <div className="flex-1">
+                    <div className="flex justify-between items-center">
+                      <div>
+                        <div className="text-lg font-semibold">
+                          {conversation.userName} {conversation.lastName}
+                          <span className={`ml-2 inline-block w-3 h-3 rounded-full ${conversation.status ? 'bg-green-500' : 'bg-gray-500'}`}></span>
+                        </div>
+                        <div className="text-sm text-gray-500">{conversation.message}</div>
+                      </div>
+                      <div className="text-sm text-gray-500 text-right">
+                        <div>{formatDateTime(conversation.updatedTime)}</div>
+                        {conversation.notificationCount > 0 && (
+                          <div className="bg-red-500 text-white rounded-full w-5 h-5 flex items-center justify-center text-xs">
+                            {conversation.notificationCount}
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+              </div>
+            ))}
+        </>
+        ):( 
+           <>
+           {isLoading ? (<div className="text-center text-gray-600"><FontAwesomeIcon icon={faSpinner} size='large' spin /></div> ):(<div className="text-center text-gray-600">No Conversations</div>  ) }
+         </>
+        )}
+      
+      </div>
+      </div>
         
-        {messages.length > 0 || forSearchUser === true ? (
-          <div className='top'>
-          
-          <span className='name'>{selectedName} {selectedLastName}</span> <br />
-          <span className='time'>Last seen recently</span>
-         
+    {/* Right Content */}
+    <div className='flex flex-col w-3/4'>
+      {/* Conversation Info */}
+
+        {selectedConversation || forSearchUser === true ? (
+          <div className="p-4 bg-gray-200 border-b border-gray-300">
+          <div onClick={() => openUserModal()}  className="cursor-pointer">
+            <h2 className="text-lg font-semibold">
+              {selectedName} {selectedLastName}
+            </h2> 
+            <div className="text-sm text-gray-500">
+              {selectedOnlineStatus ? 'Online' : `Last seen: ${selectedLastSeen}`}
+            </div>
+          </div>
+          <div>
+          {isPlaying && (
+            <div className="flex justify-between mt-2">
+            
+          <button onClick={stopCurrentAudio} className="text-red-500">
+            <FontAwesomeIcon icon={faStop} />  
+          </button> 
+        </div> 
+         )} 
          </div>
-        ):(
+          </div>
+          
+        ) : (
           <div></div>
         )}
-        
-
-        <div className='ForMessages'>
-          {messages.length > 0 || forSearchUser === true ? (
+        {/* Fullscreen Image Modal */}
+      {fullscreenImage && (
+        <div className="fixed inset-0 bg-black bg-opacity-75 flex items-center justify-center z-50" onClick={closeFullscreenImage}>
+          <img src={fullscreenImage} alt="Fullscreen" className="max-w-full max-h-full" />
+        </div>
+      )}
+       <div className="flex justify-center mt-2"> 
+        </div>
+     
+      {/* Messages */}
+          
+        <div className='flex-1 overflow-y-auto p-4'>
+          {selectedConversation || forSearchUser === true ? (
+           messages.length > 0 ? (
           messages.map(message=>( 
-            <div key={message.id}>
-           
+            <div key={message.id} id={`message-${message.id}`} className="mb-4">
+             <div>
             {message.senderId !== Number(sessionStorage.getItem('userId'))?(
-              <div key={message.id} className="MessageContent">
-                {editMessageId !== message.id ?(
-                <p className='SingleMessage'>
-                {message.content}
-                <span className='timeStamp'>{formatDateTime(message.timeStamp)}</span>
-                <span className='timeStamp'>{message.edited === true ?("edited"):("")}</span>
-                
-                <button onClick={() => handleDeleteMessage(message.id)}>Delete</button> 
-                </p>
-            ):( 
-              <form key={message.id} onSubmit={handleEditSubmit}>
-              <input
-                type="text"
-                value={editMessageContent}
-                onChange={(e) => setEditMessageContent(e.target.value)}
-                required
-              /> 
-              <button type="submit">Submit</button>
-              <button type="button" onClick={() => setEditMessageId(null)}>Cancel</button>
-            </form>
-            )} 
+              <div key={message.id} className="chat chat-start">
+              
+                <div className="group chat-bubble bg-blue-500 text-white p-2 rounded-lg max-w-xs md:max-w-md break-words">
+                        {message.isImage ? (
+                         
+                          <div className='image-container'>
+                            {isUploading && uploadingMessageId === message.id && (
+                              <FontAwesomeIcon icon={faSpinner} spin className="mr-2"/>
+                            )}
+                            {!isUploading && (
+                              <img src={message.content} alt="Uploaded" onClick={() => handleImageClick(message.content)} className="uploaded-image cursor-pointer" />
+                            )}
+                            <div className="flex items-center justify-between mt-1">
+                              <button className="ml-2 text-red-600 hidden group-hover:block" onClick={() => handleDeleteMessage(message.id)}>
+                                <FontAwesomeIcon icon={faTrashAlt} />
+                              </button>
+                            </div>
+                          </div>
+                        ) : message.isAudio?(
+                        <div>
+                            {isUploading && uploadingMessageId === message.id && (
+                                <FontAwesomeIcon icon={faSpinner} spin className="mr-2" />
+                            )}
+                            {!isUploading && (
+                              <>
+                              {isDownloading && downloadingMessageId === message.id ? (
+                                <FontAwesomeIcon icon={faSpinner} spin className="mr-2" />
+                              ) : (
+                                isAudioDownloaded(message.id) ? (
+                                  <button onClick={() => handlePlayAudio(message.content, message.id)} className="mr-2">
+                                    <FontAwesomeIcon icon={isPlaying && currentAudioId === message.id ? faPause : faPlay} />
+                                  </button>
+                                ) : (
+                                  <button onClick={() => handleDownloadAudio(message.content, message.id)} className="mr-2">
+                                    <FontAwesomeIcon icon={faCloudDownload} />
+                                  </button>
+                                )
+                              )}
+                            </>
+                            )}
+                          <div id={`waveform-${message.id}`} className="rounded-lg max-w-full">
+                          <span className="duration" 
+                            id='{`duration-${message.id}`}'>
+                            
+                            {isPlaying && currentAudioId === message.id
+                          ? `${Math.floor((elapsedTimes[message.id] || 0) / 60)}:${Math.floor((elapsedTimes[message.id] || 0) % 60).toString().padStart(2, '0')}`
+                          : durationsRef.current[message.id]
+                            ? `${Math.floor(durationsRef.current[message.id] / 60)}:${Math.floor(durationsRef.current[message.id] % 60).toString().padStart(2, '0')}`
+                            : '0:00'}
+                            
+                            </span>
+                        </div>
+                          
+                        
+                        
+                            <div className="flex items-center justify-between mt-1" >
+              
+                            <button
+                              className="ml-2 text-red-600 hidden group-hover:block"
+                              onClick={() => handleDeleteMessage(message.id)}
+                            >
+                              <FontAwesomeIcon icon={faTrashAlt} />
+                            </button>
+                            </div>
+                          
+                      </div>
+                        ): (
+                          
+                          <div>
+                          {message.content}
+                          <div className="flex items-center justify-between mt-1" >
+                      
+                      <button
+                        className="ml-2 text-red-600 hidden group-hover:block"
+                        onClick={() => handleDeleteMessage(message.id)}
+                      >
+                        <FontAwesomeIcon icon={faTrashAlt} />
+                      </button>
+                    </div>
+                    </div>
+                        )}
+                </div>
+                 <div className="chat-footer opacity-50">
+                {formatDateTime(message.timeStamp)}
+                {message.edited === true ?("edited"):("")}
+              </div>
+                  
               
             </div>
             ):( 
-            <div key={message.id} className="MessageContentR">
+            <div key={message.id} className="chat chat-end">
               {editMessageId !== message.id ?(
-                 <p className='SingleMessageR'>
-                 {message.content} 
-               <span className='timeStampR'>{formatDateTime(message.timeStamp)}</span>
-               <span className='timeStamp'>{message.edited === true ?("edited"):("")}</span>
-               <button onClick={() => handleEditMessage(message)}>Edit</button>
-              <button onClick={() => handleDeleteMessage(message.id)}>Delete</button>
-              </p> 
+                <div className="group chat-bubble bg-blue-500 text-white p-2 rounded-lg max-w-xs md:max-w-md break-words">
+                  {message.isImage ? (
+                    
+                    <div className='image-container'>
+                      {isUploading && uploadingMessageId === message.id && (
+                        <FontAwesomeIcon icon={faSpinner} spin className="mr-2"/>
+                      )}
+                      {!isUploading && (
+                        <img src={message.content} alt="Uploaded" onClick={() => handleImageClick(message.content)} className="uploaded-image cursor-pointer" />
+                      )}
+                      <div className="flex items-center justify-between mt-1">
+                        <button className="ml-2 text-red-600 hidden group-hover:block" onClick={() => handleDeleteMessage(message.id)}>
+                          <FontAwesomeIcon icon={faTrashAlt} />
+                        </button>
+                      </div>
+                    </div>
+                  ):message.isAudio?(
+                  <div>
+                      {isUploading && uploadingMessageId === message.id && (
+                          <FontAwesomeIcon icon={faSpinner} spin className="mr-2" />
+                      )}
+                      {!isUploading && (
+                        <>
+                        {isDownloading && downloadingMessageId === message.id ? (
+                          <FontAwesomeIcon icon={faSpinner} spin className="mr-2" />
+                        ) : (
+                          isAudioDownloaded(message.id) ? (
+                            <button onClick={() => handlePlayAudio(message.content, message.id)} className="mr-2">
+                              <FontAwesomeIcon icon={isPlaying && currentAudioId === message.id ? faPause : faPlay} />
+                            </button>
+                          ) : (
+                            <button onClick={() => handleDownloadAudio(message.content, message.id)} className="mr-2">
+                              <FontAwesomeIcon icon={faCloudDownload} />
+                            </button>
+                          )
+                        )}
+                      </>
+                      )}
+                    <div id={`waveform-${message.id}`} className="rounded-lg max-w-full">
+                    <span className="duration" 
+                      id='{`duration-${message.id}`}'>
+                      
+                      {isPlaying && currentAudioId === message.id
+                    ? `${Math.floor((elapsedTimes[message.id] || 0) / 60)}:${Math.floor((elapsedTimes[message.id] || 0) % 60).toString().padStart(2, '0')}`
+                    : durationsRef.current[message.id]
+                      ? `${Math.floor(durationsRef.current[message.id] / 60)}:${Math.floor(durationsRef.current[message.id] % 60).toString().padStart(2, '0')}`
+                      : '0:00'}
+                      
+                      </span>
+                  </div>
+                    
+                  
+                  
+                      <div className="flex items-center justify-between mt-1" >
+        
+                      <button
+                        className="ml-2 text-red-600 hidden group-hover:block"
+                        onClick={() => handleDeleteMessage(message.id)}
+                      >
+                        <FontAwesomeIcon icon={faTrashAlt} />
+                      </button>
+                      </div>
+                    
+                </div>
+                  ):(
+                  <div>
+                  {message.content}
+                  <div className="flex items-center justify-between mt-1" >
+              <button
+                  className="ml-2 text-gray-600 hidden group-hover:block"
+                  onClick={() => handleEditMessage(message.id)}
+                >
+                  <MdEdit />
+                </button>
+                <button
+                  className="ml-2 text-red-600 hidden group-hover:block"
+                  onClick={() => handleDeleteMessage(message.id)}
+                >
+                  <FontAwesomeIcon icon={faTrashAlt} />
+                </button>
+              </div>
+              </div>
+            )}   
+            </div>
             ):(
-              <form key={message.id} onSubmit={handleEditSubmit}>
-              <input
+             <div className="group chat-bubble bg-blue-500 text-white p-2 rounded-lg max-w-xs md:max-w-md break-words">
+            <form key={message.id} onSubmit={handleEditMessage}>
+              <TextareaAutosize
                 type="text"
                 value={editMessageContent}
                 onChange={(e) => setEditMessageContent(e.target.value)}
                 required
-              />
-              <button type="submit">Submit</button>
-              <button type="button" onClick={() => setEditMessageId(null)}>Cancel</button>
+                className=''
+              /> 
+                  <button type="submit" className="ml-2 text-gray-600">
+                    <FontAwesomeIcon icon={faCheck} />
+                  </button>
+                  <button type="button" onClick={() => setEditMessageId(null)} className="ml-2 text-red-600">
+                    <FontAwesomeIcon icon={faTimes} />
+                  </button>
+                  
             </form>
-            )} 
-              
-              
-            </div>
+              <div className="flex items-center justify-between mt-1">
+                
+                <button
+                  onClick={() => setShowEmojiPickerEDIT(!showEmojiPickerEDIT)} ref={emojiPickerRef}
+                  className="btn btn-secondary ml-2 size-0"
+                >
+                  <FontAwesomeIcon icon={faSmile} size='sm' />
+                </button>
+                {showEmojiPickerEDIT && (
+                  <div className="absolute top-10 right-5 z-25">
+                    <Picker dataXX={dataXXX} 
+                      onEmojiSelect={(e) => { 
+                        setEditMessageContent(editMessageContent + e.native);
+                      }}
+                    />
+                  </div>
+                )}
+              </div>
+              </div>
             )}
-           </div>
+              <div className="chat-footer opacity-50">
+                {formatDateTime(message.timeStamp)}
+                {message.edited === true ?("edited"):("")}
+              </div>
+                
+            </div>
+
+            )}
            
+           </div>
+           </div>
             
           ))
+           ):(
+           <>
+           {isLoading ? (<div className="text-center text-gray-600"><FontAwesomeIcon icon={faSpinner} size='large' spin /></div> ):(<div className="text-center text-gray-600">No messages</div>  ) }
+         </>
+           )
         ):(
-          <p className='isLoadingMessage'>Select a chat to start messaging</p>
+          <div className="text-center text-gray-600">
+                <p>Welcome Mr.Harry Kane </p>
+               <p>Select a conversation to view messages</p> 
+                
+              </div>
         )}
         </div>
         
-       {(messages.length > 0 || forSearchUser === true) ? (
-          <div className='write'>
+          
+      
+      {/* Input Field */}
+       { selectedConversation || forSearchUser === true ? (
+          <div className='p-4 bg-gray-200 border-t border-gray-300 flex items-center'>
          
-          <form key= 'unique' onSubmit={handleSendMessage}>
+           {isRecording ?(
+          <div className="flex items-center w-full justify-between">
+            <span className="mr-2">{Math.floor(recordingDuration / 60)}:{(recordingDuration % 60).toString().padStart(2, '0')}</span>
+            <div id="waveform-recording" className="flex-1"></div>
+            <button onClick={handleStopRecording} className="ml-2 text-red-600 text-lg">
+              <FontAwesomeIcon icon={faStop} size="lg" />
+            </button>
+          </div>
+          ):(
+          <div className='flex items-center w-full'>
           <input 
-        
-          type="text" 
-          placeholder='Type here...'
-          required
+            type="file"
+            accept="image/*"
+            ref={fileInputRef}
+            style={{ display: 'none' }}
+            onChange={handleFileChange}
+          />
+          <button
+            onClick={() => fileInputRef.current.click()}
+            className="btn btn-secondary ml-2"
+          >
+            <FontAwesomeIcon icon={faPaperclip} />
+          </button>
+          <TextareaAutosize  
+          placeholder="Type your message..."
           value={sendMessage}
           onChange={handleMessage}
+          className="textarea textarea-bordered flex-1 p-2 resize-none rounded-md overflow-hidden"
+          onKeyDown={handleKeyDown}
+          minRows={1}
           disabled={isLoadingMessage}
-          />
-          
-         
-          </form> 
-          
-          
-          <button onClick={handleSendMessage} disabled={sendMessage.length===0}>
-          {isLoadingMessage ? "Sending..." : errorMessage ? "Failed to Send" : "Send"}
-          </button>
-          </div>
-        ):(
-         <div></div>
-        )}
+        /> 
+         <button 
+              onClick={() => setShowEmojiPicker(!showEmojiPicker)}
+              className="btn btn-secondary ml-2"
+            > 
+              <FontAwesomeIcon icon={faSmile} />
+            </button> 
+            <button onClick={isRecording ? handleStopRecording : handleStartRecording} className="btn ml-2">
+          <FontAwesomeIcon icon={isRecording ? faStop : faMicrophone} />
+        </button>
+        <button onClick={handleSendMessage} disabled={sendMessage.length ===0}>
+          {isLoadingMessage ? <FontAwesomeIcon icon={faSpinner} spin /> : errorMessage? "javascript" : <FontAwesomeIcon icon={faPaperPlane} />}
+        </button> 
         </div>
-        
-         
-         
-      </div>
-
-     
+        )}
+          </div>
+       ):(
+       <div></div>
+       )}
 
     </div>
-
-  )
+    {/* Emoji Picker */}
+  {showEmojiPicker && (
+    <div className="absolute bottom-20 right-10 z-50">
+      <Picker dataXX={dataXXX} 
+        onEmojiSelect={(e) => { 
+          setNewMessage(newMessage + e.native);
+        }}
+      />
+    </div>
+  )}    
+         
+  </div>
+  );
 }
 export default Chats;
