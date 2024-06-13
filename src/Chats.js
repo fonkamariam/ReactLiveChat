@@ -5,7 +5,7 @@ import { HttpTransportType, HubConnectionBuilder, LogLevel } from "@microsoft/si
 import * as signalR from '@microsoft/signalr';
 // Intergration
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { faPaperPlane, faCloudDownload, faPause, faTrashAlt,faSmile ,faCog, faUserEdit, faKey, faSignOutAlt, faTrash,faCheck,faTimes,faSpinner,faPaperclip,faMicrophone, faStop, faPlay,faTimesCircle,faDownload} from '@fortawesome/free-solid-svg-icons';
+import { faSun,faMoon,faPaperPlane, faCloudDownload, faPause, faTrashAlt,faSmile ,faCog, faUserEdit, faKey, faSignOutAlt, faTrash,faCheck,faTimes,faSpinner,faPaperclip,faMicrophone, faStop, faPlay,faTimesCircle,faDownload, faSlash} from '@fortawesome/free-solid-svg-icons';
 import { MdEdit } from 'react-icons/md';
 import Picker from '@emoji-mart/react';
 import dataXXX from '@emoji-mart/data';
@@ -17,6 +17,10 @@ import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 
 // Integration end
 function Chats() {
+  let tempDark = sessionStorage.getItem('Dark');
+  let valueDark = false;
+  if (tempDark && tempDark==='true'){valueDark = true}
+  const [isDarkMode, setIsDarkMode] = useState(valueDark);
   const [connection, setConnection] = useState(null);  
   const [newMessagesCount, setNewMessagesCount] = useState({});
   const [conversations, setConversations] = useState([]);
@@ -124,7 +128,7 @@ function Chats() {
         console.error('Error fetching user data:', error);
         // Handle error
       }
-    };
+  };
   /** UseEffects Start MessageWs */
   useEffect(() => {
     if (messageWs) { // Ensure messageWs is not null
@@ -138,7 +142,18 @@ function Chats() {
             if(Number(prevCount) !== 0){
               prevCount = prevCount -1;
             }
-            return { ...conversation, message: messageWs.at(-1).content, updatedTime: messageWs.at(-1).timeStamp, messageId: messageWs.at(-1).id ,notificationCount:prevCount};
+            let refinedContent = messageWs.at(-1).content;
+            let refinedAudioStatus = false;
+            let refinedImageStatus = false;
+            if (messageWs.at(-1).isAudio === true){
+                  refinedContent = 'Voice Message';
+                  refinedAudioStatus=true;
+            }
+            if (messageWs.at(-1).isImage === true){
+                refinedContent = 'Photo';
+                refinedImageStatus=true;
+            }
+            return { ...conversation, message: refinedContent, updatedTime: messageWs.at(-1).timeStamp, messageId: messageWs.at(-1).id ,notificationCount:prevCount,isAudio:refinedAudioStatus,isImage:refinedImageStatus};
           }
           return conversation; 
         });
@@ -177,6 +192,18 @@ useEffect(() => {
               connection.on('ReceiveMessage', async message => {
               if (message.type === 'INSERT') { 
                 //set Conversation state
+                let contentRefined = message.record.content;
+                let refinedAudioStatus = false;
+                let refinedImageStatus = false;
+                if (message.record.isAudio === true){
+                  contentRefined = 'Voice Message';
+                  refinedAudioStatus = true;
+                }
+                if(message.record.isImage === true){
+                  contentRefined = 'Photo';
+                  refinedImageStatus= true;
+                }
+
                 const existingConversation1 = conversationsRef.current.some( 
                   conversation => conversation.convId === message.record.convId
                 );
@@ -192,13 +219,15 @@ useEffect(() => {
                       ...prevConversations,
                       {
                         convId: message.record.convId,
-                        message: message.record.content,
+                        message: contentRefined,
                         updatedTime: message.record.timeStamp,
                         messageId : message.record.id,
                         userId : message.record.senderId,
                         userName: message.record.status, 
                         lastName:message.record.messageType,
-                        notificationCount: 1 
+                        notificationCount: 1,
+                        isAudio:refinedAudioStatus,
+                        isImage:refinedImageStatus
                       }
                     ];
                   
@@ -215,7 +244,7 @@ useEffect(() => {
                         const updatedConversations = prevConversations.map(conversation => {
                           if (conversation.convId === message.record.convId) { 
                             // Update the message and timeStamp for the matching conversation
-                            return { ...conversation, message: message.record.content, updatedTime: message.record.timeStamp,messageId:message.record.id,notificationCount: 0};
+                            return { ...conversation, message: contentRefined, updatedTime: message.record.timeStamp,messageId:message.record.id,notificationCount: 0,isAudio:refinedAudioStatus,isImage:refinedImageStatus};
                           } 
                           return conversation;
                         });
@@ -231,7 +260,7 @@ useEffect(() => {
                           if (conversation.convId === message.record.convId) { 
                             let prevCount = conversation.notificationCount + 1;
                             // Update the message and timeStamp for the matching conversation
-                            return { ...conversation, message: message.record.content, updatedTime: message.record.timeStamp,messageId:message.record.id,notificationCount: prevCount};
+                            return { ...conversation, message: contentRefined, updatedTime: message.record.timeStamp,messageId:message.record.id,notificationCount: prevCount,isAudio:refinedAudioStatus,isImage:refinedImageStatus};
                           }
                           return conversation;
                         }); 
@@ -259,7 +288,9 @@ useEffect(() => {
                         senderId: message.record.senderId,
                         status:message.record.status,
                         timeStamp: message.record.timeStamp,
-                        notificationCount: 0
+                        notificationCount: 0,
+                        isAudio: message.record.isAudio,
+                        isImage: message.record.isImage
                         };
                       
                       insertMessage(newMessage);
@@ -283,7 +314,9 @@ useEffect(() => {
                         recpientId: message.record.recpientId,
                         senderId: message.record.senderId,
                         status:message.record.status,
-                        timeStamp: message.record.timeStamp
+                        timeStamp: message.record.timeStamp,
+                        isAudio: message.record.isAudio,
+                        isImage: message.record.isImage
                         };
                       
                       insertMessage(newMessage);
@@ -305,7 +338,9 @@ useEffect(() => {
                         recpientId: message.record.recpientId,
                         senderId: message.record.senderId,
                         status:message.record.status,
-                        timeStamp: message.record.timeStamp
+                        timeStamp: message.record.timeStamp,
+                        isAudio: message.record.isAudio,
+                        isImage: message.record.isImage
                         };
                       
                       insertMessage(newMessage);
@@ -326,7 +361,9 @@ useEffect(() => {
                         recpientId: message.record.recpientId,
                         senderId: message.record.senderId,
                         status:message.record.status,
-                        timeStamp: message.record.timeStamp
+                        timeStamp: message.record.timeStamp,
+                        isAudio: message.record.isAudio,
+                        isImage: message.record.isImage
                         };
                       
                       
@@ -463,12 +500,24 @@ useEffect(() => {
                             setConversations(prevConversations =>{
                               const updatedConversations = prevConversations.map(conversation => {
                                 if (conversation.messageId === message.record.id) {
-                                  
+                                  let refinedContent = messagesRef.current.at(-2).content;
+                                  let refinedAudioStatus = false;
+                                  let refinedImageStatus = false;
+                                  if (messagesRef.current.at(-2).isAudio === true){
+                                       refinedContent = 'Voice Message';
+                                       refinedAudioStatus=true;
+                                  }
+                                  if (messagesRef.current.at(-2).isImage === true){
+                                      refinedContent = 'Photo';
+                                      refinedImageStatus=true;
+                                  }
                                   return { 
                                     ...conversation, 
-                                    message: messagesRef.current.at(-2).content, 
+                                    message: refinedContent, 
                                     updatedTime: messagesRef.current.at(-2).timeStamp,
-                                    messageId: messagesRef.current.at(-2).id
+                                    messageId: messagesRef.current.at(-2).id,
+                                    isAudio:refinedAudioStatus,
+                                    isImage:refinedImageStatus
                                   };
                                 } 
                                 return conversation;
@@ -521,9 +570,21 @@ useEffect(() => {
                               let prevCount = conversation.notificationCount;                              
                               if(Number(prevCount) !== 0){
                                 prevCount = prevCount - 1;
-                              }                              
+                              }
+                                                            
                               const Parsed = JSON.parse(sessionStorage.getItem(`${message.record.convId}`));
-                              return { ...conversation, message: Parsed.at(-1).content, updatedTime: Parsed.at(-1).timeStamp, messageId:Parsed.at(-1).id,notificationCount:prevCount};
+                              let refinedContent = Parsed.at(-1).content;
+                              let refinedAudioStatus = false;
+                              let refinedImageStatus = false;
+                                  if (Parsed.at(-1).isAudio === true){
+                                       refinedContent = 'Voice Message';
+                                       refinedAudioStatus= true;
+                                  }
+                                  if (Parsed.at(-1).isImage === true){
+                                      refinedContent = 'Photo';
+                                      refinedImageStatus=true;
+                                  }
+                              return { ...conversation, message: refinedContent, updatedTime: Parsed.at(-1).timeStamp, messageId:Parsed.at(-1).id,notificationCount:prevCount,isAudio:refinedAudioStatus,isImage:refinedImageStatus};
                             }
                             return conversation; 
                           });
@@ -1004,7 +1065,9 @@ const handleSendMessage = async (e) => {
       body: JSON.stringify({
         content: sendMessage, 
         recpientId: selectedRecpientId,
-        messageType: "text"
+        messageType: "text",
+        isAudio: false,
+        isImage: false
       })  
     });
     if (messagesResponse1.ok) {
@@ -1021,7 +1084,9 @@ const handleSendMessage = async (e) => {
               messageId: data.id,
               userId: data.recpientId,
               userName: selectedName,
-              lastName: selectedLastName
+              lastName: selectedLastName,
+              isAudio: false,
+              isImage: false
             }
           ];
         
@@ -1040,7 +1105,7 @@ const handleSendMessage = async (e) => {
           
           if (conversation.convId === selectedConversation) {
             
-            return { ...conversation, message: sendMessage, updatedTime:data.timeStamp ,messageId: data.id}; 
+            return { ...conversation, message: sendMessage, updatedTime:data.timeStamp ,messageId: data.id,isAudio:false,isImage:false}; 
           }
           return conversation; 
         });
@@ -1230,7 +1295,18 @@ const handleDeleteMessage = async (messageId) => {
                       
           const updatedConversations = prevConversations.map(conversation => {
             if (conversation.convId === selectedConversationRef.current && conversation.messageId === messageId) {
-              return { ...conversation, message: messages.at(-2).content, updatedTime:messages.at(-2).timeStamp,messageId:messages.at(-2).id};
+              let refinedContent = messages.at(-2).content;
+              let refinedAudioStatus = false;
+              let refinedImageStatus = false;
+              if (messages.at(-2).isAudio === true){
+                refinedContent = 'Voice Message';
+                refinedAudioStatus=true;
+           }
+           if (messages.at(-2).isImage === true){
+               refinedContent = 'Photo';
+               refinedImageStatus=true;
+           }
+              return { ...conversation, message: refinedContent, updatedTime:messages.at(-2).timeStamp,messageId:messages.at(-2).id,isAudio:refinedAudioStatus,isImage:refinedImageStatus};
             }
             return conversation;
           });
@@ -1655,7 +1731,7 @@ recorderRef.current.stopRecording(async () => {
   const messageId = Date.now();
 
   // Add a temporary message with a loading icon
-  const newMessageObj = { id: messageId, content: audioURL, timeStamp: new Date().toLocaleString(), isAudio: true, isUploading: true };
+  const newMessageObj = { id: messageId, content: audioURL, timeStamp: new Date(), isAudio: true, isUploading: true,senderId:Number(sessionStorage.getItem('userId')) };
   setMessages(prevMessages => [...prevMessages, newMessageObj]);
   setUploadingMessageId(messageId);
   setIsUploading(true);
@@ -1665,7 +1741,8 @@ recorderRef.current.stopRecording(async () => {
   try {
     await uploadBytes(storageRef, blob);
     const downloadURL = await getDownloadURL(storageRef);
-   
+
+    setIsUploading(false);
    
   setIsLoadingMessage(true);
   setVarOnce(true);
@@ -1679,11 +1756,14 @@ recorderRef.current.stopRecording(async () => {
         body: JSON.stringify({
           content: downloadURL, 
           recpientId: selectedRecpientId,
-          messageType: "audio"
+          messageType: "text",
+          isAudio: true,
+          isImage: false
         })  
       });
       if (messagesResponse1.ok) {
         const data = await messagesResponse1.json();
+        setIsLoadingMessage(false);
         if (selectedConversation === null) { 
           setConversations(prevConversations => {
             // Create a new array that includes the previous conversations and the new one
@@ -1723,7 +1803,7 @@ recorderRef.current.stopRecording(async () => {
         });}
         
         const newMessage = {
-          content: data.content,
+          content: data.content, // audio URL
           convId: data.convId,
           deleted: data.deleted,
           id: data.id,
@@ -1731,32 +1811,49 @@ recorderRef.current.stopRecording(async () => {
           recpientId: data.recpientId,
           senderId: data.senderId,
           status:data.status,
-          timeStamp: data.timeStamp
+          timeStamp: data.timeStamp,
+          isAudio: true,
+          isImage: false
         };
+       
         
-        insertMessage(newMessage);
+        //insertMessage(newMessage);
+        setMessages(prevMessages =>prevMessages.map(msg=>{
+          if (msg.id === messageId){
+            return {...msg,
+            content: data.content, 
+            convId: data.convId,
+            deleted: data.deleted,
+            id: data.id,
+            messageType: data.messageType,
+            recpientId: data.recpientId,
+            senderId: data.senderId,
+            status:data.status,
+            timeStamp: data.timeStamp,
+            isAudio: true,
+            isImage: false};
+          } return msg;
+        }));
+        setIsUploading(false);
+
         const ParsedMessage = JSON.parse(sessionStorage.getItem(`${selectedConversation}`));
         if (ParsedMessage!== null) {
         ParsedMessage.push(newMessage);
         sessionStorage.setItem(`${selectedConversation}`,JSON.stringify(ParsedMessage))
         }
-        setIsLoadingMessage(false); 
+         
         setSendMessage('');
       } else {
         throw new Error('Failed to fetch messages');
       }
     } catch (error) {
       console.error('Error fetching messages:', error);
+      // Remove the message if upload fails
+    setMessages(prevMessages => prevMessages.filter(msg => msg.id !== messageId));
+    
     }
 
-    // Update the message with the final URL
-    setMessages(prevMessages => prevMessages.map(msg => {
-      if (msg.id === messageId) {
-        return { ...msg, content: downloadURL, isUploading: false };
-      } 
-      return msg;
-    }));
-    setIsUploading(false);
+   
   } catch (error) {
     console.error('Error uploading audio:', error);
     // Remove the message if upload fails
@@ -2027,6 +2124,12 @@ const handleOverlayClick = (e) => {
 
   }
 };
+const truncateText = (text, maxLength) => {
+  if (text.length > maxLength) {
+    return text.slice(0, maxLength) + '...';
+  }
+  return text;
+};
 
 useEffect(() => {
   const handleClickOutside = (event) => {
@@ -2064,44 +2167,59 @@ const handleSaveEditedMessage = () => {
 useOutsideClick(emojiPickerRef,() => setShowEmojiPickerEDIT(false));
 useOutsideClick(emojiPickerRef,() => setShowEmojiPicker(false));
 
+const toggleDarkMode = async () => {
+  let temp = isDarkMode;
+  
+  console.log("Before",temp);
+  setIsDarkMode(!isDarkMode);
+  console.log("After", !temp);
+  
+  sessionStorage.setItem('Dark', !temp);
+  
+  try {
+    const response = await fetch(`http://localhost:5206/api/UserProfile/LightDark?value=${!temp}`, {
+      method: 'PUT',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${sessionStorage.getItem('Token')}`
+      }
+    });
+    if (response.ok) {
+      console.log("changed Apperance");
+      return;
+    } else {
+      throw new Error('Failed to zero Notification');
+    }
+  } catch (error) {
+    console.error('Error zeroing Notification');
+  }
+  
+};
 
 // FUCNTION INTEGRATION END
 
 // For Settings code End
 
-/**
-<div className="singleConvInfo">
-                <span><button onClick={()=>handleDeleteConversation(conversation.convId)}> Delete Conv</button></span>
-                <span className='Name'>{conversation.userName} {conversation.lastName}</span>
-                <div className='lastMessageContainer'><p className='lastMessage'> {conversation.message}</p>
-                <p className='lastUpdatedTime'> {formatDateTime(conversation.updatedTime)}</p>
-                <p className='newMessage'>{conversation.notificationCount}</p>
-                {conversation.status === "true" ?(<p>Online</p>):(<p>{formatDateTime(conversation.lastSeen)}</p>)}
-
-                
-             </div>
-            </div> 
-*/    
   return(
-  <div className='flex h-screen relative'>
+  <div className={`flex h-screen relative ${isDarkMode ? 'bg-gray-900 text-white' : 'bg-gray-100 text-black'}`}>
     {modalContent && (
         <div 
-          className="fixed inset-0 bg-gray-800 bg-opacity-75 flex items-center justify-center z-50"
+          className={`fixed inset-0 bg-opacity-75 flex items-center justify-center z-50 ${isDarkMode ? 'bg-gray-900 text-white' : 'bg-gray-100 text-black'}`}
           onClick={handleOverlayClick}
         > 
-          <div 
+          <div  
           ref={modalRef}
-            className="bg-white p-4 rounded-lg shadow-lg w-1/3 relative"
+            className={`bg-white p-4 rounded-lg shadow-lg w-1/3 relative ${isDarkMode ? 'bg-gray-900 text-white' : 'bg-gray-100 text-black'}`}
             onClick={(e) => e.stopPropagation()}
           >
             <button onClick={closeModal} className="absolute top-2 right-2 text-gray-600">X</button>
             {editProfileModal && (
-            <div className="edit-profile-container">
+            <div className={`edit-profile-container ${isDarkMode ? 'bg-gray-900 text-white' : 'bg-gray-100 text-black'}`}>
           <form className="form-sign-up" onSubmit={handleSubmitProfile}>
             <span className="title">Edit Profile</span> <br />
             <label>Name</label>
             <input
-              className="email-input"
+              className={`email-input ${isDarkMode ? 'bg-gray-900 text-white' : 'bg-gray-100 text-black'}`}
               type="text"
               placeholder="Name"
               required
@@ -2111,7 +2229,7 @@ useOutsideClick(emojiPickerRef,() => setShowEmojiPicker(false));
             />
             <label>Last Name</label>
             <input
-              className="email-input"
+              className={`email-input ${isDarkMode ? 'bg-gray-900 text-white' : 'bg-gray-100 text-black'}`}
               placeholder="LastName"
               type="text"
               value={lastName}
@@ -2120,7 +2238,7 @@ useOutsideClick(emojiPickerRef,() => setShowEmojiPicker(false));
             />
             <label>Bio</label>
             <input
-              className="email-input"
+              className={`email-input ${isDarkMode ? 'bg-gray-900 text-white' : 'bg-gray-100 text-black'}`}
               type="text"
               value={bio}
               onChange={handleBioChange}
@@ -2133,14 +2251,14 @@ useOutsideClick(emojiPickerRef,() => setShowEmojiPicker(false));
             {goodMessage && <p className="good-message">{goodMessage}</p>}
             {isLoading && <p className="is-loading">Loading...</p>}
           </form>
-        </div>
+            </div>
             )}
             {changePasswordModal && (
-            <div className="edit-profile-container">
+            <div className={`edit-profile-container ${isDarkMode ? 'bg-gray-900 text-white' : 'bg-gray-100 text-black'}`}>
           <form className="form-sign-up" onSubmit={handleSubmitProfile}>
             <span className="title">Change Password</span> <br />
             <input
-              className="email-input"
+              className={`email-input ${isDarkMode ? 'bg-gray-900 text-white' : 'bg-gray-100 text-black'}`}
               placeholder='Old Password'
               type="current-password" 
               required 
@@ -2149,7 +2267,7 @@ useOutsideClick(emojiPickerRef,() => setShowEmojiPicker(false));
               disabled={isLoading} // Disable input field while loading
             />
             <input
-              className="email-input"
+              className={`email-input ${isDarkMode ? 'bg-gray-900 text-white' : 'bg-gray-100 text-black'}`}
               placeholder='New Password'
               type="current-password" 
               required 
@@ -2165,10 +2283,10 @@ useOutsideClick(emojiPickerRef,() => setShowEmojiPicker(false));
             {goodMessage && <p className="good-message">{goodMessage}</p>}
             {isLoading && <p className="is-loading">Loading...</p>}
           </form>
-        </div>
+            </div>
             )}
             {deleteAccountModal && (
-            <div className="edit-profile-container">
+            <div className={`edit-profile-container ${isDarkMode ? 'bg-gray-900 text-white' : 'bg-gray-100 text-black'}`}>
           <form className="form-sign-up" onSubmit={handleSubmitProfile}>
             <span className="title">Danger Zone</span> <br />
               Are you sure you want to delete this account? <br /><br />
@@ -2177,10 +2295,10 @@ useOutsideClick(emojiPickerRef,() => setShowEmojiPicker(false));
           {isLoading && <p className='isLoading'>Loading...</p>}
             
         </form>
-        </div>
+            </div>
             )}
             {viewUserModal &&(
-               <div className="p-4">
+               <div className={`p-4 ${isDarkMode ? 'bg-gray-900 text-white' : 'bg-gray-100 text-black'}`}>
                 <h2 className="text-xl font-semibold">{selectedName} {selectedLastName}</h2>
                 <p><strong>Email:</strong> {selectedEmail}</p>
                 <p><strong>Bio:</strong> {selectedBio}</p>
@@ -2191,14 +2309,20 @@ useOutsideClick(emojiPickerRef,() => setShowEmojiPicker(false));
         </div>
     )}
     {/*Left Side Bar*/}
-      <div className='w-1/4 bg-gray-100 border-r border-gray-300 flex flex-col'>
+      <div className={`w-1/4 bg-gray-100 border-r border-gray-300 flex flex-col ${isDarkMode ? 'bg-gray-900 text-white' : 'bg-gray-100 text-black'}`}>
+      <div className="p-2 flex justify-between items-center">
+            <h1 className="text-lg font-bold">FonkaGram</h1>
+            <button onClick={toggleDarkMode} className="text-xl">
+              <FontAwesomeIcon icon={isDarkMode ? faSun : faMoon} />
+            </button>
+          </div>
       {/* Search Bar */}
       <div className="p-4 flex items-center relative">
           <input type="text"
           placeholder="Search Users By Email" 
           value={searchQueryUser} 
           onChange={(e) => setSearchQueryUser(e.target.value)} 
-          className='input input-bordered w-full p-2 rounded-md'
+          className={`input input-bordered w-full p-2 rounded-md ${isDarkMode ? 'bg-gray-900 text-white' : 'bg-gray-100 text-black'}`}
           />
           <FontAwesomeIcon 
             icon={faCog} 
@@ -2206,28 +2330,28 @@ useOutsideClick(emojiPickerRef,() => setShowEmojiPicker(false));
             onClick={() => setShowSettings(!showSettings)} 
           />
           {showSettings && (
-            <div ref={settingsRef} className="absolute top-full mt-1 right-0 w-48 bg-white border border-gray-300 rounded-md shadow-lg z-10">
+            <div ref={settingsRef} className={`absolute top-full mt-1 right-0 w-48 bg-white border border-gray-300 rounded-md shadow-lg z-10 ${isDarkMode ? 'bg-gray-900 text-white' : 'bg-gray-100 text-black'}`}>
                
-              <div className="p-2 hover:bg-gray-200 cursor-pointer flex items-center" onClick={() => openModal('EditProfile')}>
+              <div className='p-2 hover:bg-gray-500 cursor-pointer flex items-center' onClick={() => openModal('EditProfile')}>
                 <FontAwesomeIcon icon={faUserEdit} className="mr-2" /> Edit Profile
               </div>
-              <div className="p-2 hover:bg-gray-200 cursor-pointer flex items-center" onClick={() => openModal('ChangePassword')}>
+              <div className="p-2 hover:bg-gray-500 cursor-pointer flex items-center" onClick={() => openModal('ChangePassword')}>
                 <FontAwesomeIcon icon={faKey} className="mr-2" /> Change Password
               </div>
-              <div className="p-2 hover:bg-gray-200 cursor-pointer flex items-center" onClick={() => openModal('DeleteAccount')}>
+              <div className="p-2 hover:bg-gray-500 cursor-pointer flex items-center" onClick={() => openModal('DeleteAccount')}>
                 <FontAwesomeIcon icon={faTrash} className="mr-2" /> Delete Account
               </div>
-              <div className="p-2 hover:bg-gray-200 cursor-pointer flex items-center" onClick={() => handleLogOut()}>
+              <div className="p-2 hover:bg-gray-500 cursor-pointer flex items-center" onClick={() => handleLogOut()}>
                 <FontAwesomeIcon icon={faSignOutAlt} className="mr-2" /> Logout
               </div>
             </div>
           )}
           {searchResultUser.length > 0 && ( 
-            <div className="absolute top-full mt-1 w-full bg-white border border-gray-300 rounded-md shadow-lg z-10"> 
+            <div className={`absolute top-full mt-1 w-full border-gray-300 rounded-md shadow-lg z-10 ${isDarkMode ? 'bg-gray-900 text-white' : 'bg-gray-100 text-black'}  `}> 
               {searchResultUser.map(result => (
-                <div 
+                <div  
                 key={result.id}
-                className='p-2 hover:bg-gray-200 cursor-pointer'
+                className='p-2 hover:bg-gray-500 cursor-pointer'
                 onClick={()=>handleNewUserClick(result.id,result.name,result.lastName)}
                 >
               <div className="w-12 h-12 rounded-full bg-blue-500 text-white flex items-center justify-center mr-3 text-lg font-semibold">
@@ -2278,10 +2402,14 @@ useOutsideClick(emojiPickerRef,() => setShowEmojiPicker(false));
                     <div className="flex justify-between items-center">
                       <div>
                         <div className="text-lg font-semibold">
-                          {conversation.userName} {conversation.lastName}
+                          {truncateText( `${conversation.userName} ${conversation.lastName}`, 15)}
                           <span className={`ml-2 inline-block w-3 h-3 rounded-full ${conversation.status ? 'bg-green-500' : 'bg-gray-500'}`}></span>
                         </div>
-                        <div className="text-sm text-gray-500">{conversation.message}</div>
+                        {conversation.isAudio && (<div className="text-sm text-gray-500">Voice Message</div>)}
+                        {conversation.isImage && (<div className="text-sm text-gray-500">Photo</div>)}
+                        {!conversation.isAudio && !conversation.isImage && (<div className="text-sm text-gray-500">{truncateText(conversation.message, 15)}</div>)}
+                        
+                        
                       </div>
                       <div className="text-sm text-gray-500 text-right">
                         <div>{formatDateTime(conversation.updatedTime)}</div>
@@ -2310,7 +2438,7 @@ useOutsideClick(emojiPickerRef,() => setShowEmojiPicker(false));
       {/* Conversation Info */}
 
         {selectedConversation || forSearchUser === true ? (
-          <div className="p-4 bg-gray-200 border-b border-gray-300">
+          <div className={`p-4 border-b ${isDarkMode ? 'bg-gray-900 text-white  border-gray-800' : 'bg-gray-100 text-black  border-gray-200'}`}>
           <div onClick={() => openUserModal()}  className="cursor-pointer">
             <h2 className="text-lg font-semibold">
               {selectedName} {selectedLastName}
@@ -2336,7 +2464,7 @@ useOutsideClick(emojiPickerRef,() => setShowEmojiPicker(false));
         )}
         {/* Fullscreen Image Modal */}
       {fullscreenImage && (
-        <div className="fixed inset-0 bg-black bg-opacity-75 flex items-center justify-center z-50" onClick={closeFullscreenImage}>
+        <div className={`fixed inset-0 bg-black bg-opacity-75 flex items-center justify-center z-50 ${isDarkMode ? 'bg-gray-900 text-white' : 'bg-gray-100 text-black'}`} onClick={closeFullscreenImage}>
           <img src={fullscreenImage} alt="Fullscreen" className="max-w-full max-h-full" />
         </div>
       )}
@@ -2354,7 +2482,7 @@ useOutsideClick(emojiPickerRef,() => setShowEmojiPicker(false));
             {message.senderId !== Number(sessionStorage.getItem('userId'))?(
               <div key={message.id} className="chat chat-start">
               
-                <div className="group chat-bubble bg-blue-500 text-white p-2 rounded-lg max-w-xs md:max-w-md break-words">
+                <div className="group chat-bubble bg-white-500 text-white p-2 rounded-lg max-w-xs md:max-w-md break-words">
                         {message.isImage ? (
                          
                           <div className='image-container'>
@@ -2435,8 +2563,8 @@ useOutsideClick(emojiPickerRef,() => setShowEmojiPicker(false));
                         )}
                 </div>
                  <div className="chat-footer opacity-50">
+                 {message.edited === true ?("edited"):("")}
                 {formatDateTime(message.timeStamp)}
-                {message.edited === true ?("edited"):("")}
               </div>
                   
               
@@ -2514,7 +2642,7 @@ useOutsideClick(emojiPickerRef,() => setShowEmojiPicker(false));
                   <div className="flex items-center justify-between mt-1" >
               <button
                   className="ml-2 text-gray-600 hidden group-hover:block"
-                  onClick={() => handleEditMessage(message.id)}
+                  onClick={() => handleEditMessage(message)}
                 >
                   <MdEdit />
                 </button>
@@ -2528,47 +2656,48 @@ useOutsideClick(emojiPickerRef,() => setShowEmojiPicker(false));
               </div>
             )}   
             </div>
-            ):(
-             <div className="group chat-bubble bg-blue-500 text-white p-2 rounded-lg max-w-xs md:max-w-md break-words">
-            <form key={message.id} onSubmit={handleEditMessage}>
-              <TextareaAutosize
-                type="text"
-                value={editMessageContent}
-                onChange={(e) => setEditMessageContent(e.target.value)}
-                required
-                className=''
-              /> 
-                  <button type="submit" className="ml-2 text-gray-600">
-                    <FontAwesomeIcon icon={faCheck} />
-                  </button>
-                  <button type="button" onClick={() => setEditMessageId(null)} className="ml-2 text-red-600">
-                    <FontAwesomeIcon icon={faTimes} />
-                  </button>
-                  
-            </form>
-              <div className="flex items-center justify-between mt-1">
-                
-                <button
-                  onClick={() => setShowEmojiPickerEDIT(!showEmojiPickerEDIT)} ref={emojiPickerRef}
-                  className="btn btn-secondary ml-2 size-0"
-                >
-                  <FontAwesomeIcon icon={faSmile} size='sm' />
-                </button>
-                {showEmojiPickerEDIT && (
-                  <div className="absolute top-10 right-5 z-25">
-                    <Picker dataXX={dataXXX} 
-                      onEmojiSelect={(e) => { 
-                        setEditMessageContent(editMessageContent + e.native);
-                      }}
-                    />
+                ):(
+                <div className="group chat-bubble bg-blue-500 text-white p-2 rounded-lg max-w-xs md:max-w-md break-words">
+                <form key={message.id} onSubmit={handleEditSubmit}>
+                  <TextareaAutosize
+                    type="text" 
+                    value={editMessageContent} 
+                    onChange={(e) => setEditMessageContent(e.target.value)}
+                    required 
+                    className='bg-white text-black p-2 rounded-lg'
+                  /> 
+                      <button type="submit"  disabled={!editMessageContent.trim()} className="ml-2 text-gray-600">
+                        <FontAwesomeIcon icon={faCheck} />
+                      </button> 
+                      <button type="button" onClick={() => setEditMessageId(null)} className="ml-2 text-red-600">
+                        <FontAwesomeIcon icon={faTimes} />
+                      </button>
+                      
+                </form>
+                  <div className="flex items-center justify-between mt-1">
+                    
+                    <button
+                      onClick={() => setShowEmojiPickerEDIT(!showEmojiPickerEDIT)}
+                      className="btn btn-secondary ml-2 size-0"
+                    >
+                      <FontAwesomeIcon icon={faSmile} size='sm' />
+                    </button>
+                    {showEmojiPickerEDIT && (
+                      <div className="absolute top-20 right-0 z-30" ref={emojiPickerRef}> 
+                        <Picker dataXX={dataXXX} 
+                          onEmojiSelect={(e) => { 
+                            setEditMessageContent(editMessageContent + e.native);
+                          }}
+                        />
+                      </div>
+                    )}
+                  </div>
                   </div>
                 )}
-              </div>
-              </div>
-            )}
               <div className="chat-footer opacity-50">
-                {formatDateTime(message.timeStamp)}
-                {message.edited === true ?("edited"):("")}
+              {message.edited === true ?("edited"):("")}
+              {formatDateTime(message.timeStamp)}
+                
               </div>
                 
             </div>
@@ -2597,10 +2726,10 @@ useOutsideClick(emojiPickerRef,() => setShowEmojiPicker(false));
       
       {/* Input Field */}
        { selectedConversation || forSearchUser === true ? (
-          <div className='p-4 bg-gray-200 border-t border-gray-300 flex items-center'>
+          <div className={`p-4 border-t flex items-center ${isDarkMode ? 'bg-gray-900 text-white  border-gray-800' : 'bg-gray-100 text-black  border-gray-200'}`}>
          
            {isRecording ?(
-          <div className="flex items-center w-full justify-between">
+          <div className={`flex items-center w-full justify-between ${isDarkMode ? 'bg-gray-900 text-white  border-gray-700' : 'bg-gray-100 text-black  border-gray-200'}`}>
             <span className="mr-2">{Math.floor(recordingDuration / 60)}:{(recordingDuration % 60).toString().padStart(2, '0')}</span>
             <div id="waveform-recording" className="flex-1"></div>
             <button onClick={handleStopRecording} className="ml-2 text-red-600 text-lg">
@@ -2608,7 +2737,7 @@ useOutsideClick(emojiPickerRef,() => setShowEmojiPicker(false));
             </button>
           </div>
           ):(
-          <div className='flex items-center w-full'>
+          <div className={`flex items-center w-full ${isDarkMode ? 'bg-gray-900 text-white  border-gray-700' : 'bg-gray-100 text-black  border-gray-200'} `}>
           <input 
             type="file"
             accept="image/*"
@@ -2626,7 +2755,7 @@ useOutsideClick(emojiPickerRef,() => setShowEmojiPicker(false));
           placeholder="Type your message..."
           value={sendMessage}
           onChange={handleMessage}
-          className="textarea textarea-bordered flex-1 p-2 resize-none rounded-md overflow-hidden"
+          className={`textarea textarea-bordered flex-1 p-2 resize-none rounded-md overflow-hidden ${isDarkMode ? 'bg-gray-900 text-white  border-gray-700' : 'bg-gray-100 text-black  border-gray-200'}`}
           onKeyDown={handleKeyDown}
           minRows={1}
           disabled={isLoadingMessage}
@@ -2653,10 +2782,10 @@ useOutsideClick(emojiPickerRef,() => setShowEmojiPicker(false));
     </div>
     {/* Emoji Picker */}
   {showEmojiPicker && (
-    <div className="absolute bottom-20 right-10 z-50">
-      <Picker dataXX={dataXXX} 
+    <div className= {`absolute bottom-20 right-10 z-50 ${isDarkMode ? 'bg-gray-900 text-white  border-gray-800' : 'bg-gray-100 text-black  border-gray-200'}`} ref={emojiPickerRef}>
+      <Picker dataXX={dataXXX}
         onEmojiSelect={(e) => { 
-          setNewMessage(newMessage + e.native);
+          setSendMessage(sendMessage + e.native); 
         }}
       />
     </div>

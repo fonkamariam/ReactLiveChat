@@ -31,7 +31,7 @@ function LoginPage() {
       return; // Stop form submission if password is invalid
     }
     setIsLoading(true); // Set loading state to true before making the API call
-    
+    console.log("loggin in...");
     fetch('http://localhost:5206/api/Users/login', {
       method: 'POST',
       headers: {
@@ -73,6 +73,7 @@ function LoginPage() {
       sessionStorage.setItem('Name',data.name);
       sessionStorage.setItem('LastName',data.lastName);
       sessionStorage.setItem('Bio',data.bio );
+      sessionStorage.setItem('Dark',data.dark);
       // it is an Object
       setIsLoading(false); 
       // Handle successful response and set user data state
