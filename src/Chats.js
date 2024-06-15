@@ -3,9 +3,11 @@ import React, { useState ,useEffect,useRef } from 'react';
 import { Link, useNavigate} from 'react-router-dom';
 import { HttpTransportType, HubConnectionBuilder, LogLevel } from "@microsoft/signalr";                   
 import * as signalR from '@microsoft/signalr';
+import { toast, ToastContainer } from 'react-toastify';
+import 'react-toastify/dist/ReactToastify.css';
 // Intergration
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { faSun,faMoon,faPaperPlane, faCloudDownload, faPause, faTrashAlt,faSmile ,faCog, faUserEdit, faKey, faSignOutAlt, faTrash,faCheck,faTimes,faSpinner,faPaperclip,faMicrophone, faStop, faPlay,faTimesCircle,faDownload, faSlash} from '@fortawesome/free-solid-svg-icons';
+import { faSun,faMoon,faPaperPlane, faCloudDownload, faPause, faTrashAlt,faSmile ,faCog, faUserEdit, faKey, faSignOutAlt, faTrash,faCheck,faTimes,faSpinner,faPaperclip,faMicrophone, faStop, faPlay,faTimesCircle,faDownload, faSlash,faBookmark} from '@fortawesome/free-solid-svg-icons';
 import { MdEdit } from 'react-icons/md';
 import Picker from '@emoji-mart/react';
 import dataXXX from '@emoji-mart/data';
@@ -45,11 +47,17 @@ function Chats() {
   const [errorMessage, setErrorMessage] = useState('');
   const [goodMessage, setgoodMessage] = useState('');
   const [isLoading, setIsLoading] = useState(false);
+  const [isDeletingMessage, setIsDeletingMessage] = useState(false);
+  const [isDeletingConv, setIsDeletingConv] = useState(false);
+  const [isDeletingMessageId,setIsDeletingMessageId] = useState(null);
+  const [isDeletingConvId,setIsDeletingConvId] = useState(null);
+  const [isLoadingModal,setIsLoadingModal] = useState(false);
   const [varOnce, setVarOnce] = useState(false);
   const [selectedOnlineStatus,setSelectedOnlineStatus] = useState(null);
   const [selectedLastSeen,setSelectedLastSeen] = useState(null);
   const [selectedBio,setSelectedBio] = useState(null);
   const [selectedEmail,setSelectedEmail] = useState(null);
+  const [selectedProfilePic,setSelectedProfilePic] = useState([]);
   // Variable Integration start
   //const [searchQueryUser, setSearchQueryUser] = useState('');
   //const [selectedConversation, setSelectedConversation] = useState(null);
@@ -96,6 +104,7 @@ function Chats() {
   const modalRef = useRef(null);
   // Variable Integration end
 
+  /**
   const fetchConvDataOnline = async () => {
     const keys = Object.keys(sessionStorage); 
     
@@ -122,13 +131,16 @@ function Chats() {
           
           
         } else {
+          showToast('error');
           throw new Error('Failed to fetch user data');
         }
       } catch (error) {
+        showToast("error");
         console.error('Error fetching user data:', error);
         // Handle error
       }
   };
+ */
   /** UseEffects Start MessageWs */
   useEffect(() => {
     if (messageWs) { // Ensure messageWs is not null
@@ -207,12 +219,8 @@ useEffect(() => {
                 const existingConversation1 = conversationsRef.current.some( 
                   conversation => conversation.convId === message.record.convId
                 );
-                
+              
                 if (conversationsRef.current.length === 0 || existingConversation1 === false ) {
-                  console.log("New Conv");
-                  console.log(conversationsRef.current.length);
-                  console.log(message.record.convId);
-
                   setConversations(prevConversations => {
                     // Create a new array that includes the previous conversations and the new one
                     const updatedConversations12 = [
@@ -708,28 +716,11 @@ useEffect(() => {
             
             console.log(`UserId(${userId}): ${isOnline}`);
            });
-          }).catch(e => console.log('Connection failed: ', e));
+          }).catch(e => showToast('WebSocket failed'));
   }
 }, [connection]);   
 
-// JavaScript visibility change
-const handleVisibilityChange = async () => {
-  if (document.hidden) {
-    // If the document is hidden, stop the SignalR connection
-    if (connection) {
-      connection.stop().then(() => console.log('Disconnected due to tab change or minimization'));
-      virtualLogOut();
-    }
-  } else {
-    // If the document is visible again, start the SignalR connection
-    if (connection) {
-      await fetchConvDataOnline();
-      connection.start().then(() => console.log('Reconnected after tab change or restoration'));
-      virtualLogin();
-      
-    }
-  }
-};
+
 useEffect(() => {
   const handleVisibilityChange = async () => {
     if (document.visibilityState === 'visible') {
@@ -737,11 +728,12 @@ useEffect(() => {
         try {
           await connection.start();
           console.log('Connection started.');
-          await fetchConvDataOnline();
+          //await fetchConvDataOnline();
           virtualLogin();
       
         } catch (error) {
           console.error('Error starting connection:', error);
+          showToast(error);
         }
       } else {
         console.log('Connection is already in progress or connected.');
@@ -806,110 +798,31 @@ useEffect(() => async ()=>{
         const data = await response.json();  
         setIsLoading(false);
         setConversations(data);  // Update Converstaion data state 
-        console.log("Got All Conversation");
         
         
       } else {
+        let errorMessage = 'An error occurred';
+        if (response.status === 401) {
+          errorMessage = 'Unauthorized';
+        } else if (!response.ok) {
+          errorMessage = 'Connection problem ';
+        }
+        showToast(errorMessage);
         throw new Error('Failed to fetch user data');
       }
     } catch (error) {
-      console.error('Error fetching user data:', error);
-      // Handle error
+    showToast("Connection Refused");
     }
   };
   // Fetch Contacts
-  const fecthContact = async () => {
-    try { 
-      const response = await fetch('http://localhost:5206/api/Contact/GetContacts', {
-        method: 'GET',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${sessionStorage.getItem('Token')}`
-        }
-      });
-      if (response.ok) {
-        const data = await response.json();
-        setContacts(data);  // Update Converstaion data state
-        console.log("Contacts Fetched");
-        
-      } else {
-        throw new Error('Failed to fetch user data');
-      }
-    } catch (error) {
-      console.error('Error fetching user data:', error);
-      // Handle error
-    }
-  };
+  
   const fetchMessages = async ()=>{
     
   };
   const fc = await fetchConvData(); // Call fetchData function when component mounts
-  //fecthContact(); // fetching Contacts
   fetchMessages();
 }, []);
 /** Fetching Conversation End */
-  // For Shade code Start
-  const [EpIsOverlayVisible, EpSetIsOverlayVisible] = useState(false);
-  const [FpIsOverlayVisible, FpSetIsOverlayVisible] = useState(false);
-  const [DaIsOverlayVisible, DaSetIsOverlayVisible] = useState(false);
-  const [ContactIsOverlayVisible, ContactSetIsOverlayVisible] = useState(false);
- 
-  const EphandleButtonClick = () => {
-    EpSetIsOverlayVisible(true);
-  };
-  const FphandleButtonClick = () => {
-    FpSetIsOverlayVisible(true);
-  };
-  const DahandleButtonClick = () => {
-    DaSetIsOverlayVisible(true);
-  };
-  const ContacthandleButtonClick = () => {
-    ContactSetIsOverlayVisible(true);
-  };
-  const handleCloseOverlay = () => {
-    EpSetIsOverlayVisible(false);
-    FpSetIsOverlayVisible(false);
-    DaSetIsOverlayVisible(false);
-    ContactSetIsOverlayVisible(false);
-
-  };
-// For Shade code End
-
-  // For DropDown code Start
-  const [isDropdownVisible, setIsDropdownVisible] = useState(false);
-
-  const handleButtonClick1 = () => {
-    setIsDropdownVisible(prevState => !prevState);
-    
-        EpSetIsOverlayVisible(false);
-        FpSetIsOverlayVisible(false);
-        DaSetIsOverlayVisible(false);
-        ContactSetIsOverlayVisible(false);
-  };
- 
-  const buttonRef = useRef(null);
-  const dropdownRef = useRef(null);
-  useEffect(() => {
-    function handleClickOutside(event) {
-      if (
-        dropdownRef.current &&
-        !dropdownRef.current.contains(event.target) &&
-        !buttonRef.current.contains(event.target)
-      ) {
-        setIsDropdownVisible(false);
-        EpSetIsOverlayVisible(false);
-        FpSetIsOverlayVisible(false);
-        DaSetIsOverlayVisible(false);
-        ContactSetIsOverlayVisible(false);
-        
-      }
-    }
-    document.addEventListener('mousedown', handleClickOutside);
-    return () => {
-      document.removeEventListener('mousedown', handleClickOutside);
-    };
-  }, [dropdownRef, buttonRef]);
-// For DropDown code End
 
 // For Settings code Start
   const [firstName, setFirstName] = useState(sessionStorage.getItem('Name'));
@@ -971,11 +884,11 @@ const handleLogOut = (e) =>{
       console.log("Logged Out");
      
     } else {
-      console.log("Failed to Logout");
-      throw new Error('Failed to Logout Backend');
+      
     }
   } catch (error) {
-    console.error('Error Loggin Out Frontend');
+    
+    
     
   }
     sessionStorage.clear();
@@ -1041,7 +954,10 @@ const virtualLogin = async (e) =>{
 };
 
 const handleMessage = (e) =>{
+  if (!isLoadingMessage){
   setSendMessage(e.target.value);
+}
+
 };
 const insertMessage = (newMessage) => {
   setMessages(prevMessages => {
@@ -1052,7 +968,6 @@ const insertMessage = (newMessage) => {
   });
 };
 const handleSendMessage = async (e) => {
-  
   setIsLoadingMessage(true);
   setVarOnce(true);
   try {
@@ -1082,11 +997,16 @@ const handleSendMessage = async (e) => {
               message: sendMessage,
               updatedTime: data.timeStamp,
               messageId: data.id,
-              userId: data.recpientId,
+              userId: selectedRecpientId,
               userName: selectedName,
               lastName: selectedLastName,
+              lastSeen: selectedLastSeen,
+              bio: selectedBio,
+              email:selectedEmail,
+              notificationCount: 0,
               isAudio: false,
-              isImage: false
+              isImage: false,
+              profilePicConv:selectedProfilePic
             }
           ];
         
@@ -1127,7 +1047,7 @@ const handleSendMessage = async (e) => {
        };
       
       insertMessage(newMessage);
-      const ParsedMessage = JSON.parse(sessionStorage.getItem(`${selectedConversation}`));
+      const ParsedMessage = JSON.parse(sessionStorage.getItem(`${data.convId}`));
       if (ParsedMessage!== null) {
       ParsedMessage.push(newMessage);
       sessionStorage.setItem(`${selectedConversation}`,JSON.stringify(ParsedMessage))
@@ -1135,10 +1055,22 @@ const handleSendMessage = async (e) => {
       setIsLoadingMessage(false); 
       setSendMessage('');
     } else {
+      setIsLoadingMessage(false);
+      let errorMessage = 'An error occurred';
+        if (messagesResponse1.status === 401) {
+          errorMessage = 'Unauthorized else';
+        } else if (!messagesResponse1.ok) {
+          errorMessage = 'Connection problem else';
+        }
+        showToast(errorMessage);
+      
       throw new Error('Failed to fetch messages');
     }
   } catch (error) {
-    console.error('Error fetching messages:', error);
+    setIsLoadingMessage(false);
+    showToast('Connection Refused');
+    
+    
   }
 };
 const handleConversationClick = async (convId,recpientId,Name,LastName,onlineStatus,lastSeen,bio,email) => {
@@ -1189,11 +1121,18 @@ const handleConversationClick = async (convId,recpientId,Name,LastName,onlineSta
     }); 
      
     } else {
+      //setIsLoading(false);
+      let errorMessage = 'An error occurred';
+        if (messagesResponse.status === 401) {
+          errorMessage = 'Unauthorized';
+        } else if (!messagesResponse.ok) {
+          errorMessage = 'Connection problem';
+        }
+        showToast(errorMessage);
       throw new Error('Failed to fetch messages');
     }
   } catch (error) {
-    console.error('Error fetching messages:', error);
-    // Handle error
+    showToast('Connection Refused');
   }
 };
 const handleConversationClickWs = async (convId) => {
@@ -1228,51 +1167,64 @@ const handleConversationClickWs = async (convId) => {
   }
 };
 
-const handleNewUserClick =  (RecpientId,Name,LastName)=>{ 
+const handleNewUserClick =  (RecpientId,Name,LastName,email,onlineStatus,lastSeen,bio,profilePicSearch)=>{ 
   setSearchResultUser([]);
   setSearchQueryUser('');
+  setMessages([]);
   setSelectedRecpientId(RecpientId); 
   setSelectedName(Name); 
-  setSelectedLastName(LastName); 
-  console.log(`Handle New User Click Recpient Id: ${RecpientId}`);
+  setSelectedLastName(LastName);
+  setSelectedOnlineStatus(onlineStatus);
+  setSelectedLastSeen(lastSeen);
+  setSelectedBio(bio);
+  setSelectedEmail(email);
+  setSelectedProfilePic(profilePicSearch);
+   
   const existingConversation = conversations.find( 
     conversation => conversation.userId === RecpientId
   );
   if (existingConversation !== undefined) {
     // Fetch messages for the existing conversation
-    console.log("Exisiting conv");
     const storedMessages = sessionStorage.getItem(`${existingConversation.convId}`);
-  if (storedMessages !== null) {
-    console.log("Exisisting Conversation and SessionStorage");
+    if (storedMessages !== null) {
     
-  setMessages([]);
-  setSelectedConversation(existingConversation.convId); // Set the selected conversation 
-  setSelectedRecpientId(RecpientId);
-  setSelectedName(Name);
-  setSelectedLastName(LastName); 
-  const rMd = JSON.parse(storedMessages);
-  setMessages(rMd);
+    setMessages([]);
+    setSelectedConversation(existingConversation.convId); // Set the selected conversation 
+    setSelectedRecpientId(existingConversation.userId);
+    setSelectedName(existingConversation.userName);
+    setSelectedLastName(existingConversation.lastName); 
+    setSelectedOnlineStatus(existingConversation.status);
+    setSelectedLastSeen(existingConversation.lastSeen);
+    setSelectedBio(existingConversation.bio);
+    setSelectedEmail(existingConversation.email);
+    const rMd = JSON.parse(storedMessages);
+    setMessages(rMd);
 
-  return;
-  } 
-  console.log(existingConversation.convId);
-    handleConversationClick(existingConversation.convId, existingConversation.userId, existingConversation.userName, existingConversation.lastName);
+    return;
+    } 
+    handleConversationClick(existingConversation.convId, existingConversation.userId, existingConversation.userName, existingConversation.lastName,existingConversation.onlineStatus,existingConversation.lastSeen,existingConversation.bio,existingConversation.email);
+  
+  
   } else {
-    console.log("Else New User Click");
-    // Set messages to "No Message" 
-
   setMessages([]);
   setSelectedRecpientId(RecpientId);
   setSelectedName(Name);
   setSelectedLastName(LastName);
+  setSelectedOnlineStatus(onlineStatus);
+  setSelectedLastSeen(lastSeen);
+  setSelectedBio(bio);
+  setSelectedEmail(email);
+  // selectedConversation set to null
   setSelectedConversation(null);
-  console.log("Setted everything in else");
   setForSearchUser(true); 
+
   } 
 
 
 };
 const handleDeleteMessage = async (messageId) => {
+  setIsDeletingMessage(true);
+  setIsDeletingMessageId(messageId);
   try {
     const response = await fetch(`http://localhost:5206/api/Message/DeleteMessage?deleteMessage=${messageId}`, {
       method: 'DELETE',
@@ -1282,7 +1234,7 @@ const handleDeleteMessage = async (messageId) => {
       }
     });
     if (response.ok) {
-      console.log("Ok Deleted");
+
       /** From Deleter Perspective.
       1) Is the messageId being deleted the recent messageId in the conversation, Update the Conversation
           Is the messageId being deleted the last messageId in the conversation, Delete the Conversation  
@@ -1323,6 +1275,8 @@ const handleDeleteMessage = async (messageId) => {
         return updatedConversations1;
         });
         setSelectedConversation(null);
+        setForSearchUser(false);
+        
       }    
       
       setMessages(messages.filter(message => message.id !== messageId));
@@ -1336,17 +1290,48 @@ const handleDeleteMessage = async (messageId) => {
       }
       sessionStorage.setItem(`${selectedConversation}`,JSON.stringify(xy))
       } 
-      
+     setIsDeletingMessage(false); 
+     setIsDeletingMessageId(null);
+   
     } else {
+      setIsDeletingMessage(false);
+      setIsDeletingMessageId(null);
+  
+      let errorMessage = 'An error occurred';
+        if (response.status === 401) {
+          errorMessage = 'Unauthorized';
+        } else if (!response.ok) {
+          errorMessage = 'Connection problem';
+        }
+        showToast(errorMessage);
+      
       throw new Error('Failed to delete message');
+      
     }
   } catch (error) {
-    console.error('Error deleting message:Error');
-    
+    setIsDeletingMessage(false);
+    setIsDeletingMessageId(null);
+    showToast('Connection Refused');
   }
 };
+const showToast = (message) => {
+    toast.error(message, {
+      position: "top-right",
+      autoClose: 3000,
+      hideProgressBar: true,
+      closeOnClick: true,
+      pauseOnHover: true,
+      draggable: true,
+      progress: undefined,
+      style: {
+        backgroundColor: isDarkMode? 'black':'bg-gray-100',
+        color: isDarkMode? 'white':'black'
+      }
+    });
+  };
 const handleDeleteConversation = async (convIdPara) => {
-  
+  setIsDeletingConv(true);
+  setIsDeletingConvId(convIdPara);
   try {
     const response = await fetch(`http://localhost:5206/api/Message/DeleteConversation?deleteConv=${convIdPara}`, {
       method: 'DELETE',
@@ -1356,7 +1341,12 @@ const handleDeleteConversation = async (convIdPara) => {
       }
     });
     if (response.ok) {
-      console.log("Ok Deleted");
+      setIsDeletingConv(false);
+      setIsDeletingConvId(null);
+      if (selectedConversation === convIdPara){
+        setSelectedConversation(null);
+        setForSearchUser(false);
+        }
 
       /**
       if (selectedConversationRef.current === convIdPara ){
@@ -1375,11 +1365,22 @@ const handleDeleteConversation = async (convIdPara) => {
       
        */
     } else {
+      setIsDeletingConv(false);
+      setIsDeletingConvId(null);
+      let errorMessage = 'An error occurred';
+        if (response.status === 401) {
+          errorMessage = 'Unauthorized else';
+        } else if (!response.ok) {
+          errorMessage = 'Connection problem else';
+        }
+        showToast(errorMessage);
+      
+      
       throw new Error('Failed to delete message');
     }
   } catch (error) {
-    console.error('Error deleting message:Error');
-    
+    setIsDeletingConv(false);
+    setIsDeletingConvId(null);
   }
 };
 const zeroNotification = async (convId) => {
@@ -1455,11 +1456,17 @@ const handleEditSubmit = async (e) => {
       
      
     } else {
+      let errorMessage = 'An error occurred';
+      if (response.status === 401) {
+        errorMessage = 'Unauthorized';
+      } else if (!response.ok) {
+        errorMessage = 'Connection problem';
+      }
+      showToast(errorMessage);
       throw new Error('Failed to edit message');
     }
   } catch (error) {
-    console.error('Error editing message:', error);
-    setErrorMessage('Failed to edit message.');
+    showToast('Connection Refused');
   }
 };
 const handleEditMessage = (message) => {
@@ -1468,7 +1475,7 @@ const handleEditMessage = (message) => {
 };
 const deleteAccount = () => {
   if (window.confirm('Are you sure you want to delete this item?')) {
-    setIsLoading(true); // Set loading state to true before making the API call
+    setIsLoadingModal(true); // Set loading state to true before making the API call
 fetch('http://localhost:5206/api/Users/DeleteAccount', {
   method: 'DELETE',
   headers: {
@@ -1478,7 +1485,7 @@ fetch('http://localhost:5206/api/Users/DeleteAccount', {
 }).then(response => {
   if (response.ok) {
     console.log('OK,Updated');
-    setIsLoading(false);
+    setIsLoadingModal(false);
     setgoodMessage('Deleted');
     clearErrorMessageAfterDelay();
     setTimeout(() => {
@@ -1487,19 +1494,19 @@ fetch('http://localhost:5206/api/Users/DeleteAccount', {
     }, 2000); // Redirect after 3 seconds (adjust the delay as needed)
   }else if (response.status === 10) { 
     // Handle bad request
-    setIsLoading(false);
+    setIsLoadingModal(false);
     setErrorMessage('Invalid Token'); 
     clearErrorMessageAfterDelay();
     setTimeout(() => {
       navigate(`/`); // Redirect the user after displaying the error message
     }, 2000); // Redirect after 3 seconds (adjust the delay as needed)
   }else {
-    setIsLoading(false);
+    setIsLoadingModal(false);
     setErrorMessage('Connection Problem. Please try again.Backend');
     clearErrorMessageAfterDelay(); // Set error message for the user
-    }
+  }
 }).catch(error => {
-  setIsLoading(false);
+  setIsLoadingModal(false);
   setErrorMessage('Connection Problem. Fetch Error.');
   clearErrorMessageAfterDelay(); // Set error message for the user
 });
@@ -1527,8 +1534,7 @@ const handleBioChange = (e) => {
 
 const handleSubmitProfile = (e) => {
   e.preventDefault();
-  console.log("Inside Submit Profile");
-  setIsLoading(true); // Set loading state to true before making the API call
+  setIsLoadingModal(true); // Set loading state to true before making the API call
   fetch('http://localhost:5206/api/UserProfile/UpdatUserProfile', {
     method: 'PUT',
     headers: {
@@ -1543,7 +1549,7 @@ const handleSubmitProfile = (e) => {
   }) 
   .then(response => {
     if (response.ok) {
-      setIsLoading(false);
+      setIsLoadingModal(false);
       sessionStorage.setItem('Name', firstName);
       sessionStorage.setItem('LastName', lastName);
       sessionStorage.setItem('Bio', bio);
@@ -1553,34 +1559,34 @@ const handleSubmitProfile = (e) => {
   
     }else if (response.status === 15) { 
       // Handle bad request
-      setIsLoading(false);
+      setIsLoadingModal(false);
       setErrorMessage('Token Expired'); 
       clearErrorMessageAfterDelay(); 
       handleLogOut();
       
     }else if (response.status === 10) {
       // Handle bad request
-      setIsLoading(false);
+      setIsLoadingModal(false);
       setErrorMessage('Internal Server Error,Try again');
       clearErrorMessageAfterDelay(); // Set error message for the user
       
     }else if( response.status === 401){
-      setIsLoading(false);
+      setIsLoadingModal(false);
       setErrorMessage('Invalid token');
       clearErrorMessageAfterDelay(); // Set error message for the user
       handleLogOut();
     }else if( response.status === 30){
-      setIsLoading(false);
+      setIsLoadingModal(false);
       setErrorMessage('DataBase connection problem');
       clearErrorMessageAfterDelay(); // Set error message for the user
       
     } else {
-      setIsLoading(false);
+      setIsLoadingModal(false);
       setErrorMessage('Connection Problem. Please try again.');
       clearErrorMessageAfterDelay(); // Set error message for the user
       }
   }).catch(error => {
-    setIsLoading(false);
+    setIsLoadingModal(false);
     setErrorMessage('Connection Problem. Fetch Error.');
     clearErrorMessageAfterDelay(); // Set error message for the user
   });
@@ -1599,7 +1605,7 @@ if (newPassword.length < 5) {
   clearErrorMessageAfterDelay();
   return; // Stop form submission if password is invalid
 }
-setIsLoading(true); // Set loading state to true before making the API call
+setIsLoadingModal(true); // Set loading state to true before making the API call
 fetch('http://localhost:5206/api/Users/ChangePassword', {
   method: 'POST',
   headers: {
@@ -1614,7 +1620,7 @@ fetch('http://localhost:5206/api/Users/ChangePassword', {
 .then(response => {
   if (response.ok) {
     console.log('OK,Updated');
-    setIsLoading(false);
+    setIsLoadingModal(false);
     setgoodMessage('Successfully updated Password');
     setNewPassword('');
     setOldPassword('');
@@ -1622,23 +1628,23 @@ fetch('http://localhost:5206/api/Users/ChangePassword', {
     
   }else if (response.status === 10) { 
     // Handle bad request
-    setIsLoading(false);
+    setIsLoadingModal(false);
     setErrorMessage('Invalid Token'); 
     clearErrorMessageAfterDelay();
     handleLogOut();
   }else if (response.status === 20) {
     // Handle bad request
-    setIsLoading(false);
+    setIsLoadingModal(false);
     setErrorMessage('Wrong Password');
     clearErrorMessageAfterDelay(); // Set error message for the user
     
   } else {
-    setIsLoading(false);
+    setIsLoadingModal(false);
     setErrorMessage('Connection Problem. Please try again.');
     clearErrorMessageAfterDelay(); // Set error message for the user
     }
 }).catch(error => {
-  setIsLoading(false);
+  setIsLoadingModal(false);
   setErrorMessage('Connection Problem. Fetch Error.');
   clearErrorMessageAfterDelay(); // Set error message for the user
 });
@@ -1708,6 +1714,9 @@ const handleStartRecording = async () => {
       setRecordingDuration(prevDuration => prevDuration + 1);
     }, 1000);
 
+    // Store the media stream to stop tracks later
+    recorderRef.current.stream = stream;
+
     // Setup waveform for recording
     if (waveformRecordingRef.current === null) {
       waveformRecordingRef.current = WaveSurfer.create({
@@ -1729,23 +1738,24 @@ recorderRef.current.stopRecording(async () => {
   const blob = recorderRef.current.getBlob();
   const audioURL = URL.createObjectURL(blob);
   const messageId = Date.now();
-
+  const base64 = await blobToBase64(blob);
   // Add a temporary message with a loading icon
   const newMessageObj = { id: messageId, content: audioURL, timeStamp: new Date(), isAudio: true, isUploading: true,senderId:Number(sessionStorage.getItem('userId')) };
   setMessages(prevMessages => [...prevMessages, newMessageObj]);
   setUploadingMessageId(messageId);
   setIsUploading(true);
-
+  setIsLoadingMessage(true);
+  setVarOnce(true);
   // Upload to Firebase Storage
   const storageRef = ref(storage, `FonkaGram/Recordings/${messageId}.webm`);
   try {
     await uploadBytes(storageRef, blob);
     const downloadURL = await getDownloadURL(storageRef);
 
-    setIsUploading(false);
-   
-  setIsLoadingMessage(true);
-  setVarOnce(true);
+      
+  
+  
+  
     try {
       const messagesResponse1 = await fetch('http://localhost:5206/api/Message/SendMessage', {
         method: 'POST',
@@ -1753,7 +1763,7 @@ recorderRef.current.stopRecording(async () => {
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${sessionStorage.getItem('Token')}`
         },  
-        body: JSON.stringify({
+          body: JSON.stringify({
           content: downloadURL, 
           recpientId: selectedRecpientId,
           messageType: "text",
@@ -1763,65 +1773,65 @@ recorderRef.current.stopRecording(async () => {
       });
       if (messagesResponse1.ok) {
         const data = await messagesResponse1.json();
-        setIsLoadingMessage(false);
-        if (selectedConversation === null) { 
-          setConversations(prevConversations => {
-            // Create a new array that includes the previous conversations and the new one
-            const updatedConversations12 = [
-              ...prevConversations,
-              {
-                convId: data.convId,
-                message: 'Voice Message',
-                updatedTime: data.timeStamp,
-                messageId: data.id,
-                userId: data.recpientId,
-                userName: selectedName,
-                lastName: selectedLastName
-              }
-            ];
-          
-            // Sort the updated conversations array by updatedTime
-            updatedConversations12.sort((a, b) => new Date(b.updatedTime) - new Date(a.updatedTime));
-          
-            // Return the sorted array to update the state
-            return updatedConversations12;
-          });
-          setSelectedConversation(data.convId); 
-        }else{
-          setConversations(prevConversations => {
-          const updatedConversations = prevConversations.map(conversation => {
-            
-            if (conversation.convId === selectedConversation) {
+           setIsLoadingMessage(false);
+            if (selectedConversation === null) { 
+              setConversations(prevConversations => {
+                // Create a new array that includes the previous conversations and the new one
+                const updatedConversations12 = [
+                  ...prevConversations,
+                  {
+                    convId: data.convId,
+                    message: 'Voice Message',
+                    updatedTime: data.timeStamp,
+                    messageId: data.id,
+                    userId: data.recpientId,
+                    userName: selectedName,
+                    lastName: selectedLastName
+                  }
+                ];
               
-              return { ...conversation, message: 'Voice Message', updatedTime:data.timeStamp ,messageId: data.id}; 
-            }
-            return conversation; 
-          });
-      
-          // Sort the updated conversations by updatedTime
-          return updatedConversations.sort((a, b) => new Date(b.updatedTime) - new Date(a.updatedTime));
-        });}
-        
-        const newMessage = {
-          content: data.content, // audio URL
-          convId: data.convId,
-          deleted: data.deleted,
-          id: data.id,
-          messageType: data.messageType,
-          recpientId: data.recpientId,
-          senderId: data.senderId,
-          status:data.status,
-          timeStamp: data.timeStamp,
-          isAudio: true,
-          isImage: false
-        };
+                // Sort the updated conversations array by updatedTime
+                updatedConversations12.sort((a, b) => new Date(b.updatedTime) - new Date(a.updatedTime));
+              
+                // Return the sorted array to update the state
+                return updatedConversations12;
+              });
+              setSelectedConversation(data.convId); 
+            }else{
+              setConversations(prevConversations => {
+              const updatedConversations = prevConversations.map(conversation => {
+                
+                if (conversation.convId === selectedConversation) {
+                  
+                  return { ...conversation, message: 'Voice Message', updatedTime:data.timeStamp ,messageId: data.id}; 
+                }
+                return conversation; 
+              });
+          
+              // Sort the updated conversations by updatedTime
+              return updatedConversations.sort((a, b) => new Date(b.updatedTime) - new Date(a.updatedTime));
+            });}
+            
+            const newMessage = {
+              content: audioURL, // audio URL
+              convId: data.convId,
+              deleted: data.deleted,
+              id: data.id,
+              messageType: data.messageType,
+              recpientId: data.recpientId,
+              senderId: data.senderId,
+              status:data.status,
+              timeStamp: data.timeStamp,
+              isAudio: true,
+              isImage: false
+            };
        
         
         //insertMessage(newMessage);
         setMessages(prevMessages =>prevMessages.map(msg=>{
           if (msg.id === messageId){
             return {...msg,
-            content: data.content, 
+            content: audioURL, 
             convId: data.convId,
             deleted: data.deleted,
             id: data.id,
@@ -1834,8 +1844,11 @@ recorderRef.current.stopRecording(async () => {
             isImage: false};
           } return msg;
         }));
+        localStorage.setItem(`audioBlob_${data.id}`, base64);
+  
         setIsUploading(false);
-
+        setUploadingMessageId(null);
+  
         const ParsedMessage = JSON.parse(sessionStorage.getItem(`${selectedConversation}`));
         if (ParsedMessage!== null) {
         ParsedMessage.push(newMessage);
@@ -1844,12 +1857,30 @@ recorderRef.current.stopRecording(async () => {
          
         setSendMessage('');
       } else {
+        setIsUploading(false);
+        setIsLoadingMessage(false);
+        setUploadingMessageId(null);
+  
+      let errorMessage = 'An error occurred';
+        if (messagesResponse1.status === 401) {
+          errorMessage = 'Unauthorized else';
+        } else if (!messagesResponse1.ok) {
+          errorMessage = 'Connection problem else';
+        }
+        showToast(errorMessage);
+        setMessages(prevMessages => prevMessages.filter(msg => msg.id !== messageId));
         throw new Error('Failed to fetch messages');
+
       }
     } catch (error) {
-      console.error('Error fetching messages:', error);
+    setIsUploading(false);
+    setUploadingMessageId(null);
+  
+    setIsLoadingMessage(false);
+    showToast('Connection Refused');
       // Remove the message if upload fails
     setMessages(prevMessages => prevMessages.filter(msg => msg.id !== messageId));
+    
     
     }
 
@@ -1859,11 +1890,21 @@ recorderRef.current.stopRecording(async () => {
     // Remove the message if upload fails
     setMessages(prevMessages => prevMessages.filter(msg => msg.id !== messageId));
     setIsUploading(false);
+    setUploadingMessageId(null);
+  
+    setIsLoadingMessage(false);
+    showToast('Connection Refused');
   }
+
 });
 
 setIsRecording(false);
 clearInterval(recordingIntervalRef.current);
+// Stop all tracks of the media stream to release the microphone
+  // Stop all tracks of the media stream to release the microphone
+  if (recorderRef.current.stream) {
+    recorderRef.current.stream.getTracks().forEach(track => track.stop());
+  }
 };
 
 const blobToBase64 = (blob) => {
@@ -1885,7 +1926,6 @@ const base64ToBlob = (base64, contentType) => {
   const byteArray = new Uint8Array(byteArrays);
   return new Blob([byteArray], { type: contentType });
 };
-
 const handlePlayAudio = async (audioURL, messageId) => {
 if (currentAudioId === messageId) {
   if (isPlaying) {
@@ -1955,7 +1995,6 @@ if (currentAudioId === messageId) {
   }
 }
 };
-
 const handleDownloadAudio = async (audioURL, messageId) => {
 try {
   setIsDownloading(true);
@@ -1968,9 +2007,10 @@ try {
   localStorage.setItem(`audioBlob_${messageId}`, base64);
 
   setIsDownloading(false);
-  handlePlayAudio(URL.createObjectURL(blob), messageId);
+  //handlePlayAudio(URL.createObjectURL(blob), messageId);
 } catch (error) {
   console.error('Error downloading audio:', error);
+  showToast('Error downloading audio');
   setIsDownloading(false);
 }
 };
@@ -2056,12 +2096,17 @@ const useOutsideClick = (ref,callback)=>{
 const handleFileChange = async (event) => {
   const file = event.target.files[0];
   if (file) {
+    console.log("file");
     const messageId = Date.now().toString();
     const storageRef = ref(storage, `FonkaGram/Images/${messageId}.${file.name.split('.').pop()}`);
+    await uploadBytes(storageRef, file);
+    const downloadURL = await getDownloadURL(storageRef);
+    console.log("Download Url",downloadURL);
 
+    
     try {
       // Add a temporary message with a loading icon
-      const newMessageObj = { id: messageId, content: URL.createObjectURL(file), timeStamp: new Date().toLocaleString(), isImage: true, isUploading: true };
+      const newMessageObj = { id: messageId, content: URL.createObjectURL(file), timeStamp: new Date().toLocaleString(), isImage: true, isUploading: true,senderId:Number(sessionStorage.getItem('userId')) };
       setMessages(prevMessages => [...prevMessages, newMessageObj]);
       setUploadingMessageId(messageId);
       setIsUploading(true);
@@ -2070,21 +2115,143 @@ const handleFileChange = async (event) => {
       await uploadBytes(storageRef, file);
       const downloadURL = await getDownloadURL(storageRef);
 
-      // Update the message with the final URL
-      setMessages(prevMessages => prevMessages.map(msg => {
-        if (msg.id === messageId) {
-          return { ...msg, content: downloadURL, isUploading: false };
+      try {
+      const messagesResponse1 = await fetch('http://localhost:5206/api/Message/SendMessage', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${sessionStorage.getItem('Token')}`
+        },  
+          body: JSON.stringify({
+          content: downloadURL, 
+          recpientId: selectedRecpientId,
+          messageType: "text",
+          isAudio: false,
+          isImage: true
+        })  
+      });
+      if (messagesResponse1.ok) {
+        const data = await messagesResponse1.json();
+           setIsLoadingMessage(false);
+            if (selectedConversation === null) { 
+              setConversations(prevConversations => {
+                // Create a new array that includes the previous conversations and the new one
+                const updatedConversations12 = [
+                  ...prevConversations,
+                  {
+                    convId: data.convId,
+                    message: 'Photo',
+                    updatedTime: data.timeStamp,
+                    messageId: data.id,
+                    userId: data.recpientId,
+                    userName: selectedName,
+                    lastName: selectedLastName
+                  }
+                ];
+              
+                // Sort the updated conversations array by updatedTime
+                updatedConversations12.sort((a, b) => new Date(b.updatedTime) - new Date(a.updatedTime));
+              
+                // Return the sorted array to update the state
+                return updatedConversations12;
+              });
+              setSelectedConversation(data.convId); 
+            }else{
+              setConversations(prevConversations => {
+              const updatedConversations = prevConversations.map(conversation => {
+                
+                if (conversation.convId === selectedConversation) {
+                  
+                  return { ...conversation, message: 'Photo', updatedTime:data.timeStamp ,messageId: data.id}; 
+                }
+                return conversation; 
+              });
+          
+              // Sort the updated conversations by updatedTime
+              return updatedConversations.sort((a, b) => new Date(b.updatedTime) - new Date(a.updatedTime));
+            });}
+            
+            const newMessage = {
+              content: URL.createObjectURL(file), // audio URL
+              convId: data.convId,
+              deleted: data.deleted,
+              id: data.id,
+              messageType: data.messageType,
+              recpientId: data.recpientId,
+              senderId: data.senderId,
+              status:data.status,
+              timeStamp: data.timeStamp,
+              isAudio: false,
+              isImage: true
+            };
+       
+        
+        //insertMessage(newMessage);
+        setMessages(prevMessages =>prevMessages.map(msg=>{
+          if (msg.id === messageId){
+            return {...msg,
+            content:URL.createObjectURL(file), 
+            convId: data.convId,
+            deleted: data.deleted,
+            id: data.id,
+            messageType: data.messageType,
+            recpientId: data.recpientId,
+            senderId: data.senderId,
+            status:data.status,
+            timeStamp: data.timeStamp,
+            isAudio: false,
+            isImage: true};
+          } return msg;
+        }));
+        setIsUploading(false);
+setUploadingMessageId(null);
+  
+        const ParsedMessage = JSON.parse(sessionStorage.getItem(`${selectedConversation}`));
+        if (ParsedMessage!== null) {
+        ParsedMessage.push(newMessage);
+        sessionStorage.setItem(`${selectedConversation}`,JSON.stringify(ParsedMessage))
         }
-        return msg;
-      }));
+         
+        setSendMessage('');
+      } else {
+        setIsUploading(false);
+        setIsLoadingMessage(false);
+        setUploadingMessageId(null);
+  
+      let errorMessage = 'An error occurred';
+        if (messagesResponse1.status === 401) {
+          errorMessage = 'Unauthorized else';
+        } else if (!messagesResponse1.ok) {
+          errorMessage = 'Connection problem else';
+        }
+        showToast(errorMessage);
+        setMessages(prevMessages => prevMessages.filter(msg => msg.id !== messageId));
+        throw new Error('Failed to fetch messages');
+
+      }
+    } catch (error) {
+    setIsUploading(false);
+    setUploadingMessageId(null);
+  
+    setIsLoadingMessage(false);
+    showToast('Connection Refused');
+      // Remove the message if upload fails
+    //setMessages(prevMessages => prevMessages.filter(msg => msg.id !== messageId));
+    
+    
+    }
+      
       setIsUploading(false);
     } catch (error) {
       console.error('Error uploading image:', error);
       // Remove the message if upload fails
-      setMessages(prevMessages => prevMessages.filter(msg => msg.id !== messageId));
+      //setMessages(prevMessages => prevMessages.filter(msg => msg.id !== messageId));
       setIsUploading(false);
     }
+  
   }
+   
+
 };
 
 const openModal = (content) => {
@@ -2195,13 +2362,49 @@ const toggleDarkMode = async () => {
   }
   
 };
-
+/**
+ "id": 143,
+  "token": "eyJhbGciOiJodHRwOi8vd3d3LnczLm9yZy8yMDAxLzA0L3htbGRzaWctbW9yZSNobWFjLXNoYTUxMiIsInR5cCI6IkpXVCJ9.eyJFbWFpbCI6ImRhZ2lAZ21haWwuY29tIiwiVXNlcklkIjoiMTQzIiwiZXhwIjoxNzE4MzYzNjg3fQ.91tWdn8ZdcQbCaHg8cykuy7jyQIOhAHVEpaOA7aDIvzDGKtbY6N8bTvDpmHwn4sj3afaF8xSEy059H2uR6w7ug",
+  "refreshToken": "lcdLOnpGBTCmzgvkUqm/UML0fsgjsaZym5CX8WqzxjqaAncAC3nFrOMpL0/IPr4vMcVJtMuTU4sIW1fjNjh2kw==",
+  "refreshTokenExpiry": "2024-06-14T16:15:47.451037+03:00",
+  "name": "Dagi",
+  "lastName": "Dawit",
+  "bio": "Loserpool",
+  "dark": false,
+  "profilePictue": null
+}
+    {
+        "userName": "Henok",
+        "lastName": "Fish",
+        "updatedTime": "2024-06-13T16:41:47",
+        "message": "hey what do u anwant;klejf;lkfdkhey what do u anwant;klejf;lkfdkhey what do u anwant;klejf;lkfdkhey what do u anwant;klejf;lkfdkhey what do u anwant;klejf;lkfdkhey what do u anwant;klejf;lkfdkhey what do u anwant;klejf;lkfdkhey what do u anwant;klejf;lkfdkhey what do u anwant;klejf;lkfdk",
+        "userId": 145,
+        "convId": 107,
+        "messageId": 606,
+        "notificationCount": 1,
+        "status": "false",
+        "lastSeen": "2024-06-14T12:38:27",
+        "bio": "Messi",
+        "email": "henok@gmail.com",
+        "isAudio": false,
+        "isImage": false,
+        "profilePicConv": [
+            "fourthImage",
+            "fifthImage",
+            "sixthImage",
+            "thridImage",
+            "secondImage"
+        ]
+    },
+    
+ */
 // FUCNTION INTEGRATION END
 
 // For Settings code End
 
   return(
   <div className={`flex h-screen relative ${isDarkMode ? 'bg-gray-900 text-white' : 'bg-gray-100 text-black'}`}>
+    <ToastContainer />
     {modalContent && (
         <div 
           className={`fixed inset-0 bg-opacity-75 flex items-center justify-center z-50 ${isDarkMode ? 'bg-gray-900 text-white' : 'bg-gray-100 text-black'}`}
@@ -2209,13 +2412,13 @@ const toggleDarkMode = async () => {
         > 
           <div  
           ref={modalRef}
-            className={`bg-white p-4 rounded-lg shadow-lg w-1/3 relative ${isDarkMode ? 'bg-gray-900 text-white' : 'bg-gray-100 text-black'}`}
+            className={`p-4 rounded-lg shadow-lg w-1/3 relative ${isDarkMode ? 'bg-gray-900 text-white' : 'bg-gray-100 text-black'}`}
             onClick={(e) => e.stopPropagation()}
           >
             <button onClick={closeModal} className="absolute top-2 right-2 text-gray-600">X</button>
             {editProfileModal && (
             <div className={`edit-profile-container ${isDarkMode ? 'bg-gray-900 text-white' : 'bg-gray-100 text-black'}`}>
-          <form className="form-sign-up" onSubmit={handleSubmitProfile}>
+          <form className={`form-sign-up  ${isDarkMode ? 'bg-gray-900 text-white' : 'bg-gray-100 text-black'}`} onSubmit={handleSubmitProfile}>
             <span className="title">Edit Profile</span> <br />
             <label>Name</label>
             <input
@@ -2225,7 +2428,7 @@ const toggleDarkMode = async () => {
               required
               value={firstName}
               onChange={handleFirstNameChange}
-              disabled={isLoading}
+              disabled={isLoadingModal}
             />
             <label>Last Name</label>
             <input
@@ -2234,7 +2437,7 @@ const toggleDarkMode = async () => {
               type="text"
               value={lastName}
               onChange={handleLastNameChange}
-              disabled={isLoading}
+              disabled={isLoadingModal}
             />
             <label>Bio</label>
             <input
@@ -2242,20 +2445,20 @@ const toggleDarkMode = async () => {
               type="text"
               value={bio}
               onChange={handleBioChange}
-              disabled={isLoading}
+              disabled={isLoadingModal}
             />
-            <button className="button-sign-up" disabled={isLoading}>
+            <button className="button-sign-up" disabled={isLoadingModal}>
               Set
             </button>
             {errorMessage && <p className="error-message">{errorMessage}</p>}
             {goodMessage && <p className="good-message">{goodMessage}</p>}
-            {isLoading && <p className="is-loading">Loading...</p>}
+            {isLoadingModal && <p className="is-loading">Loading...</p>}
           </form>
             </div>
             )}
             {changePasswordModal && (
             <div className={`edit-profile-container ${isDarkMode ? 'bg-gray-900 text-white' : 'bg-gray-100 text-black'}`}>
-          <form className="form-sign-up" onSubmit={handleSubmitProfile}>
+          <form className={`form-sign-up  ${isDarkMode ? 'bg-gray-900 text-white' : 'bg-gray-100 text-black'}`} onSubmit={handleSubmitPassword}>
             <span className="title">Change Password</span> <br />
             <input
               className={`email-input ${isDarkMode ? 'bg-gray-900 text-white' : 'bg-gray-100 text-black'}`}
@@ -2264,7 +2467,7 @@ const toggleDarkMode = async () => {
               required 
               value={oldPassword}
               onChange={handleOldPasswordChange}
-              disabled={isLoading} // Disable input field while loading
+              disabled={isLoadingModal} // Disable input field while loading
             />
             <input
               className={`email-input ${isDarkMode ? 'bg-gray-900 text-white' : 'bg-gray-100 text-black'}`}
@@ -2273,26 +2476,26 @@ const toggleDarkMode = async () => {
               required 
               value={newPassword}
               onChange={handleNewPasswordChange}
-              disabled={isLoading} // Disable input field while loading
+              disabled={isLoadingModal} // Disable input field while loading
             /> 
             
-            <button className="button-sign-up" disabled={isLoading}>
+            <button className="button-sign-up" disabled={isLoadingModal}>
               Submit
             </button>
             {errorMessage && <p className="error-message">{errorMessage}</p>}
             {goodMessage && <p className="good-message">{goodMessage}</p>}
-            {isLoading && <p className="is-loading">Loading...</p>}
+            {isLoadingModal && <p className="is-loading">Loading...</p>}
           </form>
             </div>
             )}
             {deleteAccountModal && (
             <div className={`edit-profile-container ${isDarkMode ? 'bg-gray-900 text-white' : 'bg-gray-100 text-black'}`}>
-          <form className="form-sign-up" onSubmit={handleSubmitProfile}>
+          <form className= {`form-sign-up  ${isDarkMode ? 'bg-gray-900 text-white' : 'bg-gray-100 text-black'}`} onSubmit={deleteAccount}>
             <span className="title">Danger Zone</span> <br />
               Are you sure you want to delete this account? <br /><br />
-            <button className='buttonTabDelete' onClick={deleteAccount}  disabled={isLoading} >Delete</button>
+            <button className='buttonTabDelete' onClick={deleteAccount}  disabled={isLoadingModal} >Delete</button>
           
-          {isLoading && <p className='isLoading'>Loading...</p>}
+          {isLoadingModal && <p className='isLoading'>Loading...</p>}
             
         </form>
             </div>
@@ -2330,7 +2533,7 @@ const toggleDarkMode = async () => {
             onClick={() => setShowSettings(!showSettings)} 
           />
           {showSettings && (
-            <div ref={settingsRef} className={`absolute top-full mt-1 right-0 w-48 bg-white border border-gray-300 rounded-md shadow-lg z-10 ${isDarkMode ? 'bg-gray-900 text-white' : 'bg-gray-100 text-black'}`}>
+            <div ref={settingsRef} className={`absolute top-full mt-1 right-0 w-48 border-gray-300 rounded-md shadow-lg z-10 ${isDarkMode ? 'bg-gray-900 text-white' : 'bg-gray-100 text-black'}`}>
                
               <div className='p-2 hover:bg-gray-500 cursor-pointer flex items-center' onClick={() => openModal('EditProfile')}>
                 <FontAwesomeIcon icon={faUserEdit} className="mr-2" /> Edit Profile
@@ -2346,17 +2549,26 @@ const toggleDarkMode = async () => {
               </div>
             </div>
           )}
-          {searchResultUser.length > 0 && ( 
+          {searchResultUser.length > 0 && searchQueryUser.length> 0 && ( 
             <div className={`absolute top-full mt-1 w-full border-gray-300 rounded-md shadow-lg z-10 ${isDarkMode ? 'bg-gray-900 text-white' : 'bg-gray-100 text-black'}  `}> 
               {searchResultUser.map(result => (
                 <div  
                 key={result.id}
                 className='p-2 hover:bg-gray-500 cursor-pointer'
-                onClick={()=>handleNewUserClick(result.id,result.name,result.lastName)}
-                >
-              <div className="w-12 h-12 rounded-full bg-blue-500 text-white flex items-center justify-center mr-3 text-lg font-semibold">
-                {result.name.charAt(0)}
-              </div>
+                onClick={()=>handleNewUserClick(result.id,result.name,result.lastName,result.email,result.status,result.lastSeen,result.bio,result.profilePicSearch)}
+                > 
+                {result.profilePicSearch? (
+                
+                <div className="w-12 h-12 rounded-full bg-blue-500 text-white flex items-center justify-center mr-3 text-lg font-semibold overflow-hidden">
+                    <img src={result.profilePicSearch.at(-1)} alt={result.profilePicSearch.at(-1)} className="w-full h-full object-cover" />    
+                  </div>
+                ):(
+                  <div
+                    className="w-12 h-12 rounded-full bg-blue-500 text-white flex items-center justify-center mr-3 text-lg font-semibold">
+                    {result.name.charAt(0)}
+                  </div>
+                )}
+              
               <div className="flex-1">
                 <div className="flex justify-between items-center">
                   <div>
@@ -2388,23 +2600,54 @@ const toggleDarkMode = async () => {
                   handleConversationClick(conversation.convId,conversation.userId,conversation.userName,conversation.lastName,conversation.status,conversation.lastSeen,conversation.bio,conversation.email);
                   }}
                 >
+                {/* Deleting Conv*/}
+                {isDeletingConv ===true && isDeletingConvId === conversation.convId ?(
+                  <FontAwesomeIcon icon={faSpinner} spin />
+                ):(
                   <button
-                    className="relative right-3 text-red-500  hidden group-hover:block"
-                    onClick={(e) => { e.stopPropagation(); handleDeleteConversation(conversation.convId); }}
-                  >
-                    <FontAwesomeIcon icon={faTrashAlt} />
-                  </button>
+                  className="relative right-3 text-red-500  hidden group-hover:block"
+                  onClick={(e) => { e.stopPropagation(); handleDeleteConversation(conversation.convId); }}
+                >
+                  <FontAwesomeIcon icon={faTrashAlt} />
+                      </button> 
+                )}
                   
-                  <div className="w-12 h-12 rounded-full bg-blue-500 text-white flex items-center justify-center mr-3 text-lg font-semibold">
-                    {conversation.userName.charAt(0)}
-                  </div>
+                  {conversation.userId === Number(sessionStorage.getItem('userId')) ?(
+                  <div
+                     className="w-16 h-16 rounded-full bg-blue-500 text-white flex items-center justify-center mr-3 text-lg font-semibold">
+                      <FontAwesomeIcon icon={faBookmark} style={{ fontSize: '34px', color : isDarkMode? 'white':'black' }}  />
+                   </div>
+                  ):(
+                    <>
+                  {conversation.profilePicConv? (
+                  
+                  <div className="w-16 h-16 rounded-full bg-blue-500 text-white flex items-center justify-center mr-3 text-lg font-semibold overflow-hidden">
+                      <img src={conversation.profilePicConv.at(-1)} alt={conversation.profilePicConv.at(-1)} className="w-full h-full object-cover" />    
+                   </div>
+                  ):(
+                    <div
+                     className="w-16 h-16 rounded-full bg-blue-500 text-white flex items-center justify-center mr-3 text-lg font-semibold">
+                      {conversation.userName.charAt(0)}
+                   </div>
+                  
+                  )}
+                  </>
+                  )}
+                  
                   <div className="flex-1">
                     <div className="flex justify-between items-center">
                       <div>
-                        <div className="text-lg font-semibold">
-                          {truncateText( `${conversation.userName} ${conversation.lastName}`, 15)}
-                          <span className={`ml-2 inline-block w-3 h-3 rounded-full ${conversation.status ? 'bg-green-500' : 'bg-gray-500'}`}></span>
+                      {conversation.userId === Number(sessionStorage.getItem('userId')) ?(
+                        <>
+                        Saved Messages
+                        </>
+                      ):(
+                       <div className="text-lg font-semibold">
+                          {truncateText( `${conversation.userName} ${conversation.lastName}`, 11)}
+                          <span className={`ml-2 inline-block w-3 h-3 rounded-full ${conversation.status === true ? 'bg-green-500' : 'bg-gray-500'}`}></span>
                         </div>
+                      )}
+                        
                         {conversation.isAudio && (<div className="text-sm text-gray-500">Voice Message</div>)}
                         {conversation.isImage && (<div className="text-sm text-gray-500">Photo</div>)}
                         {!conversation.isAudio && !conversation.isImage && (<div className="text-sm text-gray-500">{truncateText(conversation.message, 15)}</div>)}
@@ -2413,11 +2656,18 @@ const toggleDarkMode = async () => {
                       </div>
                       <div className="text-sm text-gray-500 text-right">
                         <div>{formatDateTime(conversation.updatedTime)}</div>
-                        {conversation.notificationCount > 0 && (
-                          <div className="bg-red-500 text-white rounded-full w-5 h-5 flex items-center justify-center text-xs">
-                            {conversation.notificationCount}
-                          </div>
+                        {conversation.userId === Number(sessionStorage.getItem('userId')) ?(
+                           <></>
+                        ):(
+                          <>
+                          {conversation.notificationCount > 0 && (
+                              <div className="bg-red-500 text-white rounded-full w-5 h-5 flex items-center justify-center text-xs">
+                                {conversation.notificationCount}
+                              </div>
+                          )}
+                          </>
                         )}
+                        
                       </div>
                     </div>
                   </div>
@@ -2426,7 +2676,7 @@ const toggleDarkMode = async () => {
         </>
         ):( 
            <>
-           {isLoading ? (<div className="text-center text-gray-600"><FontAwesomeIcon icon={faSpinner} size='large' spin /></div> ):(<div className="text-center text-gray-600">No Conversations</div>  ) }
+           {isLoading ? (<div className="text-center text-gray-600"><FontAwesomeIcon icon={faSpinner} size='2x' spin /></div> ):(<div className="text-center text-gray-600">No Conversations</div>  ) }
          </>
         )}
       
@@ -2437,15 +2687,31 @@ const toggleDarkMode = async () => {
     <div className='flex flex-col w-3/4'>
       {/* Conversation Info */}
 
-        {selectedConversation || forSearchUser === true ? (
+        {selectedConversation!= null || forSearchUser === true ? (
           <div className={`p-4 border-b ${isDarkMode ? 'bg-gray-900 text-white  border-gray-800' : 'bg-gray-100 text-black  border-gray-200'}`}>
+          
           <div onClick={() => openUserModal()}  className="cursor-pointer">
             <h2 className="text-lg font-semibold">
-              {selectedName} {selectedLastName}
+              {selectedRecpientId === Number(sessionStorage.getItem('userId'))?(
+                <>
+                Saved Messages
+                </>
+              ):(
+               <>
+               {selectedName} {selectedLastName}
+               </>
+              )}
+              
             </h2> 
             <div className="text-sm text-gray-500">
-              {selectedOnlineStatus ? 'Online' : `Last seen: ${selectedLastSeen}`}
-            </div>
+            {selectedRecpientId === Number(sessionStorage.getItem('userId'))?(
+              <></>
+            ):(
+              <>
+              {selectedOnlineStatus===true ? 'Online' : `Last seen: ${formatDateTime(selectedLastSeen)}`}
+              </>
+            )}
+          </div>
           </div>
           <div>
           {isPlaying && (
@@ -2474,9 +2740,9 @@ const toggleDarkMode = async () => {
       {/* Messages */}
           
         <div className='flex-1 overflow-y-auto p-4'>
-          {selectedConversation || forSearchUser === true ? (
+          {selectedConversation!= null || forSearchUser === true ? (
            messages.length > 0 ? (
-          messages.map(message=>( 
+           messages.map(message=>( 
             <div key={message.id} id={`message-${message.id}`} className="mb-4">
              <div>
             {message.senderId !== Number(sessionStorage.getItem('userId'))?(
@@ -2492,18 +2758,19 @@ const toggleDarkMode = async () => {
                             {!isUploading && (
                               <img src={message.content} alt="Uploaded" onClick={() => handleImageClick(message.content)} className="uploaded-image cursor-pointer" />
                             )}
-                            <div className="flex items-center justify-between mt-1">
-                              <button className="ml-2 text-red-600 hidden group-hover:block" onClick={() => handleDeleteMessage(message.id)}>
-                                <FontAwesomeIcon icon={faTrashAlt} />
-                              </button>
-                            </div>
+                      {(!isDeletingMessage && !isUploading)&& (<div className="flex items-center justify-between mt-1">
+                        <button className="ml-2 text-red-600 hidden group-hover:block" onClick={() => handleDeleteMessage(message.id)}>
+                          <FontAwesomeIcon icon={faTrashAlt} />
+                        </button>
+                      </div>)}
+                            
                           </div>
                         ) : message.isAudio?(
                         <div>
                             {isUploading && uploadingMessageId === message.id && (
                                 <FontAwesomeIcon icon={faSpinner} spin className="mr-2" />
                             )}
-                            {!isUploading && (
+                            {(!isUploading || uploadingMessageId !== message.id) && (
                               <>
                               {isDownloading && downloadingMessageId === message.id ? (
                                 <FontAwesomeIcon icon={faSpinner} spin className="mr-2" />
@@ -2532,40 +2799,35 @@ const toggleDarkMode = async () => {
                             
                             </span>
                         </div>
-                          
-                        
-                        
-                            <div className="flex items-center justify-between mt-1" >
-              
-                            <button
-                              className="ml-2 text-red-600 hidden group-hover:block"
-                              onClick={() => handleDeleteMessage(message.id)}
-                            >
-                              <FontAwesomeIcon icon={faTrashAlt} />
-                            </button>
-                            </div>
-                          
+                        {!isDeletingMessage && (<div className="flex items-center justify-between mt-1">
+                    <button className="ml-2 text-red-600 hidden group-hover:block" onClick={() => handleDeleteMessage(message.id)}>
+                      <FontAwesomeIcon icon={faTrashAlt} />
+                    </button>
+                  </div>)}
                       </div>
                         ): (
                           
                           <div>
                           {message.content}
-                          <div className="flex items-center justify-between mt-1" >
-                      
-                      <button
-                        className="ml-2 text-red-600 hidden group-hover:block"
-                        onClick={() => handleDeleteMessage(message.id)}
-                      >
-                        <FontAwesomeIcon icon={faTrashAlt} />
-                      </button>
+                          
+                           {!isDeletingMessage && (<div className="flex items-center justify-between mt-1">
+                        <button className="ml-2 text-red-600 hidden group-hover:block" onClick={() => handleDeleteMessage(message.id)}>
+                          <FontAwesomeIcon icon={faTrashAlt} />
+                        </button>
+                      </div>)}
                     </div>
-                    </div>
-                        )}
+                    )}
                 </div>
-                 <div className="chat-footer opacity-50">
-                 {message.edited === true ?("edited"):("")}
-                {formatDateTime(message.timeStamp)}
+                 {/* Deleting Icon*/}
+              {isDeletingMessage ===true && isDeletingMessageId === message.id ?(
+              <FontAwesomeIcon icon={faSpinner} spin />
+              ):(
+              <div className="chat-footer opacity-50">
+              {message.edited === true ?("edited"):("")}
+              {formatDateTime(message.timeStamp)}
               </div>
+              
+              )}
                   
               
             </div>
@@ -2576,17 +2838,19 @@ const toggleDarkMode = async () => {
                   {message.isImage ? (
                     
                     <div className='image-container'>
-                      {isUploading && uploadingMessageId === message.id && (
-                        <FontAwesomeIcon icon={faSpinner} spin className="mr-2"/>
-                      )}
-                      {!isUploading && (
-                        <img src={message.content} alt="Uploaded" onClick={() => handleImageClick(message.content)} className="uploaded-image cursor-pointer" />
-                      )}
-                      <div className="flex items-center justify-between mt-1">
-                        <button className="ml-2 text-red-600 hidden group-hover:block" onClick={() => handleDeleteMessage(message.id)}>
-                          <FontAwesomeIcon icon={faTrashAlt} />
-                        </button>
-                      </div>
+                          {isUploading && uploadingMessageId === message.id && (
+                            <FontAwesomeIcon icon={faSpinner} spin className="mr-2"/>
+                          )}
+                          {(!isUploading || uploadingMessageId !== message.id)&&(
+                            <img src={message.content} alt="Uploaded" onClick={() => handleImageClick(message.content)} className="uploaded-image cursor-pointer" />
+                          )} 
+                              {(!isDeletingMessage  && !isUploading) && (
+                          <div className="flex items-center justify-between mt-1">
+                          <button className="ml-2 text-red-600 hidden group-hover:block" onClick={() => handleDeleteMessage(message.id)}>
+                            <FontAwesomeIcon icon={faTrashAlt} />
+                          </button>
+                        </div>
+                          )}
                     </div>
                   ):message.isAudio?(
                   <div>
@@ -2622,38 +2886,33 @@ const toggleDarkMode = async () => {
                       
                       </span>
                   </div>
-                    
-                  
-                  
-                      <div className="flex items-center justify-between mt-1" >
-        
-                      <button
-                        className="ml-2 text-red-600 hidden group-hover:block"
-                        onClick={() => handleDeleteMessage(message.id)}
-                      >
-                        <FontAwesomeIcon icon={faTrashAlt} />
-                      </button>
-                      </div>
+                 {!isDeletingMessage  &&  (<div className="flex items-center justify-between mt-1">
+                  <button className="ml-2 text-red-600 hidden group-hover:block" onClick={() => handleDeleteMessage(message.id)}>
+                    <FontAwesomeIcon icon={faTrashAlt} />
+                  </button>
+                </div>)}
                     
                 </div>
                   ):(
                   <div>
                   {message.content}
-                  <div className="flex items-center justify-between mt-1" >
-              <button
+                   {!isDeletingMessage  &&  (
+                 
+                   <div className="flex items-center justify-between mt-1">
+                   <button
                   className="ml-2 text-gray-600 hidden group-hover:block"
                   onClick={() => handleEditMessage(message)}
                 >
                   <MdEdit />
                 </button>
-                <button
-                  className="ml-2 text-red-600 hidden group-hover:block"
-                  onClick={() => handleDeleteMessage(message.id)}
-                >
+                <button className="ml-2 text-red-600 hidden group-hover:block" onClick={() => handleDeleteMessage(message.id)}>
                   <FontAwesomeIcon icon={faTrashAlt} />
                 </button>
+                      </div>
+                  )}
+                  
               </div>
-              </div>
+              
             )}   
             </div>
                 ):(
@@ -2684,7 +2943,7 @@ const toggleDarkMode = async () => {
                     </button>
                     {showEmojiPickerEDIT && (
                       <div className="absolute top-20 right-0 z-30" ref={emojiPickerRef}> 
-                        <Picker dataXX={dataXXX} 
+                        <Picker  theme = {`${isDarkMode ? 'dark' : 'light'}`} dataXX={dataXXX} 
                           onEmojiSelect={(e) => { 
                             setEditMessageContent(editMessageContent + e.native);
                           }}
@@ -2693,12 +2952,17 @@ const toggleDarkMode = async () => {
                     )}
                   </div>
                   </div>
-                )}
+              )}
+              {/* Deleting Icon*/}
+              {isDeletingMessage ===true && isDeletingMessageId === message.id ?(
+              <FontAwesomeIcon icon={faSpinner} spin />
+              ):(
               <div className="chat-footer opacity-50">
               {message.edited === true ?("edited"):("")}
               {formatDateTime(message.timeStamp)}
-                
               </div>
+              
+              )}
                 
             </div>
 
@@ -2710,7 +2974,7 @@ const toggleDarkMode = async () => {
           ))
            ):(
            <>
-           {isLoading ? (<div className="text-center text-gray-600"><FontAwesomeIcon icon={faSpinner} size='large' spin /></div> ):(<div className="text-center text-gray-600">No messages</div>  ) }
+           {isLoading ? (<div className="text-center text-gray-600"><FontAwesomeIcon icon={faSpinner} size='2x' spin /></div> ):(<div className="text-center text-gray-600">No messages</div>  ) }
          </>
            )
         ):(
@@ -2725,7 +2989,7 @@ const toggleDarkMode = async () => {
           
       
       {/* Input Field */}
-       { selectedConversation || forSearchUser === true ? (
+       { selectedConversation!=null || forSearchUser === true ? (
           <div className={`p-4 border-t flex items-center ${isDarkMode ? 'bg-gray-900 text-white  border-gray-800' : 'bg-gray-100 text-black  border-gray-200'}`}>
          
            {isRecording ?(
@@ -2758,19 +3022,19 @@ const toggleDarkMode = async () => {
           className={`textarea textarea-bordered flex-1 p-2 resize-none rounded-md overflow-hidden ${isDarkMode ? 'bg-gray-900 text-white  border-gray-700' : 'bg-gray-100 text-black  border-gray-200'}`}
           onKeyDown={handleKeyDown}
           minRows={1}
-          disabled={isLoadingMessage}
-        /> 
+          
+         /> 
          <button 
               onClick={() => setShowEmojiPicker(!showEmojiPicker)}
               className="btn btn-secondary ml-2"
             > 
               <FontAwesomeIcon icon={faSmile} />
             </button> 
-            <button onClick={isRecording ? handleStopRecording : handleStartRecording} className="btn ml-2">
+            <button onClick={isRecording ? handleStopRecording : handleStartRecording} className={`btn ml-2 ${isDarkMode ? 'bg-gray-900 text-white' : 'bg-gray-100 text-black'} `}>
           <FontAwesomeIcon icon={isRecording ? faStop : faMicrophone} />
         </button>
         <button onClick={handleSendMessage} disabled={sendMessage.length ===0}>
-          {isLoadingMessage ? <FontAwesomeIcon icon={faSpinner} spin /> : errorMessage? "javascript" : <FontAwesomeIcon icon={faPaperPlane} />}
+          {isLoadingMessage ? <FontAwesomeIcon icon={faSpinner} spin /> : <FontAwesomeIcon icon={faPaperPlane} />}
         </button> 
         </div>
         )}
@@ -2782,8 +3046,8 @@ const toggleDarkMode = async () => {
     </div>
     {/* Emoji Picker */}
   {showEmojiPicker && (
-    <div className= {`absolute bottom-20 right-10 z-50 ${isDarkMode ? 'bg-gray-900 text-white  border-gray-800' : 'bg-gray-100 text-black  border-gray-200'}`} ref={emojiPickerRef}>
-      <Picker dataXX={dataXXX}
+    <div className= {`absolute bottom-20 right-10 z-50 bg-dark`} ref={emojiPickerRef} >
+      <Picker theme = {`${isDarkMode ? 'dark' : 'light'}`} dataXX={dataXXX} 
         onEmojiSelect={(e) => { 
           setSendMessage(sendMessage + e.native); 
         }}
