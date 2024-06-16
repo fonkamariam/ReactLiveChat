@@ -7,7 +7,7 @@ import { toast, ToastContainer } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
 // Intergration
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { faSun,faMoon,faPaperPlane, faCloudDownload, faPause, faTrashAlt,faSmile ,faCog, faUserEdit, faKey, faSignOutAlt, faTrash,faCheck,faTimes,faSpinner,faPaperclip,faMicrophone, faStop, faPlay,faTimesCircle,faDownload, faSlash,faBookmark} from '@fortawesome/free-solid-svg-icons';
+import { faEllipsisV,faSun,faMoon,faPaperPlane, faCloudDownload, faPause, faTrashAlt,faSmile ,faCog, faUserEdit, faKey, faSignOutAlt, faTrash,faCheck,faTimes,faSpinner,faPaperclip,faMicrophone, faStop, faPlay,faTimesCircle,faDownload, faSlash,faBookmark,faArrowLeft, faArrowRight} from '@fortawesome/free-solid-svg-icons';
 import { MdEdit } from 'react-icons/md';
 import Picker from '@emoji-mart/react';
 import dataXXX from '@emoji-mart/data';
@@ -72,10 +72,19 @@ function Chats() {
   //const [editMessageContent, setEditMessageContent] = useState('');
   const [sendingMessage, setSendingMessage] = useState(false); // State for tracking sending status
   const [fullscreenImage, setFullscreenImage] = useState(null);
+  const [fullImagePicture,setFullImagePicture]= useState(null);
+  const [fullImageOTHER,setFullImageOTHER] = useState(null);
   const [isUploading, setIsUploading] = useState(false);
   const [uploadingMessageId, setUploadingMessageId] = useState(null);
   const [isDownloading, setIsDownloading] = useState(false);
   const [downloadingMessageId, setDownloadingMessageId] = useState(null);
+
+  const storedProfilePictures = sessionStorage.getItem('ProfilePic');
+  const profilePicturesArray = storedProfilePictures!== null ? JSON.parse(storedProfilePictures) : [];
+  const [currentImageIndex, setCurrentImageIndex] = useState(0);
+  const [isDropdownOpen, setIsDropdownOpen] = useState(false);
+  const [isSettingNewPic, setIsSettingNewPic] = useState(false);
+  const [isDeletingProfilePic,setIsDeletingProfilePic] = useState(false);
 // Live wave form
 
 
@@ -829,6 +838,7 @@ useEffect(() => async ()=>{
   const [lastName, setLastName] = useState(sessionStorage.getItem('LastName'));
   const [bio, setBio] = useState(sessionStorage.getItem('Bio'));
   
+  
   const [editProfileModal,setEditProfileModal] = useState(false);
   const [changePasswordModal,setChangePasswordModal]= useState(false);
   const [deleteAccountModal,setDeleteAccountModal] = useState(false);
@@ -1073,7 +1083,7 @@ const handleSendMessage = async (e) => {
     
   }
 };
-const handleConversationClick = async (convId,recpientId,Name,LastName,onlineStatus,lastSeen,bio,email) => {
+const handleConversationClick = async (convId,recpientId,Name,LastName,onlineStatus,lastSeen,bio,email,profilePicConv) => {
   setIsLoading(true);
   setForSearchUser(false);
   setMessages([]);
@@ -1085,6 +1095,8 @@ const handleConversationClick = async (convId,recpientId,Name,LastName,onlineSta
   setSelectedLastSeen(lastSeen);
   setSelectedBio(bio);
   setSelectedEmail(email);
+  setSelectedProfilePic(profilePicConv);
+
   
   const storedMessages = sessionStorage.getItem(`${convId}`);
   if (storedMessages !== null) {
@@ -1522,14 +1534,19 @@ const clearErrorMessageAfterDelay = () => {
   }, 2000); // Clear error message after 3 seconds (3000 milliseconds)
 };
 const handleFirstNameChange = (e) => {
-  console.log("FirstName change");
-  setFirstName(e.target.value);
+  if (e.target.value.length <= 14) {
+    setFirstName(e.target.value);
+  }
 }
 const handleLastNameChange = (e) => {
-  setLastName(e.target.value); 
+  if (e.target.value.length <= 14) {
+      setLastName(e.target.value);
+    }
 }
-const handleBioChange = (e) => {
-  setBio(e.target.value); 
+const handleBioChange = (e) => { 
+  if (e.target.value.length <= 70) {
+    setBio(e.target.value);
+  }
 }
 
 const handleSubmitProfile = (e) => {
@@ -2070,14 +2087,169 @@ useEffect(() => {
     Object.values(waveformRefs.current).forEach(waveform => waveform.destroy());
   };
 }, [messages]);
-
+// handleImageClick for Pictures
 const handleImageClick = (src) => {
-  setFullscreenImage(src);
+  setFullImagePicture(src);
 };
 
+const closeFullImagePic = () =>{
+   setFullImagePicture(null);
+   setFullImageOTHER(null);
+   setIsDropdownOpen(false);
+};
+const handleImageClickOwnProfile = (index) =>{
+  setFullscreenImage(profilePicturesArray[index]);
+  setCurrentImageIndex(index);
+  setIsDropdownOpen(false); // Close dropdown when image is clicked
+};
+const handleOtherProfilePic = (index)=>{
+  setFullImageOTHER(selectedProfilePic[index]);
+  setCurrentImageIndex(index);
+  setIsDropdownOpen(false);
+};
 const closeFullscreenImage = () => {
   setFullscreenImage(null);
+  setCurrentImageIndex(0);
+  setIsDropdownOpen(false); // Close dropdown when fullscreen mode is closed
 };
+
+const handleNextImage = () => {
+  setCurrentImageIndex((prevIndex) => (prevIndex + 1) % profilePicturesArray.length);
+};
+
+const handlePrevImage = () => {
+  setCurrentImageIndex((prevIndex) => (prevIndex - 1 + profilePicturesArray.length) % profilePicturesArray.length);
+};
+const handleNextImageOTHER = () => {
+  setCurrentImageIndex((prevIndex) => (prevIndex + 1) % selectedProfilePic.length);
+};
+
+const handlePrevImageOTHER = () => {
+  setCurrentImageIndex((prevIndex) => (prevIndex - 1 + selectedProfilePic.length) % selectedProfilePic.length);
+};
+
+const hanldeSaveImage =()=>{
+const picId = Date.now().toString();
+    
+   if (fullImageOTHER) {
+    // Fetch the image as a blob from the URL
+    fetch(fullImageOTHER)
+      .then(response => response.blob())
+      .then(blob => {
+        // Create a URL for the Blob object
+        const url = window.URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.style.display = 'none';
+        a.href = url;
+        a.download = `Fonkagram${picId}.jpg`; // Set the desired file name
+        document.body.appendChild(a);
+        a.click();
+        window.URL.revokeObjectURL(url); // Clean up after the download
+        document.body.removeChild(a);
+      })
+      .catch(err => {
+        console.error('Error downloading image:', err);
+      });
+  } else {
+  showToast('Image not available for download');
+    //console.error('No image available to download.');
+  }
+};
+const handleEditClick = (e) => {
+  e.stopPropagation();
+  setIsDropdownOpen(!isDropdownOpen);
+};
+
+const handleRemoveClick = async () => {
+  setIsDeletingProfilePic(true);
+  console.log("curr Index",currentImageIndex);
+  console.log("currIndex Backend",profilePicturesArray.length - currentImageIndex -1);
+  try {
+    const messagesResponse1 = await fetch(`http://localhost:5206/api/UserProfile/DeleteProfilePic?urlId=${ profilePicturesArray.length - currentImageIndex -1 }`, {
+      method: 'DELETE',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${sessionStorage.getItem('Token')}`
+      }
+    });
+    if (messagesResponse1.ok) {
+    setIsDeletingProfilePic(false);
+    const updatedProfilePictures = profilePicturesArray.filter((_, index) => index !== currentImageIndex);
+    sessionStorage.setItem('ProfilePic', JSON.stringify(updatedProfilePictures));
+    if (updatedProfilePictures.length === 0) {
+      closeFullscreenImage();
+    } else {
+      const newIndex = currentImageIndex === updatedProfilePictures.length ? 0 : currentImageIndex;
+      setCurrentImageIndex(newIndex);
+      setFullscreenImage(updatedProfilePictures[newIndex]);
+    }
+    } else {
+    setIsDeletingProfilePic(false);
+    let errorMessage = 'An error occurred';
+      if (messagesResponse1.status === 401) {
+        errorMessage = 'Unauthorized else';
+      } else if (!messagesResponse1.ok) {
+        errorMessage = 'Connection problem';
+      }
+      showToast(errorMessage);
+      throw new Error('Failed to fetch messages');
+
+    }
+  } catch (error) {
+    setIsDeletingProfilePic(false);
+    showToast('Connection Refused');
+    
+  
+  }
+};
+
+const handleSetToMainClick = async () => {
+
+  setIsDeletingProfilePic(true);
+  try {
+    const messagesResponse1 = await fetch(`http://localhost:5206/api/UserProfile/MainProfilePic?urlId=${ profilePicturesArray.length - currentImageIndex -1 }`, {
+      method: 'PUT',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${sessionStorage.getItem('Token')}`
+      }
+    });
+    if (messagesResponse1.ok) {
+    setIsDeletingProfilePic(false);
+    const mainImage = profilePicturesArray[currentImageIndex];
+    const updatedProfilePictures = [mainImage, ...profilePicturesArray.filter((_, index) => index !== currentImageIndex)];
+    sessionStorage.setItem('ProfilePic', JSON.stringify(updatedProfilePictures));
+    setCurrentImageIndex(0);
+    setFullscreenImage(mainImage);
+    
+    } else {
+    setIsDeletingProfilePic(false);
+    let errorMessage = 'An error occurred';
+      if (messagesResponse1.status === 401) {
+        errorMessage = 'Unauthorized else';
+      } else if (!messagesResponse1.ok) {
+        errorMessage = 'Connection problem';
+      }
+      showToast(errorMessage);
+      throw new Error('Failed to fetch messages');
+
+    }
+  } catch (error) {
+    setIsDeletingProfilePic(false);
+    showToast('Connection Refused');
+    
+  
+  }
+
+
+  
+};
+
+useEffect(() => {
+  if (fullscreenImage) {
+    setFullscreenImage(profilePicturesArray[currentImageIndex]);
+  }
+}, [currentImageIndex]);
 const useOutsideClick = (ref,callback)=>{
   useEffect(() => {
     function handleClick(event) {
@@ -2095,14 +2267,13 @@ const useOutsideClick = (ref,callback)=>{
 }
 const handleFileChange = async (event) => {
   const file = event.target.files[0];
-  if (file) {
-    console.log("file");
+  
+  if (file && !editProfileModal) {
     const messageId = Date.now().toString();
     const storageRef = ref(storage, `FonkaGram/Images/${messageId}.${file.name.split('.').pop()}`);
     await uploadBytes(storageRef, file);
     const downloadURL = await getDownloadURL(storageRef);
-    console.log("Download Url",downloadURL);
-
+    
     
     try {
       // Add a temporary message with a loading icon
@@ -2110,10 +2281,6 @@ const handleFileChange = async (event) => {
       setMessages(prevMessages => [...prevMessages, newMessageObj]);
       setUploadingMessageId(messageId);
       setIsUploading(true);
-
-      // Upload to Firebase Storage
-      await uploadBytes(storageRef, file);
-      const downloadURL = await getDownloadURL(storageRef);
 
       try {
       const messagesResponse1 = await fetch('http://localhost:5206/api/Message/SendMessage', {
@@ -2204,7 +2371,7 @@ const handleFileChange = async (event) => {
           } return msg;
         }));
         setIsUploading(false);
-setUploadingMessageId(null);
+        setUploadingMessageId(null);
   
         const ParsedMessage = JSON.parse(sessionStorage.getItem(`${selectedConversation}`));
         if (ParsedMessage!== null) {
@@ -2250,10 +2417,53 @@ setUploadingMessageId(null);
     }
   
   }
-   
+  if (file && editProfileModal){
+    if (profilePicturesArray.length <16){
+      showToast('Maximum Limit Reached');
+      return;
+    }
+    setIsSettingNewPic(true);
+    const profilePicId = Date.now().toString();
+    const storageRef = ref(storage, `FonkaGram/Images/${profilePicId}.${file.name.split('.').pop()}`);
+    await uploadBytes(storageRef, file);
+    const downloadURL = await getDownloadURL(storageRef);
+    
+    try {
+      const messagesResponse1 = await fetch('http://localhost:5206/api/UserProfile/AddProfilePic', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${sessionStorage.getItem('Token')}`
+        },  
+          body: JSON.stringify({
+            url: downloadURL
+        })  
+      });
+      if (messagesResponse1.ok) {
+        const updatedProfilePictures = [downloadURL, ...profilePicturesArray];
+        sessionStorage.setItem('ProfilePic', JSON.stringify(updatedProfilePictures));
+        setIsSettingNewPic(false);
+      } else {
+        setIsSettingNewPic(false);
+  
+      let errorMessage = 'An error occurred';
+        if (messagesResponse1.status === 401) {
+          errorMessage = 'Unauthorized else';
+        } else if (!messagesResponse1.ok) {
+          errorMessage = 'Connection problem';
+        }
+        showToast(errorMessage);
+        throw new Error('Failed to fetch messages');
+
+      }
+    } catch (error) {
+      setIsSettingNewPic(false);
+      showToast('Connection Refused WHAT IS IT');
+    }    
+
+  }
 
 };
-
 const openModal = (content) => {
 if (content === 'EditProfile'){
     setModalContent(
@@ -2280,6 +2490,10 @@ const closeModal = () => {
   setChangePasswordModal(false);
   setDeleteAccountModal(false);
   setViewUserModal(false);
+  setFirstName(sessionStorage.getItem('Name'));
+  setLastName(sessionStorage.getItem('LastName'));
+  setBio(sessionStorage.getItem('Bio'));
+  
 };
 const handleOverlayClick = (e) => {
   if (e.target === e.currentTarget) {
@@ -2288,7 +2502,9 @@ const handleOverlayClick = (e) => {
     setChangePasswordModal(false);
     setDeleteAccountModal(false);
     setViewUserModal(false);
-
+    setFirstName(sessionStorage.getItem('Name'));
+  setLastName(sessionStorage.getItem('LastName'));
+  setBio(sessionStorage.getItem('Bio'));
   }
 };
 const truncateText = (text, maxLength) => {
@@ -2362,43 +2578,8 @@ const toggleDarkMode = async () => {
   }
   
 };
-/**
- "id": 143,
-  "token": "eyJhbGciOiJodHRwOi8vd3d3LnczLm9yZy8yMDAxLzA0L3htbGRzaWctbW9yZSNobWFjLXNoYTUxMiIsInR5cCI6IkpXVCJ9.eyJFbWFpbCI6ImRhZ2lAZ21haWwuY29tIiwiVXNlcklkIjoiMTQzIiwiZXhwIjoxNzE4MzYzNjg3fQ.91tWdn8ZdcQbCaHg8cykuy7jyQIOhAHVEpaOA7aDIvzDGKtbY6N8bTvDpmHwn4sj3afaF8xSEy059H2uR6w7ug",
-  "refreshToken": "lcdLOnpGBTCmzgvkUqm/UML0fsgjsaZym5CX8WqzxjqaAncAC3nFrOMpL0/IPr4vMcVJtMuTU4sIW1fjNjh2kw==",
-  "refreshTokenExpiry": "2024-06-14T16:15:47.451037+03:00",
-  "name": "Dagi",
-  "lastName": "Dawit",
-  "bio": "Loserpool",
-  "dark": false,
-  "profilePictue": null
-}
-    {
-        "userName": "Henok",
-        "lastName": "Fish",
-        "updatedTime": "2024-06-13T16:41:47",
-        "message": "hey what do u anwant;klejf;lkfdkhey what do u anwant;klejf;lkfdkhey what do u anwant;klejf;lkfdkhey what do u anwant;klejf;lkfdkhey what do u anwant;klejf;lkfdkhey what do u anwant;klejf;lkfdkhey what do u anwant;klejf;lkfdkhey what do u anwant;klejf;lkfdkhey what do u anwant;klejf;lkfdk",
-        "userId": 145,
-        "convId": 107,
-        "messageId": 606,
-        "notificationCount": 1,
-        "status": "false",
-        "lastSeen": "2024-06-14T12:38:27",
-        "bio": "Messi",
-        "email": "henok@gmail.com",
-        "isAudio": false,
-        "isImage": false,
-        "profilePicConv": [
-            "fourthImage",
-            "fifthImage",
-            "sixthImage",
-            "thridImage",
-            "secondImage"
-        ]
-    },
-    
- */
-// FUCNTION INTEGRATION END
+
+    // FUCNTION INTEGRATION END
 
 // For Settings code End
 
@@ -2418,7 +2599,58 @@ const toggleDarkMode = async () => {
             <button onClick={closeModal} className="absolute top-2 right-2 text-gray-600">X</button>
             {editProfileModal && (
             <div className={`edit-profile-container ${isDarkMode ? 'bg-gray-900 text-white' : 'bg-gray-100 text-black'}`}>
-          <form className={`form-sign-up  ${isDarkMode ? 'bg-gray-900 text-white' : 'bg-gray-100 text-black'}`} onSubmit={handleSubmitProfile}>
+            <div className="flex flex-col items-center mb-4">
+                <div className="w-24 h-24 rounded-full bg-gray-300 mb-2 overflow-hidden">
+                { profilePicturesArray && profilePicturesArray.length > 0 ? (
+                  <>
+                  {isSettingNewPic === true ? (
+                  <div
+                    className="w-24 h-24 rounded-full bg-pink-500 mb-2 overflow-hidden  text-white flex items-center justify-center mr-3 text-lg font-bold">
+                        {(sessionStorage.getItem('Name')).charAt(0)}
+                     </div>
+                     ):(
+                  <img 
+                  src={profilePicturesArray[0]} 
+                  alt="Profile Pic" 
+                  className="w-full h-full object-cover cursor-pointer"
+                  onClick={() => handleImageClickOwnProfile(0)}
+                  /> 
+                  )}
+                  </>
+                ):(
+                  <>
+                  {isSettingNewPic === true ?(
+                 <div
+                  className="w-24 h-24 rounded-full bg-pink-500 mb-2 overflow-hidden  text-white flex items-center justify-center mr-3 text-lg font-bold">
+                      <FontAwesomeIcon icon={faSpinner} spin />
+                   </div>
+                  ):(
+                <div
+                  className="w-24 h-24 rounded-full bg-pink-500 mb-2 overflow-hidden  text-white flex items-center justify-center mr-3 text-lg font-bold">
+                      {(sessionStorage.getItem('Name')).charAt(0)}
+                   </div>
+                  )}
+                  </>
+                )} 
+
+                </div>
+                <input 
+                type="file"
+                accept="image/*"
+                ref={fileInputRef}
+                style={{ display: 'none' }}
+                onChange={handleFileChange}
+              />
+                <button 
+                className={`btn btn-secondary ${isDarkMode ? 'bg-gray-800 text-white' : 'bg-gray-200 text-black'}`} 
+                onClick={() => fileInputRef.current.click()}
+                disabled={isSettingNewPic}
+                >
+                Set New Photo
+                </button>
+              </div>
+            
+            <form className={`form-sign-up  ${isDarkMode ? 'bg-gray-900 text-white' : 'bg-gray-100 text-black'}`} onSubmit={handleSubmitProfile}>
             <span className="title">Edit Profile</span> <br />
             <label>Name</label>
             <input
@@ -2429,6 +2661,7 @@ const toggleDarkMode = async () => {
               value={firstName}
               onChange={handleFirstNameChange}
               disabled={isLoadingModal}
+              maxLength={14}
             />
             <label>Last Name</label>
             <input
@@ -2438,14 +2671,16 @@ const toggleDarkMode = async () => {
               value={lastName}
               onChange={handleLastNameChange}
               disabled={isLoadingModal}
+              maxLength={14}
             />
             <label>Bio</label>
-            <input
+            <TextareaAutosize
               className={`email-input ${isDarkMode ? 'bg-gray-900 text-white' : 'bg-gray-100 text-black'}`}
               type="text"
               value={bio}
               onChange={handleBioChange}
               disabled={isLoadingModal}
+              maxLength={70}
             />
             <button className="button-sign-up" disabled={isLoadingModal}>
               Set
@@ -2500,13 +2735,40 @@ const toggleDarkMode = async () => {
         </form>
             </div>
             )}
-            {viewUserModal &&(
-               <div className={`p-4 ${isDarkMode ? 'bg-gray-900 text-white' : 'bg-gray-100 text-black'}`}>
-                <h2 className="text-xl font-semibold">{selectedName} {selectedLastName}</h2>
-                <p><strong>Email:</strong> {selectedEmail}</p>
-                <p><strong>Bio:</strong> {selectedBio}</p>
-                <button onClick={() => {setModalContent(null);setViewUserModal(false);}} className="mt-4 text-blue-500">Close</button>
-               </div>
+            {viewUserModal && (
+              <div className={`p-6 rounded-lg shadow-lg max-w-md mx-auto ${isDarkMode ? 'bg-gray-900 text-white' : 'bg-white text-black'}`}>
+                <div className="flex justify-center mb-4">
+                  <div className="w-32 h-32 rounded-full bg-gray-300 overflow-hidden">
+                    {selectedProfilePic && selectedProfilePic.length > 0 ? (
+                      <img
+                        src={selectedProfilePic[0]}
+                        alt="Profile Pic"
+                        className="w-full h-full object-cover cursor-pointer"
+                        onClick={() => handleOtherProfilePic(0)}
+                      />
+                    ) : (
+                      
+                      <div
+                      className="w-32 h-32 rounded-full bg-pink-500 mb-2 overflow-hidden  text-white flex items-center justify-center mr-3 text-lg font-bold">
+                          {selectedName.charAt(0)}
+                      </div>
+                    )}
+                  </div>
+                </div>
+                <h2 className="text-2xl font-semibold text-center mb-2">{selectedName} {selectedLastName}</h2>
+                <p className="text-center text-gray-500 mb-4">{selectedEmail}</p>
+                
+                <p className="text-center mb-4"><strong>Bio: </strong><br />{selectedBio}</p>
+                
+                <div className="flex justify-center">
+                  <button
+                    onClick={() => { setModalContent(null); setViewUserModal(false); }}
+                    className="px-6 py-2 bg-blue-500 text-white rounded-lg shadow hover:bg-blue-600 transition duration-200"
+                  >
+                    Close
+                  </button>
+                </div>
+              </div>
             )}
           </div>
         </div>
@@ -2518,7 +2780,7 @@ const toggleDarkMode = async () => {
             <button onClick={toggleDarkMode} className="text-xl">
               <FontAwesomeIcon icon={isDarkMode ? faSun : faMoon} />
             </button>
-          </div>
+      </div>
       {/* Search Bar */}
       <div className="p-4 flex items-center relative">
           <input type="text"
@@ -2560,11 +2822,11 @@ const toggleDarkMode = async () => {
                 {result.profilePicSearch? (
                 
                 <div className="w-12 h-12 rounded-full bg-blue-500 text-white flex items-center justify-center mr-3 text-lg font-semibold overflow-hidden">
-                    <img src={result.profilePicSearch.at(-1)} alt={result.profilePicSearch.at(-1)} className="w-full h-full object-cover" />    
+                    <img src={result.profilePicSearch.at(0)} alt={result.profilePicSearch.at(0)} className="w-full h-full object-cover" />    
                   </div>
                 ):(
                   <div
-                    className="w-12 h-12 rounded-full bg-blue-500 text-white flex items-center justify-center mr-3 text-lg font-semibold">
+                    className="w-12 h-12 rounded-full bg-pink-500 text-white flex items-center justify-center mr-3 text-lg font-semibold">
                     {result.name.charAt(0)}
                   </div>
                 )}
@@ -2597,7 +2859,7 @@ const toggleDarkMode = async () => {
                   className={` group p-4 flex items-start cursor-pointer  ${selectedConversation && selectedConversation.id === conversation.convId ? 'bg-gray-300' : ''}`}
                   onClick={() =>{ 
                   handleConversationChange(conversation.convId);
-                  handleConversationClick(conversation.convId,conversation.userId,conversation.userName,conversation.lastName,conversation.status,conversation.lastSeen,conversation.bio,conversation.email);
+                  handleConversationClick(conversation.convId,conversation.userId,conversation.userName,conversation.lastName,conversation.status,conversation.lastSeen,conversation.bio,conversation.email,conversation.profilePicConv);
                   }}
                 >
                 {/* Deleting Conv*/}
@@ -2619,10 +2881,10 @@ const toggleDarkMode = async () => {
                    </div>
                   ):(
                     <>
-                  {conversation.profilePicConv? (
+                  {conversation.profilePicConv ? ( 
                   
                   <div className="w-16 h-16 rounded-full bg-blue-500 text-white flex items-center justify-center mr-3 text-lg font-semibold overflow-hidden">
-                      <img src={conversation.profilePicConv.at(-1)} alt={conversation.profilePicConv.at(-1)} className="w-full h-full object-cover" />    
+                      <img src={conversation.profilePicConv.at(0)} alt={conversation.profilePicConv.at(0)} className="w-full h-full object-cover" />    
                    </div>
                   ):(
                     <div
@@ -2728,12 +2990,166 @@ const toggleDarkMode = async () => {
         ) : (
           <div></div>
         )}
-        {/* Fullscreen Image Modal */}
-      {fullscreenImage && (
-        <div className={`fixed inset-0 bg-black bg-opacity-75 flex items-center justify-center z-50 ${isDarkMode ? 'bg-gray-900 text-white' : 'bg-gray-100 text-black'}`} onClick={closeFullscreenImage}>
-          <img src={fullscreenImage} alt="Fullscreen" className="max-w-full max-h-full" />
+        {/* Fullscreen Image Modal 3 */}
+
+            {/* show Picture from Image */}
+        {fullImagePicture && (
+        <div className={`fixed inset-0 bg-black bg-opacity-75 flex items-center justify-center z-50 ${isDarkMode ? 'bg-gray-900 text-white' : 'bg-gray-100 text-black'}`} 
+        onClick={closeFullImagePic}
+        > 
+        <button
+              onClick={closeFullscreenImage}
+              className={`absolute top-4 right-4  text-2xl ${isDarkMode ? 'text-white': 'text-black'}`}
+            >
+              <FontAwesomeIcon icon={faTimes} />
+            </button>
+            <div className={`absolute top-2 right-16 ${isDarkMode ? 'text-white': 'text-black'}`}>
+              <button onClick={handleEditClick} disabled={isDeletingProfilePic} className="text-xl">
+                <FontAwesomeIcon icon={faEllipsisV} />
+              </button>
+              {(isDropdownOpen && !isDeletingProfilePic) && (
+                <div className={`absolute right-0 mt-2 w-48 ${isDarkMode ? 'bg-black': 'bg-white'} rounded-md shadow-lg z-10`}>
+                  <ul className="py-1">
+                    <li
+                      className={`px-4 py-2 ${isDarkMode ? 'text-white': 'text-black'}  hover:bg-gray-200 cursor-pointer`}
+                      onClick={hanldeSaveImage}
+                    >
+                      Save
+                    </li>
+                    
+                  </ul>
+                </div>
+              )}
+              </div>
+          <img src={fullImagePicture} alt="Fullscreen" className="max-w-full max-h-full" />
         </div>
-      )}
+         )}
+            {/* show picture from own Profile */}
+        {fullscreenImage && (
+          <div className={`fixed inset-0 bg-black bg-opacity-75 flex items-center justify-center z-50 ${isDarkMode ? 'bg-gray-900 text-white' : 'bg-gray-100 text-black'}`} 
+          >
+            <button
+              onClick={closeFullscreenImage}
+              className={`absolute top-4 right-4  text-2xl ${isDarkMode ? 'text-white': 'text-black'}`}
+            >
+              <FontAwesomeIcon icon={faTimes} />
+            </button>
+            <div className={`absolute top-2 left-2 ${isDarkMode ? 'text-white': 'text-black'}`}>
+              {currentImageIndex + 1} / {profilePicturesArray.length}
+            </div>
+            <div className={`absolute top-2 right-16 ${isDarkMode ? 'text-white': 'text-black'}`}>
+              <button onClick={handleEditClick} disabled={isDeletingProfilePic} className="text-xl">
+                <FontAwesomeIcon icon={faEllipsisV} />
+              </button>
+              {(isDropdownOpen && !isDeletingProfilePic) && (
+                <div className={`absolute right-0 mt-2 w-48 ${isDarkMode ? 'bg-black': 'bg-white'} rounded-md shadow-lg z-10`}>
+                  <ul className="py-1">
+                    <li
+                      className={`px-4 py-2 ${isDarkMode ? 'text-white': 'text-black'}  hover:bg-gray-200 cursor-pointer`}
+                      onClick={handleRemoveClick}
+                    >
+                      Remove
+                    </li>
+                    {currentImageIndex !== 0 && (
+                      <li
+                        className={`px-4 py-2 ${isDarkMode ? 'text-white': 'text-black'}  hover:bg-gray-200 cursor-pointer`}
+                        onClick={handleSetToMainClick}
+                      >
+                        Set to Main
+                      </li>
+                    )}
+                  </ul>
+                </div>
+              )}
+              </div>
+
+
+
+            <img src={fullscreenImage} 
+            alt="Fullscreen" 
+            className="max-w-full max-h-full"
+            />
+            {profilePicturesArray.length > 1 && (
+              <>
+                <button
+                  className={`absolute left-4 text-3xl ${isDarkMode ? 'text-white': 'text-black'}`}
+                  onClick={(e) => { e.stopPropagation(); handlePrevImage(); }}
+                  disabled={isDeletingProfilePic}
+                >
+                  <FontAwesomeIcon icon={faArrowLeft} />
+                </button>
+                <button
+                  className={`absolute right-4 text-3xl ${isDarkMode ? 'text-white': 'text-black'}`}
+                  onClick={(e) => { e.stopPropagation(); handleNextImage(); }}
+                  disabled={isDeletingProfilePic}
+                >
+                  <FontAwesomeIcon icon={faArrowRight} />
+                </button>
+              </>
+            )}
+          </div>
+        )}
+
+        {/*show other Profile Picture */}
+        {fullImageOTHER && (
+          <div className={`fixed inset-0 bg-black bg-opacity-75 flex items-center justify-center z-50 ${isDarkMode ? 'bg-gray-900 text-white' : 'bg-gray-100 text-black'}`} 
+          >
+            <button
+              onClick={closeFullImagePic}
+              className={`absolute top-4 right-4  text-2xl ${isDarkMode ? 'text-white': 'text-black'}`}
+            >
+              <FontAwesomeIcon icon={faTimes} />
+            </button>
+            <div className={`absolute top-2 left-2 ${isDarkMode ? 'text-white': 'text-black'}`}>
+              {currentImageIndex + 1} / {selectedProfilePic.length}
+            </div>
+            <div className={`absolute top-2 right-16 ${isDarkMode ? 'text-white': 'text-black'}`}>
+              <button onClick={handleEditClick} disabled={isDeletingProfilePic} className="text-xl">
+                <FontAwesomeIcon icon={faEllipsisV} />
+              </button>
+              {(isDropdownOpen && !isDeletingProfilePic) && (
+                <div className={`absolute right-0 mt-2 w-48 ${isDarkMode ? 'bg-black': 'bg-white'}  rounded-md shadow-lg z-10`}>
+                  <ul className="py-1">
+                    <li
+                      className={`px-4 py-2 ${isDarkMode ? 'text-white': 'text-black'}  hover:bg-gray-200 cursor-pointer`}
+                      
+                      onClick={hanldeSaveImage}
+                    >
+                      Save
+                    </li>
+                    
+                  </ul>
+                </div>
+              )}
+              </div>
+
+
+
+            <img src={fullImageOTHER} 
+            alt="Fullscreen" 
+            className="max-w-full max-h-full"
+            />
+            {selectedProfilePic.length > 1 && (
+              <>
+                <button
+                  className={`absolute left-4 text-3xl ${isDarkMode ? 'text-white': 'text-black'}`}
+                  onClick={(e) => { e.stopPropagation(); handlePrevImageOTHER(); }}
+                  disabled={isDeletingProfilePic}
+                >
+                  <FontAwesomeIcon icon={faArrowLeft} />
+                </button>
+                <button
+                  className={`absolute right-4 text-3xl ${isDarkMode ? 'text-white': 'text-black'}`}
+                  onClick={(e) => { e.stopPropagation(); handleNextImageOTHER(); }}
+                  disabled={isDeletingProfilePic}
+                >
+                  <FontAwesomeIcon icon={faArrowRight} />
+                </button>
+              </>
+            )}
+          </div>
+
+        )}
        <div className="flex justify-center mt-2"> 
         </div>
      
@@ -2838,19 +3254,19 @@ const toggleDarkMode = async () => {
                   {message.isImage ? (
                     
                     <div className='image-container'>
-                          {isUploading && uploadingMessageId === message.id && (
-                            <FontAwesomeIcon icon={faSpinner} spin className="mr-2"/>
-                          )}
-                          {(!isUploading || uploadingMessageId !== message.id)&&(
-                            <img src={message.content} alt="Uploaded" onClick={() => handleImageClick(message.content)} className="uploaded-image cursor-pointer" />
-                          )} 
-                              {(!isDeletingMessage  && !isUploading) && (
+                {isUploading && uploadingMessageId === message.id && (
+                  <FontAwesomeIcon icon={faSpinner} spin className="mr-2"/>
+                )}
+                {(!isUploading || uploadingMessageId !== message.id)&&(
+                  <img src={message.content} alt="Uploaded" onClick={() => handleImageClick(message.content)} className="uploaded-image cursor-pointer" />
+                )} 
+                    {(!isDeletingMessage  && !isUploading) && (
                           <div className="flex items-center justify-between mt-1">
                           <button className="ml-2 text-red-600 hidden group-hover:block" onClick={() => handleDeleteMessage(message.id)}>
                             <FontAwesomeIcon icon={faTrashAlt} />
                           </button>
                         </div>
-                          )}
+                    )}
                     </div>
                   ):message.isAudio?(
                   <div>

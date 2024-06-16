@@ -74,6 +74,13 @@ function LoginPage() {
       sessionStorage.setItem('LastName',data.lastName);
       sessionStorage.setItem('Bio',data.bio );
       sessionStorage.setItem('Dark',data.dark);
+      if(data.profilePicture !== null){
+        sessionStorage.setItem('ProfilePic', JSON.stringify(data.profilePicture));  
+      }else{
+        sessionStorage.setItem('ProfilePic', JSON.stringify([]));
+      
+      }
+      
       // it is an Object
       setIsLoading(false); 
       // Handle successful response and set user data state
