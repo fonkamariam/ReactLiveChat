@@ -5,6 +5,7 @@ import { HttpTransportType, HubConnectionBuilder, LogLevel } from "@microsoft/si
 import * as signalR from '@microsoft/signalr';
 import { toast, ToastContainer } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
+
 // Intergration
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faEllipsisV,faSun,faMoon,faPaperPlane, faCloudDownload, faPause, faTrashAlt,faSmile ,faCog, faUserEdit, faKey, faSignOutAlt, faTrash,faCheck,faTimes,faSpinner,faPaperclip,faMicrophone, faStop, faPlay,faTimesCircle,faDownload, faSlash,faBookmark,faArrowLeft, faArrowRight} from '@fortawesome/free-solid-svg-icons';
@@ -85,6 +86,15 @@ function Chats() {
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
   const [isSettingNewPic, setIsSettingNewPic] = useState(false);
   const [isDeletingProfilePic,setIsDeletingProfilePic] = useState(false);
+
+  const messagesEndRef = useRef(null);
+
+  useEffect(() => {
+    // Scroll to the bottom of the messages container when messages are updated
+    if (messagesEndRef.current) {
+      messagesEndRef.current.scrollTop = messagesEndRef.current.scrollHeight;
+    }
+  }, [messages]);
 // Live wave form
 
 
@@ -649,14 +659,24 @@ useEffect(() => {
                 console.log("Problem Message not upd,del,ins");
               }
                 
-          });
+              });
               
-            connection.on('Receive UserProfile', userPayLoad => { 
+             connection.on('Receive UserProfile', userPayLoad => { 
                 
                 setConversations(prevConversations => {
                   const updatedConversations = prevConversations.map(conversation => {
                     if (conversation.userId === userPayLoad.record.userId) {
-                      return { ...conversation,userName:userPayLoad.record.name,lastName:userPayLoad.record.lastName };
+                      let array = JSON.parse(userPayLoad.record.profilePic);
+                      array=array.reverse();
+                      return { ...conversation,
+                        userName:userPayLoad.record.name,
+                        lastName:userPayLoad.record.lastName,
+                        bio: userPayLoad.record.bio,
+                        status:userPayLoad.record.status,
+                        profilePicConv:array,
+                        lastSeen:userPayLoad.record.lastSeen
+                         
+                      };
                     } 
                     return conversation; 
                   });
@@ -667,16 +687,15 @@ useEffect(() => {
                 if (selectedConversationRef.current !== null && selectedRecpIdRef.current === userPayLoad.record.userId){
                   setSelectedName(userPayLoad.record.name);
                   setSelectedLastName(userPayLoad.record.lastName);
+                  setSelectedBio(userPayLoad.record.bio);
+                  setSelectedOnlineStatus(userPayLoad.record.status);
+                  setSelectedLastSeen(userPayLoad.record.lastSeen);
                 }
                  
               });
 
             connection.on('Receive Conversation', convPayLoad => { 
-               console.log("PAYLOAD CONV")
-            
-               console.log("SETTED CONVERSATION")
-               console.log(selectedConversationRef.current);
-               console.log(convPayLoad.old_record.convId);
+               
                 if (selectedConversationRef.current === convPayLoad.old_record.convId ){
                  console.log("yesss");
                  console.log("SETTED CONVERSATION");
@@ -704,13 +723,11 @@ useEffect(() => {
               });
               
            connection.on('UserStatusChanged', (userId, isOnline) => {
-           console.log("About to execute SetConversation");
               
             setConversations(prevConversations => {
               const updatedConversations = prevConversations.map(conversation => {
                 
-                if (Number(conversation.userId) === Number(userId)) {
-                  console.log("Yess");
+                if (conversation.userId === userId) {
                   let time = new Date();
                   
                   return { ...conversation,status: String(isOnline) ,lastSeen: time };
@@ -723,7 +740,7 @@ useEffect(() => {
               
             });
             
-            console.log(`UserId(${userId}): ${isOnline}`);
+            
            });
           }).catch(e => showToast('WebSocket failed'));
   }
@@ -736,28 +753,25 @@ useEffect(() => {
       if (connection.state === signalR.HubConnectionState.Disconnected) {
         try {
           await connection.start();
-          console.log('Connection started.');
-          //await fetchConvDataOnline();
-          virtualLogin();
+          
       
         } catch (error) {
           console.error('Error starting connection:', error);
           showToast(error);
         }
       } else {
-        console.log('Connection is already in progress or connected.');
+        
       }
     } else {
       if (connection.state === signalR.HubConnectionState.Connected) {
         try {
           await connection.stop();
-          console.log('Connection stopped.');
-          virtualLogOut();
+          
         } catch (error) {
-          console.error('Error stopping connection:', error);
+          //console.error('Error stopping connection:', error);
         }
       } else {
-        console.log('Connection is already disconnected.');
+        //console.log('Connection is already disconnected.');
       }
     }
   };
@@ -879,86 +893,11 @@ useEffect(() => {
 }, [searchQueryUser]);
 const handleLogOut = (e) =>{
   
-  const logoutToken = sessionStorage.getItem('Token');
   navigate(`/`);
-
-  try {
-    const response = fetch(`http://localhost:5206/api/Users/logout`, {
-      method: 'PUT',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${logoutToken}`
-      }
-    });
-    if (response.ok) {
-      console.log("Logged Out");
-     
-    } else {
-      
-    }
-  } catch (error) {
-    
-    
-    
-  }
     sessionStorage.clear();
-    console.log("Session Storage cleared");
     if (connection) {
       connection.stop().then(() => console.log('Disconnected due to tab change or minimization'));
     }
-    
-
-};
-const virtualLogOut = async (e) =>{
-  
-  const logoutToken = sessionStorage.getItem('Token');
-  
-
-  try {
-    const response = await fetch(`http://localhost:5206/api/Users/logout`, {
-      method: 'PUT',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${logoutToken}`
-      }
-    });
-    if (response.ok) {
-      console.log("VIRTUAL LOG OUT SUCCESS");
-     
-    } else {
-      console.log("LOGOUT VIRTUAL to Logout BACKEND");
-      throw new Error('Failed VIRTUAL LOGOUT BACKEND');
-    }
-  } catch (error) {
-    console.error('VIRTUAL LOG OUT Frontend');
-    
-  }
-    
-    
-
-};
-const virtualLogin = async (e) =>{
-  
-  try {
-    const response = await fetch(`http://localhost:5206/api/Users/virtualLogin`, {
-      method: 'PUT',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${sessionStorage.getItem('Token')}`
-      }
-    });
-    if (response.ok) {
-      console.log("VIRTUAL LOG in SUCCESS");
-     
-    } else {
-      console.log("Failed to Logout");
-      throw new Error('FAIL: VIRTUAL LOG IN');
-    }
-  } catch (error) {
-    console.error('FAIL: VIRTUAL LOG IN');
-    
-  }
-    
     
 
 };
@@ -2104,6 +2043,7 @@ const handleImageClickOwnProfile = (index) =>{
 };
 const handleOtherProfilePic = (index)=>{
   setFullImageOTHER(selectedProfilePic[index]);
+  console.log(selectedProfilePic[index]);
   setCurrentImageIndex(index);
   setIsDropdownOpen(false);
 };
@@ -2122,10 +2062,12 @@ const handlePrevImage = () => {
 };
 const handleNextImageOTHER = () => {
   setCurrentImageIndex((prevIndex) => (prevIndex + 1) % selectedProfilePic.length);
+  
 };
 
 const handlePrevImageOTHER = () => {
   setCurrentImageIndex((prevIndex) => (prevIndex - 1 + selectedProfilePic.length) % selectedProfilePic.length);
+  
 };
 
 const hanldeSaveImage =()=>{
@@ -2248,6 +2190,9 @@ const handleSetToMainClick = async () => {
 useEffect(() => {
   if (fullscreenImage) {
     setFullscreenImage(profilePicturesArray[currentImageIndex]);
+  }
+  if (fullImageOTHER){
+    setFullImageOTHER(selectedProfilePic[currentImageIndex]);
   }
 }, [currentImageIndex]);
 const useOutsideClick = (ref,callback)=>{
@@ -2418,7 +2363,7 @@ const handleFileChange = async (event) => {
   
   }
   if (file && editProfileModal){
-    if (profilePicturesArray.length <16){
+    if (profilePicturesArray.length >16){
       showToast('Maximum Limit Reached');
       return;
     }
@@ -2560,7 +2505,7 @@ const toggleDarkMode = async () => {
   sessionStorage.setItem('Dark', !temp);
   
   try {
-    const response = await fetch(`http://localhost:5206/api/UserProfile/LightDark?value=${!temp}`, {
+    const response = await fetch(`http://localhost:5206/api/Users/LightDark?value=${!temp}`, {
       method: 'PUT',
       headers: {
         'Content-Type': 'application/json',
@@ -2835,7 +2780,10 @@ const toggleDarkMode = async () => {
                 <div className="flex justify-between items-center">
                   <div>
                     <div className="text-lg font-semibold">
-                      {result.name} {result.lastName}
+                      {truncateText( `${result.name}`, 8)} {truncateText( `${result.lastName}`, 4)}
+                          
+                      <span className={`ml-2 inline-block w-3 h-3 rounded-full ${result.status === 'true' ? 'bg-green-500' : 'bg-gray-500'}`}></span>
+                        
                       </div>
                     <div className="text-sm text-gray-500">{result.email}</div>
                   </div>
@@ -2850,13 +2798,13 @@ const toggleDarkMode = async () => {
       </div> 
      
       {/* Conversations List */}
-      <div className="overflow-y-auto flex-grow p-2">    
+      <div className="overflow-y-auto flex-grow p-2 ">    
         {conversations.length > 0 ?(
           <>
             {conversations.map(conversation =>(
               <div 
                   key={conversation.convId}   
-                  className={` group p-4 flex items-start cursor-pointer  ${selectedConversation && selectedConversation.id === conversation.convId ? 'bg-gray-300' : ''}`}
+                  className={` group p-4 flex items-start cursor-pointer  ${selectedConversation && selectedConversation === conversation.convId ? (isDarkMode ? 'bg-gray-800' : 'bg-gray-300') : ''}`}
                   onClick={() =>{ 
                   handleConversationChange(conversation.convId);
                   handleConversationClick(conversation.convId,conversation.userId,conversation.userName,conversation.lastName,conversation.status,conversation.lastSeen,conversation.bio,conversation.email,conversation.profilePicConv);
@@ -2905,8 +2853,9 @@ const toggleDarkMode = async () => {
                         </>
                       ):(
                        <div className="text-lg font-semibold">
-                          {truncateText( `${conversation.userName} ${conversation.lastName}`, 11)}
-                          <span className={`ml-2 inline-block w-3 h-3 rounded-full ${conversation.status === true ? 'bg-green-500' : 'bg-gray-500'}`}></span>
+                          {truncateText( `${conversation.userName}`, 6)} {truncateText( `${conversation.lastName}`, 4)}
+                      
+                          <span className={`ml-2 inline-block w-3 h-3 rounded-full ${conversation.status === 'true' ? 'bg-green-500' : 'bg-gray-500'}`}></span>
                         </div>
                       )}
                         
@@ -2970,7 +2919,7 @@ const toggleDarkMode = async () => {
               <></>
             ):(
               <>
-              {selectedOnlineStatus===true ? 'Online' : `Last seen: ${formatDateTime(selectedLastSeen)}`}
+              {selectedOnlineStatus==='true' ? 'Online' : `Last seen: ${formatDateTime(selectedLastSeen)}`}
               </>
             )}
           </div>
@@ -3155,7 +3104,7 @@ const toggleDarkMode = async () => {
      
       {/* Messages */}
           
-        <div className='flex-1 overflow-y-auto p-4'>
+        <div className='flex-1 overflow-y-auto p-4 scrollbar-thin' ref={messagesEndRef}>
           {selectedConversation!= null || forSearchUser === true ? (
            messages.length > 0 ? (
            messages.map(message=>( 
