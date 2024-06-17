@@ -234,38 +234,86 @@ useEffect(() => {
                   contentRefined = 'Photo';
                   refinedImageStatus= true;
                 }
-
+ 
                 const existingConversation1 = conversationsRef.current.some( 
                   conversation => conversation.convId === message.record.convId
                 );
-              
+               
+                
                 if (conversationsRef.current.length === 0 || existingConversation1 === false ) {
-                  setConversations(prevConversations => {
-                    // Create a new array that includes the previous conversations and the new one
-                    const updatedConversations12 = [
-                      ...prevConversations,
-                      {
-                        convId: message.record.convId,
-                        message: contentRefined,
-                        updatedTime: message.record.timeStamp,
-                        messageId : message.record.id,
-                        userId : message.record.senderId,
-                        userName: message.record.status, 
-                        lastName:message.record.messageType,
-                        notificationCount: 1,
-                        isAudio:refinedAudioStatus,
-                        isImage:refinedImageStatus
-                      }
-                    ];
+                  console.log("HHHHHHHHHH");
+                  // Notification count if 0 and 1
+                  if(selectedConversationRef.current === null && selectedRecpIdRef.current === message.record.senderId){
+                    console.log("here first sc null");
+                    setConversations(prevConversations => {
+                      let arrayy = JSON.parse(message.record.profilePic);
+
                   
-                    // Sort the updated conversations array by updatedTime
-                    updatedConversations12.sort((a, b) => new Date(b.updatedTime) - new Date(a.updatedTime));
+                      // Create a new array that includes the previous conversations and the new one
+                      const updatedConversations12 = [
+                        ...prevConversations,
+                        {
+                          convId: message.record.convId,
+                          message: contentRefined,
+                          updatedTime: message.record.timeStamp,
+                          messageId : message.record.id,
+                          userId : message.record.senderId,
+                          userName: message.record.status, 
+                          lastName:message.record.messageType,
+                          notificationCount: 0,
+                          isAudio:refinedAudioStatus,
+                          isImage:refinedImageStatus,
+                          status: message.record.onlineStatus,
+                          lastSeen: message.record.lastSeen,
+                          bio:message.record.bio,
+                          email:message.record.email,
+                          profilePicConv:arrayy.reverse()
+                        }
+                      ];
+                    
+                      // Sort the updated conversations array by updatedTime
+                      updatedConversations12.sort((a, b) => new Date(b.updatedTime) - new Date(a.updatedTime));
+                    
+                      // Return the sorted array to update the state
+                      return updatedConversations12;
+                    });
+                  }else{
+                    console.log("sc not null");
+                    setConversations(prevConversations => {
+                      // Create a new array that includes the previous conversations and the new one
+                      let arrayy = JSON.parse(message.record.profilePic);
                   
-                    // Return the sorted array to update the state
-                    return updatedConversations12;
-                  });
+                      const updatedConversations12 = [
+                        ...prevConversations,
+                        {
+                          convId: message.record.convId,
+                          message: contentRefined,
+                          updatedTime: message.record.timeStamp,
+                          messageId : message.record.id,
+                          userId : message.record.senderId,
+                          userName: message.record.status, 
+                          lastName:message.record.messageType,
+                          notificationCount: 1,
+                          isAudio:refinedAudioStatus,
+                          isImage:refinedImageStatus,
+                          status: message.record.onlineStatus,
+                          lastSeen: message.record.lastSeen,
+                          bio:message.record.bio,
+                          email:message.record.email,
+                          profilePicConv:arrayy.reverse()
+                        }
+                      ];
+                    
+                      // Sort the updated conversations array by updatedTime
+                      updatedConversations12.sort((a, b) => new Date(b.updatedTime) - new Date(a.updatedTime));
+                    
+                      // Return the sorted array to update the state
+                      return updatedConversations12;
+                    });
+                  }
+                  
                 }else{
-                    console.log("Alread Conv ale");
+                    //console.log("Alread Conv ale");
                     if (selectedConversationRef.current === message.record.convId) {
                       setConversations(prevConversations =>{ 
                         const updatedConversations = prevConversations.map(conversation => {
@@ -315,7 +363,6 @@ useEffect(() => {
                         senderId: message.record.senderId,
                         status:message.record.status,
                         timeStamp: message.record.timeStamp,
-                        notificationCount: 0,
                         isAudio: message.record.isAudio,
                         isImage: message.record.isImage
                         };
@@ -428,7 +475,7 @@ useEffect(() => {
                 if ( selectedConversationRef.current===message.record.convId && sessionStorage.getItem(`${message.record.convId}`)) {
                   // update both message state and Ss 
                   console.log("both MessState and Ss");
-                  console.log()
+                  
                   setMessages(prevMessages => {
                     const updatedMessages = prevMessages.map(messagePara => {
                       if (messagePara.id === message.record.id) {
@@ -498,11 +545,10 @@ useEffect(() => {
                   console.log("Problem Updating Message for Reciever in signalR");
                 } 
               }else if (message.type === 'UPDATE' && message.record.deleted === true ){
+                  
                   console.log("FOR ME, there is a deleted message and it concerns me");
-                  console.log(`DeleteMessageId: ${message.record.id},${message.record.content}`); 
-                  console.log(selectedConversationRef.current);
+                  
                   if ( message.record.convId === selectedConversationRef.current) {
-                        console.log("Selected Conv and delete");
                         // for Message State
                           console.log("About to delete from Message state");
                           if (messagesRef.current.length === 1 ) {
@@ -518,6 +564,8 @@ useEffect(() => {
                             return updatedConversations1;
                             });
                             setSelectedConversation(null);
+                            setForSearchUser(false);
+                            setSelectedRecpientId(null);
                             
                           }else{
                             console.log("selected Conversation and more than one text in Message ");
@@ -577,9 +625,7 @@ useEffect(() => {
                           } 
                       
                   }else if ( selectedConversationRef.current !== message.record.convId && sessionStorage.getItem(`${message.record.convId}`)){                    
-                    console.log("Should be Here");    
-                    console.log("Not Seclected Conv but sessionStorage");
-                        const xy = JSON.parse(sessionStorage.getItem(`${message.record.convId}`));
+                      const xy = JSON.parse(sessionStorage.getItem(`${message.record.convId}`));
                             if (xy!== null) {
                               for (let index = 0; index < xy.length; index++) {
                                 if ( xy[index].id === message.record.id) {
@@ -588,7 +634,7 @@ useEffect(() => {
                                 } 
                             }
                             sessionStorage.setItem(`${message.record.convId}`,JSON.stringify(xy))
-                            console.log("Setted Session Storage");
+                            
                           } 
                         
                         setConversations(prevConversations => {
@@ -695,10 +741,8 @@ useEffect(() => {
               });
 
             connection.on('Receive Conversation', convPayLoad => { 
-               
+               console.log("CONVERSation deleted from Ws");
                 if (selectedConversationRef.current === convPayLoad.old_record.convId ){
-                 console.log("yesss");
-                 console.log("SETTED CONVERSATION");
                  setMessages([]);
                  setConversations(prevConversations =>{
                   const updatedConversations1 = prevConversations
@@ -708,10 +752,11 @@ useEffect(() => {
                   });
                   
                   setSelectedConversation(null);
+                  setForSearchUser(false);
+                  setSelectedRecpientId(null);
                   
 
                 }else{
-                  console.log("Else weste negene");
                   setConversations(prevConversations =>{
                     const updatedConversations1 = prevConversations
                     .filter(conversation => conversation.convId !== convPayLoad.old_record.convId) // Exclude the conversation with the specified convId
@@ -939,6 +984,7 @@ const handleSendMessage = async (e) => {
       if (selectedConversation === null) { 
         setConversations(prevConversations => {
           // Create a new array that includes the previous conversations and the new one
+          
           const updatedConversations12 = [
             ...prevConversations,
             {
@@ -955,7 +1001,9 @@ const handleSendMessage = async (e) => {
               notificationCount: 0,
               isAudio: false,
               isImage: false,
-              profilePicConv:selectedProfilePic
+              profilePicConv:selectedProfilePic,
+              status:selectedOnlineStatus,
+              lastSeen: selectedLastSeen
             }
           ];
         
@@ -1042,6 +1090,7 @@ const handleConversationClick = async (convId,recpientId,Name,LastName,onlineSta
     const rMd = JSON.parse(storedMessages);
     setIsLoading(false);
     setMessages(rMd);
+    zeroNotification(convId);
     return;
   } 
   try {
@@ -1087,35 +1136,43 @@ const handleConversationClick = async (convId,recpientId,Name,LastName,onlineSta
   }
 };
 const handleConversationClickWs = async (convId) => {
+  const checkConvId = (convId) => {
+    return conversations.some(conversation => conversation.convId === convId);
+  };
   
-  try {
-    const messagesResponse = await fetch(`http://localhost:5206/api/Message/GetConversationMessage?query=${convId}`, {
-      method: 'GET',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${sessionStorage.getItem('Token')}`
-      }
-    });
-    if (messagesResponse.ok) {
-      const messagesData = await messagesResponse.json();
-      console.log("GOT IN HERE");
-      console.log(`ConvIDPara: ${convId}`);
-      if (sessionStorage.getItem(convId)){
-          console.log("REMOVED FIRST");
-          sessionStorage.removeItem(convId);
-      }  
-    
-        sessionStorage.setItem(`${convId}`,JSON.stringify(messagesData));
+  if(checkConvId(convId)===true){
+    try {
+      const messagesResponse = await fetch(`http://localhost:5206/api/Message/GetConversationMessage?query=${convId}`, {
+        method: 'GET',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${sessionStorage.getItem('Token')}`
+        }
+      });
+      if (messagesResponse.ok) {
+        const messagesData = await messagesResponse.json();
+        console.log("GOT IN HERE");
+        console.log(`ConvIDPara: ${convId}`);
+        if (sessionStorage.getItem(convId)){
+            console.log("REMOVED FIRST");
+            sessionStorage.removeItem(convId);
+        }  
       
-      setMessagesWs(messagesData); // Update messages state with the fetched messages
-      return; 
-    } else {
-      throw new Error('Failed to fetch messages');
+          sessionStorage.setItem(`${convId}`,JSON.stringify(messagesData));
+        
+        setMessagesWs(messagesData); // Update messages state with the fetched messages
+        return; 
+      } else {
+        throw new Error('Failed to fetch messages');
+      }
+    } catch (error) {
+      console.error('Error fetching messages:', error);
+      // Handle error
     }
-  } catch (error) {
-    console.error('Error fetching messages:', error);
-    // Handle error
+  }else{
+    console.log("A conversaion is deleted, not my problem");
   }
+ 
 };
 
 const handleNewUserClick =  (RecpientId,Name,LastName,email,onlineStatus,lastSeen,bio,profilePicSearch)=>{ 
@@ -1185,14 +1242,6 @@ const handleDeleteMessage = async (messageId) => {
       }
     });
     if (response.ok) {
-
-      /** From Deleter Perspective.
-      1) Is the messageId being deleted the recent messageId in the conversation, Update the Conversation
-          Is the messageId being deleted the last messageId in the conversation, Delete the Conversation  
-      2) Delete the message from the MessagesState and Sort
-      3) Delete the message from the SessionStorage.
-      4) Create a variable and update the variable with the message Id, so that when it comes from the Ws, it is igonred.
-     */
       if (messages.at(-2)) {
         setConversations(prevConversations => {
                       
@@ -1217,20 +1266,7 @@ const handleDeleteMessage = async (messageId) => {
           // Sort the updated conversations by updatedTime
           return updatedConversations.sort((a, b) => new Date(b.updatedTime) - new Date(a.updatedTime));
         });
-      }else{
-        setConversations(prevConversations => {
-
-          const updatedConversations1 = prevConversations
-            .filter(conversation => conversation.convId !== selectedConversation) // Exclude the conversation with the specified convId
-            .sort((a, b) => new Date(b.updatedTime) - new Date(a.updatedTime)); // Sort the remaining conversations by updatedTime
-        return updatedConversations1;
-        });
-        setSelectedConversation(null);
-        setForSearchUser(false);
-        
-      }    
-      
-      setMessages(messages.filter(message => message.id !== messageId));
+        setMessages(messages.filter(message => message.id !== messageId));
       const xy = JSON.parse(sessionStorage.getItem(`${selectedConversation}`));
       if (xy!== null) {
         for (let index = 0; index < xy.length; index++) {
@@ -1241,6 +1277,24 @@ const handleDeleteMessage = async (messageId) => {
       }
       sessionStorage.setItem(`${selectedConversation}`,JSON.stringify(xy))
       } 
+      }else{
+      setMessages([]);
+      setConversations(prevConversations => {
+
+        const updatedConversations1 = prevConversations
+          .filter(conversation => conversation.convId !== selectedConversation) // Exclude the conversation with the specified convId
+          .sort((a, b) => new Date(b.updatedTime) - new Date(a.updatedTime)); // Sort the remaining conversations by updatedTime
+      return updatedConversations1;
+      });
+        setSelectedConversation(null);
+        setForSearchUser(false);
+        setSelectedRecpientId(null);
+       
+      
+        sessionStorage.removeItem(selectedConversation);  
+      }    
+      
+      
      setIsDeletingMessage(false); 
      setIsDeletingMessageId(null);
    
@@ -1294,9 +1348,11 @@ const handleDeleteConversation = async (convIdPara) => {
     if (response.ok) {
       setIsDeletingConv(false);
       setIsDeletingConvId(null);
-      if (selectedConversation === convIdPara){
+      if (selectedConversationRef.current === convIdPara){
+        console.log("Delete Conversation: Convid = selectedconv, sc = null, fsu=false, mess=[]");
         setSelectedConversation(null);
         setForSearchUser(false);
+        setSelectedRecpientId(null);
         }
 
       /**
