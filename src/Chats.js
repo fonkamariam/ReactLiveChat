@@ -89,6 +89,10 @@ function Chats() {
   const [isSettingNewPic, setIsSettingNewPic] = useState(false);
   const [isDeletingProfilePic,setIsDeletingProfilePic] = useState(false);
 
+  const [isMobileView, setIsMobileView] = useState(window.innerWidth < 768); // Mobile view state
+
+  
+  
   const messagesEndRef = useRef(null);
 
   useEffect(() => {
@@ -123,172 +127,132 @@ function Chats() {
   const emojiPickerRef = useRef(null);
   const settingsRef = useRef(null);
   const modalRef = useRef(null);
-  // Variable Integration end
-
-  /**
-  const fetchConvDataOnline = async () => {
-    const keys = Object.keys(sessionStorage); 
-    
-    keys.forEach(key => {
-      // Check if the key is an integer 
-      if (/^\d+$/.test(key)) {
-        sessionStorage.removeItem(key);
-        console.log(key);  
-      }  
-    });
-  
-      try {
-        const response = await fetch('http://localhost:5206/api/Message/GetAllConversationDirect', {
-          method: 'GET',
-          headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${sessionStorage.getItem('Token')}`
-          } 
-        }); 
-        if (response.ok) {
-          const data = await response.json();  
-          setConversations(data);  // Update Converstaion data state 
-          console.log("Got All Conversation");
-          
-          
-        } else {
-          showToast('error');
-          throw new Error('Failed to fetch user data');
-        }
-      } catch (error) {
-        showToast("error");
-        console.error('Error fetching user data:', error);
-        // Handle error
-      }
+  const reconnectTimeoutRef = useRef(null);
+    const handleConnectionLost = () => {
+    showToast('Connection lost. Attempting to reconnect...');
+    // Set a timer to reload the page if connection is not re-established
+    /**
+    reconnectTimeoutRef.current = setTimeout(() => {
+      window.location.reload();
+    }, 10000); // 10000ms = 10 seconds, adjust as needed
+     */
   };
- */
-  /** UseEffects Start MessageWs */
-  /*
-  useEffect(() => {
-    if (messageWs!== null && messageWs.length > 0) { // Ensure messageWs is not null
-      console.log(messageWs);
-      console.log("selectedWsMid",selectedWsMid);
-      console.log("selectedWsconv",selectedWsConv);
-      console.log("NOTFICATION Fix");
-      console.log("FOUR");
-      
 
-      console.log("SIX");
-      setMessagesWs(null); // Reset messageWs if needed
-      setSelectedWsConv(null);
-    }  
-  }, [messageWs, selectedWsConv,selectedWsMid]);
-  // Add convId and messIdPara as dependencies if they come from the component's state/props
-  /** UseEffects End MessaeWs */
-  /** UseEffects Start ws Connection
-  */
-  
+  const clearReconnectTimeout = () => {
+    if (reconnectTimeoutRef.current) {
+      clearTimeout(reconnectTimeoutRef.current);
+      reconnectTimeoutRef.current = null;
+    }
+  };
   useEffect(() => {
     const newConnection = new HubConnectionBuilder()
-        .withUrl('http://localhost:5206/messagesHub',{
-          accessTokenFactory: () =>sessionStorage.getItem('Token'),
-          skipNegotiation:true,
-          transport:HttpTransportType.WebSockets
-        })
-        .withAutomaticReconnect()
-        .build();
-    
-      setConnection(newConnection); 
-    
-}, []); 
-useEffect(() => {
-  if (connection) {
+      .withUrl('http://localhost:5206/messagesHub', {
+        accessTokenFactory: () => sessionStorage.getItem('Token'),
+        skipNegotiation: true,
+        transport: HttpTransportType.WebSockets,
+      })
+      .withAutomaticReconnect()
+      .build();
+
+    setConnection(newConnection);
+  }, []);
+
+  useEffect(() => {
+    if (connection) {
       connection.start()
-          .then(result => {
-              //console.log('Connected!');
-              connection.on('ReceiveMessage', async message => {
-                messageQueue.current.push(message);
-                processMessages();
-              });
-              
-             connection.on('Receive UserProfile', userPayLoad => { 
-                
-                setConversations(prevConversations => {
-                  const updatedConversations = prevConversations.map(conversation => {
-                    if (conversation.userId === userPayLoad.record.userId) {
-                      let array = JSON.parse(userPayLoad.record.profilePic);
-                      array=array.reverse();
-                      return { ...conversation,
-                        userName:userPayLoad.record.name,
-                        lastName:userPayLoad.record.lastName,
-                        bio: userPayLoad.record.bio,
-                        status:userPayLoad.record.status,
-                        profilePicConv:array,
-                        lastSeen:userPayLoad.record.lastSeen
-                         
-                      };
-                    } 
-                    return conversation; 
-                  });
-              
-                  // Sort the updated conversations by updatedTime
-                  return updatedConversations;
-                });
-                if (selectedConversationRef.current !== null && selectedRecpIdRef.current === userPayLoad.record.userId){
-                  setSelectedName(userPayLoad.record.name);
-                  setSelectedLastName(userPayLoad.record.lastName);
-                  setSelectedBio(userPayLoad.record.bio);
-                  setSelectedOnlineStatus(userPayLoad.record.status);
-                  setSelectedLastSeen(userPayLoad.record.lastSeen);
-                }
-                 
-              });
+        .then(result => {
+          clearReconnectTimeout();
+          // console.log('Connected!');
+          connection.on('ReceiveMessage', async message => {
+            messageQueue.current.push(message);
+            processMessages();
+          });
 
-            connection.on('Receive Conversation', convPayLoad => { 
-               console.log("CONVERSation deleted from Ws");
-                if (selectedConversationRef.current === convPayLoad.old_record.convId ){
-                 setMessages([]);
-                 setConversations(prevConversations =>{
-                  const updatedConversations1 = prevConversations
-                  .filter(conversation => conversation.convId !== convPayLoad.old_record.convId) // Exclude the conversation with the specified convId
-                  .sort((a, b) => new Date(b.updatedTime) - new Date(a.updatedTime)); // Sort the remaining conversations by updatedTime
-                  return updatedConversations1;
-                  });
-                  
-                  setSelectedConversation(null);
-                  setForSearchUser(false);
-                  setSelectedRecpientId(null);
-                  
-
-                }else{
-                  setConversations(prevConversations =>{
-                    const updatedConversations1 = prevConversations
-                    .filter(conversation => conversation.convId !== convPayLoad.old_record.convId) // Exclude the conversation with the specified convId
-                    .sort((a, b) => new Date(b.updatedTime) - new Date(a.updatedTime)); // Sort the remaining conversations by updatedTime
-                    return updatedConversations1;
-                    });
-                }
-                 
-              });
-              
-           connection.on('UserStatusChanged', (userId, isOnline) => {
-              
+          connection.on('Receive UserProfile', userPayLoad => {
             setConversations(prevConversations => {
               const updatedConversations = prevConversations.map(conversation => {
-                
+                if (conversation.userId === userPayLoad.record.userId) {
+                  let array = JSON.parse(userPayLoad.record.profilePic);
+                  array = array.reverse();
+                  return {
+                    ...conversation,
+                    userName: userPayLoad.record.name,
+                    lastName: userPayLoad.record.lastName,
+                    bio: userPayLoad.record.bio,
+                    status: userPayLoad.record.status,
+                    profilePicConv: array,
+                    lastSeen: userPayLoad.record.lastSeen,
+                  };
+                }
+                return conversation;
+              });
+              return updatedConversations;
+            });
+
+            if (selectedConversationRef.current !== null && selectedRecpIdRef.current === userPayLoad.record.userId) {
+              setSelectedName(userPayLoad.record.name);
+              setSelectedLastName(userPayLoad.record.lastName);
+              setSelectedBio(userPayLoad.record.bio);
+              setSelectedOnlineStatus(userPayLoad.record.status);
+              setSelectedLastSeen(userPayLoad.record.lastSeen);
+            }
+          });
+
+          connection.on('Receive Conversation', convPayLoad => {
+            if (selectedConversationRef.current === convPayLoad.old_record.convId) {
+              setMessages([]);
+              setConversations(prevConversations => {
+                const updatedConversations1 = prevConversations
+                  .filter(conversation => conversation.convId !== convPayLoad.old_record.convId)
+                  .sort((a, b) => new Date(b.updatedTime) - new Date(a.updatedTime));
+                return updatedConversations1;
+              });
+
+              setSelectedConversation(null);
+              setForSearchUser(false);
+              setSelectedRecpientId(null);
+            } else {
+              setConversations(prevConversations => {
+                const updatedConversations1 = prevConversations
+                  .filter(conversation => conversation.convId !== convPayLoad.old_record.convId)
+                  .sort((a, b) => new Date(b.updatedTime) - new Date(a.updatedTime));
+                return updatedConversations1;
+              });
+            }
+          });
+
+          connection.on('UserStatusChanged', (userId, isOnline) => {
+            setConversations(prevConversations => {
+              const updatedConversations = prevConversations.map(conversation => {
                 if (conversation.userId === userId) {
                   let time = new Date();
-                  
-                  return { ...conversation,status: String(isOnline) ,lastSeen: time };
-                } 
-                return conversation; 
+                  return { ...conversation, status: String(isOnline), lastSeen: time };
+                }
+                return conversation;
               });
-          
-              // Sort the updated conversations by updatedTime
               return updatedConversations;
-              
             });
-            
-            
-           });
-          }).catch(e => showToast('WebSocket failed'));
-  }
-}, [connection]);   
+          });
+
+          connection.onclose(() => {
+            handleConnectionLost();
+          });
+        })
+        .catch(e => {
+          showToast('WebSocket failed');
+          handleConnectionLost();
+        });
+    }
+
+    // Cleanup on unmount
+    return () => {
+      if (connection) {
+        connection.stop();
+      }
+      clearReconnectTimeout();
+    };
+  }, [connection]);
+
 
 useEffect(() => {
   const handleVisibilityChange = async () => {
@@ -934,6 +898,7 @@ const handleMessageQueue = async (message) => {
     console.log("Problem Message not upd,del,ins");
   }
 };
+
 // JavaScript visiblity Change
   /** UseEffects End ws Connection*/
   const selectedConversationRef = useRef(selectedConversation);
@@ -971,7 +936,6 @@ useEffect(() => async ()=>{
         const data = await response.json();  
         setIsLoading(false);
         setConversations(data);  // Update Converstaion data state 
-        console.log("From My Robel",data);
         
       } else {
         let errorMessage = 'An error occurred';
@@ -1819,9 +1783,8 @@ function formatDateTime(isoString) {
 
   const oneDay = 24 * 60 * 60 * 1000; // milliseconds in a day
   const diffDays = Math.round(Math.abs((now - date) / oneDay));
-
-  if (isToday) {
-    // If the date is today, show time in 12-hour format
+  
+  const formatTime = (date) => {
     let hours = date.getHours();
     const minutes = date.getMinutes();
     const ampm = hours >= 12 ? 'PM' : 'AM';
@@ -1829,15 +1792,21 @@ function formatDateTime(isoString) {
     hours = hours ? hours : 12; // the hour '0' should be '12'
     const minutesStr = minutes < 10 ? '0' + minutes : minutes; // adding leading zero if needed
     return `${hours}:${minutesStr}${ampm}`;
+  };
+  const timeString = formatTime(date);
+
+  if (isToday) {
+    // If the date is today, show time in 12-hour format
+    return timeString;
   } else if (diffDays <= 7) {
-    // If the date is within the past 7 days, show the day of the week
-    const daysOfWeek = ["Sun", "Mon", "Tue", "Wed", "Thur", "Fri", "Sat"];
-    return daysOfWeek[date.getDay()];
+    // If the date is within the past 7 days, show the day of the week and time
+    const daysOfWeek = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
+    return `${daysOfWeek[date.getDay()]} at ${timeString}`;
   } else {
-    // If the date is older than 7 days, show date and month
+    // If the date is older than 7 days, show date, month, and time
     const month = date.toLocaleString('default', { month: 'short' });
     const day = date.getDate();
-    return `${month}/${day}`;
+    return `${month}/${day} at ${timeString}`;
   }
 }
 // FUNCTION INTEGRATION START
@@ -1891,7 +1860,6 @@ const handleStartRecording = async () => {
     console.error('Error accessing microphone:', err);
   }
 };
-
 const handleStopRecording = () => {
 recorderRef.current.stopRecording(async () => {
   const blob = recorderRef.current.getBlob();
@@ -1943,9 +1911,19 @@ recorderRef.current.stopRecording(async () => {
                     message: 'Voice Message',
                     updatedTime: data.timeStamp,
                     messageId: data.id,
-                    userId: data.recpientId,
+                    userId: selectedRecpientId,
                     userName: selectedName,
                     lastName: selectedLastName,
+                    lastSeen: selectedLastSeen,
+                    bio: selectedBio,
+                    email:selectedEmail,
+                    notificationCount: 0,
+                    isAudio: false,
+                    isImage: false,
+                    profilePicConv:selectedProfilePic,
+                    status:selectedOnlineStatus,
+                    lastSeen: selectedLastSeen,
+                    seen:true,
                     messageSender:Number(sessionStorage.getItem('userId'))
                   }
                 ];
@@ -1963,7 +1941,7 @@ recorderRef.current.stopRecording(async () => {
                 
                 if (conversation.convId === selectedConversation) {
                   
-                  return { ...conversation, message: 'Voice Message', updatedTime:data.timeStamp ,messageId: data.id,messageSender:Number(sessionStorage.getItem('userId'))}; 
+                  return { ...conversation, message: 'Voice Message',notificationCount: 0, updatedTime:data.timeStamp ,messageId: data.id,isAudio:true,isImage:false,messageSender:Number(sessionStorage.getItem('userId')),seen:true}; 
                 }
                 return conversation; 
               });
@@ -1983,7 +1961,8 @@ recorderRef.current.stopRecording(async () => {
               status:data.status,
               timeStamp: data.timeStamp,
               isAudio: true,
-              isImage: false
+              isImage: false,
+              new:true
             };
        
         
@@ -2001,7 +1980,9 @@ recorderRef.current.stopRecording(async () => {
             status:data.status,
             timeStamp: data.timeStamp,
             isAudio: true,
-            isImage: false};
+            isImage: false,
+            new : true
+          };
           } return msg;
         }));
         localStorage.setItem(`audioBlob_${data.id}`, base64);
@@ -2066,7 +2047,6 @@ clearInterval(recordingIntervalRef.current);
     recorderRef.current.stream.getTracks().forEach(track => track.stop());
   }
 };
-
 const blobToBase64 = (blob) => {
   return new Promise((resolve, reject) => {
     const reader = new FileReader();
@@ -2348,7 +2328,6 @@ const handleRemoveClick = async () => {
   
   }
 };
-
 const handleSetToMainClick = async () => {
 
   setIsDeletingProfilePic(true);
@@ -2418,7 +2397,12 @@ const handleFileChange = async (event) => {
   const file = event.target.files[0];
   
   if (file && !editProfileModal) {
+    
     const messageId = Date.now().toString();
+    const newMessageObj = { id: messageId, content: URL.createObjectURL(file), timeStamp: new Date().toLocaleString(), isImage: true, isUploading: true,senderId:Number(sessionStorage.getItem('userId')) };
+      setMessages(prevMessages => [...prevMessages, newMessageObj]);
+      setUploadingMessageId(messageId);
+      setIsUploading(true);
     const storageRef = ref(storage, `FonkaGram/Images/${messageId}.${file.name.split('.').pop()}`);
     await uploadBytes(storageRef, file);
     const downloadURL = await getDownloadURL(storageRef);
@@ -2426,11 +2410,7 @@ const handleFileChange = async (event) => {
     
     try {
       // Add a temporary message with a loading icon
-      const newMessageObj = { id: messageId, content: URL.createObjectURL(file), timeStamp: new Date().toLocaleString(), isImage: true, isUploading: true,senderId:Number(sessionStorage.getItem('userId')) };
-      setMessages(prevMessages => [...prevMessages, newMessageObj]);
-      setUploadingMessageId(messageId);
-      setIsUploading(true);
-
+      
       try {
       const messagesResponse1 = await fetch('http://localhost:5206/api/Message/SendMessage', {
         method: 'POST',
@@ -2456,14 +2436,24 @@ const handleFileChange = async (event) => {
                   ...prevConversations,
                   {
                     convId: data.convId,
-                    message: 'Photo',
-                    updatedTime: data.timeStamp,
-                    messageId: data.id,
-                    userId: data.recpientId,
-                    userName: selectedName,
-                    lastName: selectedLastName,
-                    messageSender:Number(sessionStorage.getItem('userId'))
-                  }
+                      message: 'Photo',
+                      updatedTime: data.timeStamp,
+                      messageId: data.id,
+                      userId: selectedRecpientId,
+                      userName: selectedName,
+                      lastName: selectedLastName,
+                      lastSeen: selectedLastSeen,
+                      bio: selectedBio,
+                      email:selectedEmail,
+                      notificationCount: 0,
+                      isAudio: false,
+                      isImage: true,
+                      profilePicConv:selectedProfilePic,
+                      status:selectedOnlineStatus,
+                      lastSeen: selectedLastSeen,
+                      seen:true,
+                      messageSender:Number(sessionStorage.getItem('userId'))
+                    }
                 ];
               
                 // Sort the updated conversations array by updatedTime
@@ -2479,7 +2469,7 @@ const handleFileChange = async (event) => {
                 
                 if (conversation.convId === selectedConversation) {
                   
-                  return { ...conversation, message: 'Photo', updatedTime:data.timeStamp ,messageId: data.id,messageSender:Number(sessionStorage.getItem('userId'))}; 
+                  return { ...conversation, message: 'Photo',notificationCount: 0, updatedTime:data.timeStamp ,messageId: data.id,isAudio:false,isImage:true,messageSender:Number(sessionStorage.getItem('userId')),seen:true}; 
                 }
                 return conversation; 
               });
@@ -2499,7 +2489,8 @@ const handleFileChange = async (event) => {
               status:data.status,
               timeStamp: data.timeStamp,
               isAudio: false,
-              isImage: true
+              isImage: true,
+              new : true
             };
        
         
@@ -2517,7 +2508,9 @@ const handleFileChange = async (event) => {
             status:data.status,
             timeStamp: data.timeStamp,
             isAudio: false,
-            isImage: true};
+            isImage: true,
+            new: true
+          };
           } return msg;
         }));
         setIsUploading(false);
@@ -2559,6 +2552,7 @@ const handleFileChange = async (event) => {
     }
       
       setIsUploading(false);
+      
     } catch (error) {
       console.error('Error uploading image:', error);
       // Remove the message if upload fails
@@ -2728,6 +2722,16 @@ const toggleDarkMode = async () => {
   }
   
 };
+const handleResize = () => {
+  setIsMobileView(window.innerWidth < 768);
+};
+
+useEffect(() => {
+  window.addEventListener('resize', handleResize);
+  return () => window.removeEventListener('resize', handleResize);
+}, []);
+
+
 
     // FUCNTION INTEGRATION END
 
@@ -2743,11 +2747,10 @@ const toggleDarkMode = async () => {
         > 
           <div  
           ref={modalRef}
-            className={`p-4 rounded-lg shadow-lg w-1/3 relative ${isDarkMode ? 'bg-gray-900 text-white' : 'bg-gray-100 text-black'}`}
+            className={`p-4 rounded-lg shadow-lg relative ${isMobileView ? 'w-full h-full' : 'w-1/3'} flex flex-col items-center justify-center ${isDarkMode ? 'bg-gray-900 text-white' : 'bg-gray-100 text-black'}`}
             onClick={(e) => e.stopPropagation()}
           >
-            <button onClick={closeModal} className="absolute top-2 right-2 text-gray-600">X</button>
-            {editProfileModal && (
+          {editProfileModal && (
             <div className={`edit-profile-container ${isDarkMode ? 'bg-gray-900 text-white' : 'bg-gray-100 text-black'}`}>
             <div className="flex flex-col items-center mb-4">
                 <div className="w-24 h-24 rounded-full bg-gray-300 mb-2 overflow-hidden">
@@ -2839,8 +2842,14 @@ const toggleDarkMode = async () => {
             {goodMessage && <p className="good-message">{goodMessage}</p>}
             {isLoadingModal && <p className="is-loading">Loading...</p>}
           </form>
+          <button
+                    onClick={closeModal}
+                    className="px-6 py-2 bg-red-500 text-white rounded-lg shadow hover:bg-blue-600 transition duration-200"
+                  >
+                    Close
+                  </button>
             </div>
-            )}
+          )}
             {changePasswordModal && (
             <div className={`edit-profile-container ${isDarkMode ? 'bg-gray-900 text-white' : 'bg-gray-100 text-black'}`}>
           <form className={`form-sign-up  ${isDarkMode ? 'bg-gray-900 text-white' : 'bg-gray-100 text-black'}`} onSubmit={handleSubmitPassword}>
@@ -2871,6 +2880,12 @@ const toggleDarkMode = async () => {
             {goodMessage && <p className="good-message">{goodMessage}</p>}
             {isLoadingModal && <p className="is-loading">Loading...</p>}
           </form>
+          <button
+                    onClick={closeModal}
+                    className="px-6 py-2 bg-red-500 text-white rounded-lg shadow hover:bg-blue-600 transition duration-200"
+                  >
+                    Close
+                  </button>
             </div>
             )}
             {deleteAccountModal && (
@@ -2883,6 +2898,12 @@ const toggleDarkMode = async () => {
           {isLoadingModal && <p className='isLoading'>Loading...</p>}
             
         </form>
+        <button
+                    onClick={closeModal}
+                    className="px-6 py-2 bg-red-500 text-white rounded-lg shadow hover:bg-blue-600 transition duration-200"
+                  >
+                    Close
+                  </button>
             </div>
             )}
             {viewUserModal && (
@@ -2920,249 +2941,15 @@ const toggleDarkMode = async () => {
                 </div>
               </div>
             )}
+            
+            
+            
           </div>
         </div>
     )}
-    {/*Left Side Bar*/}
-      <div className={`w-1/4 bg-gray-100 border-r border-gray-300 flex flex-col ${isDarkMode ? 'bg-gray-900 text-white' : 'bg-gray-100 text-black'}`}>
-      <div className="p-2 flex justify-between items-center">
-            <h1 className="text-lg font-bold">FonkaGram</h1>
-            <button onClick={toggleDarkMode} className="text-xl">
-              <FontAwesomeIcon icon={isDarkMode ? faSun : faMoon} />
-            </button>
-      </div>
-      {/* Search Bar */}
-      <div className="p-4 flex items-center relative">
-          <input type="text"
-          placeholder="Search Users By Email" 
-          value={searchQueryUser} 
-          onChange={(e) => setSearchQueryUser(e.target.value)} 
-          className={`input input-bordered w-full p-2 rounded-md ${isDarkMode ? 'bg-gray-900 text-white' : 'bg-gray-100 text-black'}`}
-          />
-          <FontAwesomeIcon 
-            icon={faCog} 
-            className="ml-2 cursor-pointer text-gray-600 hover:text-gray-800" 
-            onClick={() => setShowSettings(!showSettings)} 
-          />
-          {showSettings && (
-            <div ref={settingsRef} className={`absolute top-full mt-1 right-0 w-48 border-gray-300 rounded-md shadow-lg z-10 ${isDarkMode ? 'bg-gray-900 text-white' : 'bg-gray-100 text-black'}`}>
-               
-              <div className='p-2 hover:bg-gray-500 cursor-pointer flex items-center' onClick={() => openModal('EditProfile')}>
-                <FontAwesomeIcon icon={faUserEdit} className="mr-2" /> Edit Profile
-              </div>
-              <div className="p-2 hover:bg-gray-500 cursor-pointer flex items-center" onClick={() => openModal('ChangePassword')}>
-                <FontAwesomeIcon icon={faKey} className="mr-2" /> Change Password
-              </div>
-              <div className="p-2 hover:bg-gray-500 cursor-pointer flex items-center" onClick={() => openModal('DeleteAccount')}>
-                <FontAwesomeIcon icon={faTrash} className="mr-2" /> Delete Account
-              </div>
-              <div className="p-2 hover:bg-gray-500 cursor-pointer flex items-center" onClick={() => handleLogOut()}>
-                <FontAwesomeIcon icon={faSignOutAlt} className="mr-2" /> Logout
-              </div>
-            </div>
-          )}
-          {searchResultUser.length > 0 && searchQueryUser.length> 0 && ( 
-            <div className={`absolute top-full mt-1 w-full border-gray-300 rounded-md shadow-lg z-10 ${isDarkMode ? 'bg-gray-900 text-white' : 'bg-gray-100 text-black'}  `}> 
-              {searchResultUser.map(result => (
-                <div  
-                key={result.id}
-                className='p-2 hover:bg-gray-500 cursor-pointer'
-                onClick={()=>handleNewUserClick(result.id,result.name,result.lastName,result.email,result.status,result.lastSeen,result.bio,result.profilePicSearch)}
-                > 
-                {result.profilePicSearch? (
-                
-                <div className="w-12 h-12 rounded-full bg-blue-500 text-white flex items-center justify-center mr-3 text-lg font-semibold overflow-hidden">
-                    <img src={result.profilePicSearch.at(0)} alt={result.profilePicSearch.at(0)} className="w-full h-full object-cover" />    
-                  </div>
-                ):(
-                  <div
-                    className="w-12 h-12 rounded-full bg-pink-500 text-white flex items-center justify-center mr-3 text-lg font-semibold">
-                    {result.name.charAt(0)}
-                  </div>
-                )}
-              
-              <div className="flex-1">
-                <div className="flex justify-between items-center">
-                  <div>
-                    <div className="text-lg font-semibold">
-                      {truncateText( `${result.name}`, 8)} {truncateText( `${result.lastName}`, 4)}
-                          
-                      <span className={`ml-2 inline-block w-3 h-3 rounded-full ${result.status === 'true' ? 'bg-green-500' : 'bg-gray-500'}`}></span>
-                        
-                      </div>
-                    <div className="text-sm text-gray-500">{result.email}</div>
-                  </div>
-                  
-                </div>
-              </div>
+    {/* Fullscreen Image Modal 3 */}
 
-                </div>
-              ))} 
-            </div>
-          )}
-      </div> 
-     
-      {/* Conversations List */}
-      <div className="overflow-y-auto flex-grow p-2 ">    
-        {conversations.length > 0 ?(
-          <>
-            {conversations.map(conversation =>(
-              <div 
-                  key={conversation.convId}   
-                  className={` group p-4 flex items-start ${selectedConversation === conversation.convId ? 'cursor-pointer' : 'cursor-pointer'}  ${selectedConversation && selectedConversation === conversation.convId ? (isDarkMode ? 'bg-gray-800' : 'bg-gray-300') : ''}`}
-                  onClick={selectedConversation === conversation.convId ? null : () => { 
-                    handleConversationChange(conversation.convId);
-                    handleConversationClick(conversation.convId, conversation.userId, conversation.userName, conversation.lastName, conversation.status, conversation.lastSeen, conversation.bio, conversation.email, conversation.profilePicConv);  
-                  }}
-                
-                >
-                {/* Deleting Conv*/}
-                {isDeletingConv ===true && isDeletingConvId === conversation.convId ?(
-                  <FontAwesomeIcon icon={faSpinner} spin />
-                ):(
-                  <button
-                  className="relative right-3 text-red-500  hidden group-hover:block"
-                  onClick={(e) => { e.stopPropagation(); handleDeleteConversation(conversation.convId,conversation.userId); }}
-                >
-                  <FontAwesomeIcon icon={faTrashAlt} />
-                      </button> 
-                )}
-                  
-                  {conversation.userId === Number(sessionStorage.getItem('userId')) ?(
-                  <div
-                     className="w-16 h-16 rounded-full bg-blue-500 text-white flex items-center justify-center mr-3 text-lg font-semibold">
-                      <FontAwesomeIcon icon={faBookmark} style={{ fontSize: '34px', color : isDarkMode? 'white':'black' }}  />
-                   </div>
-                  ):(
-                    <>
-                  {conversation.profilePicConv ? ( 
-                  
-                  <div className="w-16 h-16 rounded-full bg-blue-500 text-white flex items-center justify-center mr-3 text-lg font-semibold overflow-hidden">
-                      <img src={conversation.profilePicConv.at(0)} alt={conversation.profilePicConv.at(0)} className="w-full h-full object-cover" />    
-                   </div>
-                  ):(
-                    <div
-                     className="w-16 h-16 rounded-full bg-blue-500 text-white flex items-center justify-center mr-3 text-lg font-semibold">
-                      {conversation.userName.charAt(0)}
-                   </div>
-                  
-                  )}
-                  </>
-                  )}
-                  
-                  <div className="flex-1">
-                    <div className="flex justify-between items-center">
-                      <div>
-                      {conversation.userId === Number(sessionStorage.getItem('userId')) ?(
-                        <>
-                        Saved Messages
-                        </>
-                      ):(
-                       <div className="text-lg font-semibold">
-                          {truncateText( `${conversation.userName}`, 6)} {truncateText( `${conversation.lastName}`, 4)}
-                      
-                          <span className={`ml-2 inline-block w-3 h-3 rounded-full ${conversation.status === 'true' ? 'bg-green-500' : 'bg-gray-500'}`}></span>
-                        </div>
-                      )}
-                        
-                        {conversation.isAudio && (<div className="text-sm text-gray-500">Voice Message</div>)}
-                        {conversation.isImage && (<div className="text-sm text-gray-500">Photo</div>)}
-                        {!conversation.isAudio && !conversation.isImage && (<div className="text-sm text-gray-500">{truncateText(conversation.message, 15)}</div>)}
-                        
-                        
-                      </div>
-                      <div className="text-sm text-gray-500 text-right">
-                      <div className="flex items-center justify-end">
-                       {conversation.userId === Number(sessionStorage.getItem('userId')) ? (
-                          <></>
-                        ) : (
-                          <>
-                          {conversation.messageSender === Number(sessionStorage.getItem('userId'))?(
-                            <>
-                            {conversation.seen === true ? (
-                              <FontAwesomeIcon icon={faCheck} className="text-blue-500 mr-1" />
-                            ) : (
-                              <FontAwesomeIcon icon={faCheckDouble} className="text-gray-500 mr-1" />
-                            )}
-                            </>
-                          ):(
-                             <div></div>
-                          )}
-                            {conversation.notificationCount > 0 && (
-                              <div className="bg-red-500 text-white rounded-full w-5 h-5 flex items-center justify-center text-xs">
-                                {conversation.notificationCount}
-                              </div>
-                            )}
-                          </>
-                        )}
-
-                        <div>{formatDateTime(conversation.updatedTime)}
-                        </div>
-                        </div>
-                        
-                      </div>
-                    </div>
-                  </div>
-              </div>
-            ))}
-        </>
-        ):( 
-           <>
-           {isLoading ? (<div className="text-center text-gray-600"><FontAwesomeIcon icon={faSpinner} size='2x' spin /></div> ):(<div className="text-center text-gray-600">No Conversations</div>  ) }
-         </>
-        )}
-      
-      </div>
-      </div>
-        
-    {/* Right Content */}
-    <div className='flex flex-col w-3/4'>
-      {/* Conversation Info */}
-
-        {selectedConversation!= null || forSearchUser === true ? (
-          <div className={`p-4 border-b ${isDarkMode ? 'bg-gray-900 text-white  border-gray-800' : 'bg-gray-100 text-black  border-gray-200'}`}>
-          
-          <div onClick={() => openUserModal()}  className="cursor-pointer">
-            <h2 className="text-lg font-semibold">
-              {selectedRecpientId === Number(sessionStorage.getItem('userId'))?(
-                <>
-                Saved Messages
-                </>
-              ):(
-               <>
-               {selectedName} {selectedLastName}
-               </>
-              )}
-              
-            </h2> 
-            <div className="text-sm text-gray-500">
-            {selectedRecpientId === Number(sessionStorage.getItem('userId'))?(
-              <></>
-            ):(
-              <>
-              {selectedOnlineStatus==='true' ? 'Online' : `Last seen: ${formatDateTime(selectedLastSeen)}`}
-              </>
-            )}
-          </div>
-          </div>
-          <div>
-          {isPlaying && (
-            <div className="flex justify-between mt-2">
-            
-          <button onClick={stopCurrentAudio} className="text-red-500">
-            <FontAwesomeIcon icon={faStop} />  
-          </button> 
-        </div> 
-         )} 
-         </div>
-          </div>
-          
-        ) : (
-          <div></div>
-        )}
-        {/* Fullscreen Image Modal 3 */}
-
-            {/* show Picture from Image */}
+        {/* show Picture from Image */}
         {fullImagePicture && (
         <div className={`fixed inset-0 bg-black bg-opacity-75 flex items-center justify-center z-50 ${isDarkMode ? 'bg-gray-900 text-white' : 'bg-gray-100 text-black'}`} 
         onClick={closeFullImagePic}
@@ -3194,7 +2981,7 @@ const toggleDarkMode = async () => {
           <img src={fullImagePicture} alt="Fullscreen" className="max-w-full max-h-full" />
         </div>
          )}
-            {/* show picture from own Profile */}
+        {/* show picture from own Profile */}
         {fullscreenImage && (
           <div className={`fixed inset-0 bg-black bg-opacity-75 flex items-center justify-center z-50 ${isDarkMode ? 'bg-gray-900 text-white' : 'bg-gray-100 text-black'}`} 
           >
@@ -3259,7 +3046,6 @@ const toggleDarkMode = async () => {
             )}
           </div>
         )}
-
         {/*show other Profile Picture */}
         {fullImageOTHER && (
           <div className={`fixed inset-0 bg-black bg-opacity-75 flex items-center justify-center z-50 ${isDarkMode ? 'bg-gray-900 text-white' : 'bg-gray-100 text-black'}`} 
@@ -3320,23 +3106,830 @@ const toggleDarkMode = async () => {
           </div>
 
         )}
-       <div className="flex justify-center mt-2"> 
+       
+    {isMobileView ? (
+      selectedConversation || forSearchUser === true  ?(
+        <div className={`flex flex-col w-full ${isDarkMode ? 'bg-gray-900 text-white  border-gray-800' : 'bg-gray-100 text-black  border-gray-200'}`}>
+        {/* Back Button 
+      <div className="p-4 bg-gray-200 border-b border-gray-300 flex items-center">
+        <button onClick={() => {setSelectedConversation(null); setForSearchUser(false);}} className="btn btn-secondary mr-2">
+          <FontAwesomeIcon icon={faArrowLeft} />
+        </button>
+        <h2 className="text-lg font-semibold">{selectedName} {selectedLastName}</h2>
         </div>
-     
+        */}
+        
+      {/*Conversation Info*/}
+      <div className={`p-4 border-b flex items-center justify-between ${isDarkMode ? 'bg-gray-900 text-white  border-gray-800' : 'bg-gray-100 text-black  border-gray-200'}`}>
+       {/*Back Button */}
+       <button onClick={() => {setSelectedConversation(null); setForSearchUser(false);}} className="btn btn-secondary mr-2 size-0">
+          <FontAwesomeIcon icon={faArrowLeft} />
+        </button>
+        
+        <div className="cursor-pointer flex-grow text-center">
+          <h2 className="text-lg font-semibold">
+            {selectedRecpientId === Number(sessionStorage.getItem('userId'))?(
+              <>
+              Saved Messages
+              </>
+            ):(
+            <>
+            {selectedName} {selectedLastName}
+            </>
+            )}
+            
+          </h2> 
+          <div className="text-sm text-gray-500">
+          {selectedRecpientId === Number(sessionStorage.getItem('userId'))?(
+            <></>
+          ):(
+            <>
+            {selectedOnlineStatus==='true' ? 'Online' : `Last seen: ${formatDateTime(selectedLastSeen)}`}
+            </>
+          )}
+        </div>
+        </div>
+        {/* Profile Picture */}
+        <div className="ml-2 cursor-pointer" onClick={() => openUserModal()} >
+          <img src={selectedProfilePic.at(0)} alt="Profile" className="w-8 h-8 rounded-full" />
+        </div>
+        <div>
+        {isPlaying && (
+          <div className="flex justify-between mt-2">
+          
+        <button onClick={stopCurrentAudio} className="text-red-500">
+          <FontAwesomeIcon icon={faStop} />  
+        </button> 
+      </div> 
+      )} 
+      </div>
+        </div>
+      {/*Messages */}
+      <div className='flex-1 overflow-y-auto p-4 scrollbar-thin' ref={messagesEndRef}>
+        {selectedConversation!= null || forSearchUser === true ? (
+        messages.length > 0 ? (
+        messages.map(message=>( 
+          <div key={message.id} id={`message-${message.id}`} className="mb-4">
+          <div>
+          {message.senderId !== Number(sessionStorage.getItem('userId'))?(
+            <div key={message.id} className="chat chat-start">
+            
+              <div className="group chat-bubble bg-white-500 text-white p-2 rounded-lg max-w-xs md:max-w-md break-words">
+                      {message.isImage ? (
+                      
+                        <div className='image-container'>
+                          {isUploading && uploadingMessageId === message.id && (
+                            <FontAwesomeIcon icon={faSpinner} spin className="mr-2"/>
+                          )}
+                          {!isUploading && (
+                            <img src={message.content} alt="Uploaded" onClick={() => handleImageClick(message.content)} className="uploaded-image cursor-pointer" />
+                          )}
+                    {(!isDeletingMessage && !isUploading)&& (<div className="flex items-center justify-between mt-1">
+                      <button className="ml-2 text-red-600 hidden group-hover:block" onClick={() => handleDeleteMessage(message.id)}>
+                        <FontAwesomeIcon icon={faTrashAlt} />
+                      </button>
+                    </div>)}
+                          
+                        </div>
+                      ) : message.isAudio?(
+                      <div>
+                          {isUploading && uploadingMessageId === message.id && (
+                              <FontAwesomeIcon icon={faSpinner} spin className="mr-2" />
+                          )}
+                          {(!isUploading || uploadingMessageId !== message.id) && (
+                            <>
+                            {isDownloading && downloadingMessageId === message.id ? (
+                              <FontAwesomeIcon icon={faSpinner} spin className="mr-2" />
+                            ) : (
+                              isAudioDownloaded(message.id) ? (
+                                <button onClick={() => handlePlayAudio(message.content, message.id)} className="mr-2">
+                                  <FontAwesomeIcon icon={isPlaying && currentAudioId === message.id ? faPause : faPlay} />
+                                </button>
+                              ) : (
+                                <button onClick={() => handleDownloadAudio(message.content, message.id)} className="mr-2">
+                                  <FontAwesomeIcon icon={faCloudDownload} />
+                                </button>
+                              )
+                            )}
+                          </>
+                          )}
+                        <div id={`waveform-${message.id}`} className="rounded-lg max-w-full">
+                        <span className="duration" 
+                          id='{`duration-${message.id}`}'>
+                          
+                          {isPlaying && currentAudioId === message.id
+                        ? `${Math.floor((elapsedTimes[message.id] || 0) / 60)}:${Math.floor((elapsedTimes[message.id] || 0) % 60).toString().padStart(2, '0')}`
+                        : durationsRef.current[message.id]
+                          ? `${Math.floor(durationsRef.current[message.id] / 60)}:${Math.floor(durationsRef.current[message.id] % 60).toString().padStart(2, '0')}`
+                          : '0:00'}
+                          
+                          </span>
+                      </div>
+                      {!isDeletingMessage && (<div className="flex items-center justify-between mt-1">
+                  <button className="ml-2 text-red-600 hidden group-hover:block" onClick={() => handleDeleteMessage(message.id)}>
+                    <FontAwesomeIcon icon={faTrashAlt} />
+                  </button>
+                </div>)}
+                    </div>
+                      ):(
+                        
+                        <div>
+                        {message.content}
+                        
+                        {!isDeletingMessage && (<div className="flex items-center justify-between mt-1">
+                      <button className="ml-2 text-red-600 hidden group-hover:block" onClick={() => handleDeleteMessage(message.id)}>
+                        <FontAwesomeIcon icon={faTrashAlt} />
+                      </button>
+                    </div>)}
+                  </div>
+                  )}
+              </div>
+              {/* Deleting Icon*/}
+            {isDeletingMessage ===true && isDeletingMessageId === message.id ?(
+            <FontAwesomeIcon icon={faSpinner} spin />
+            ):(
+            <div className="chat-footer opacity-50">
+            {message.edited === true ? (
+    <span className="mr-2">edited</span>
+    ) : null}
+            {formatDateTime(message.timeStamp)}
+            </div>
+            
+            )}
+                
+            
+          </div>
+          ):( 
+          <div key={message.id} className="chat chat-end">
+            {editMessageId !== message.id ?(
+              <div className="group chat-bubble bg-blue-500 text-white p-2 rounded-lg max-w-xs md:max-w-md break-words">
+                {message.isImage ? (
+                  
+                  <div className='image-container'>
+              {isUploading && uploadingMessageId === message.id && (
+                <FontAwesomeIcon icon={faSpinner} spin className="mr-2"/>
+              )}
+              {(!isUploading || uploadingMessageId !== message.id)&&(
+                <img src={message.content} alt="Uploaded" onClick={() => handleImageClick(message.content)} className="uploaded-image cursor-pointer" />
+              )} 
+                  {(!isDeletingMessage  && !isUploading) && (
+                        <div className="flex items-center justify-between mt-1">
+                        <button className="ml-2 text-red-600 hidden group-hover:block" onClick={() => handleDeleteMessage(message.id)}>
+                          <FontAwesomeIcon icon={faTrashAlt} />
+                        </button>
+                      </div>
+                  )}
+                  </div>
+                ):message.isAudio?(
+                <div>
+                    {isUploading && uploadingMessageId === message.id && (
+                        <FontAwesomeIcon icon={faSpinner} spin className="mr-2" />
+                    )}
+                    {!isUploading && (
+                      <>
+                      {isDownloading && downloadingMessageId === message.id ? (
+                        <FontAwesomeIcon icon={faSpinner} spin className="mr-2" />
+                      ) : (
+                        isAudioDownloaded(message.id) ? (
+                          <button onClick={() => handlePlayAudio(message.content, message.id)} className="mr-2">
+                            <FontAwesomeIcon icon={isPlaying && currentAudioId === message.id ? faPause : faPlay} />
+                          </button>
+                        ) : (
+                          <button onClick={() => handleDownloadAudio(message.content, message.id)} className="mr-2">
+                            <FontAwesomeIcon icon={faCloudDownload} />
+                          </button>
+                        )
+                      )}
+                    </>
+                    )}
+                  <div id={`waveform-${message.id}`} className="rounded-lg max-w-full">
+                  <span className="duration" 
+                    id='{`duration-${message.id}`}'>
+                    
+                    {isPlaying && currentAudioId === message.id
+                  ? `${Math.floor((elapsedTimes[message.id] || 0) / 60)}:${Math.floor((elapsedTimes[message.id] || 0) % 60).toString().padStart(2, '0')}`
+                  : durationsRef.current[message.id]
+                    ? `${Math.floor(durationsRef.current[message.id] / 60)}:${Math.floor(durationsRef.current[message.id] % 60).toString().padStart(2, '0')}`
+                    : '0:00'}
+                    
+                    </span>
+                </div>
+              {!isDeletingMessage  &&  (<div className="flex items-center justify-between mt-1">
+                <button className="ml-2 text-red-600 hidden group-hover:block" onClick={() => handleDeleteMessage(message.id)}>
+                  <FontAwesomeIcon icon={faTrashAlt} />
+                </button>
+              </div>)}
+                  
+              </div>
+                ):(
+                <div>
+                {message.content}
+                {message.new === true || message.new === null ? (
+                <FontAwesomeIcon icon={faCheck} className="text-gray-500 mr-1" />
+                ):(
+                <FontAwesomeIcon icon={faCheckDouble} className="text-gray-500 mr-1" />
+                )}
+                {!isDeletingMessage  &&  (
+              
+                <div className="flex items-center justify-between mt-1">
+                <button
+                className="ml-2 text-gray-600 hidden group-hover:block"
+                onClick={() => handleEditMessage(message)}
+              >
+                <MdEdit />
+              </button>
+              <button className="ml-2 text-red-600 hidden group-hover:block" onClick={() => handleDeleteMessage(message.id)}>
+                <FontAwesomeIcon icon={faTrashAlt} />
+              </button>
+                    </div>
+                )}
+                
+            </div>
+            
+          )}   
+          </div>
+              ):(
+              <div className="group chat-bubble bg-blue-500 text-white p-2 rounded-lg max-w-xs md:max-w-md break-words">
+              <form key={message.id} onSubmit={handleEditSubmit}>
+                <TextareaAutosize
+                  type="text" 
+                  value={editMessageContent} 
+                  onChange={(e) => setEditMessageContent(e.target.value)}
+                  required 
+                  className='bg-white text-black p-2 rounded-lg'
+                /> 
+                    <button type="submit"  disabled={!editMessageContent.trim() || message.content === editMessageContent} className="ml-2 text-gray-600">
+                      <FontAwesomeIcon icon={faCheck} />
+                    </button> 
+                    <button type="button" onClick={() => setEditMessageId(null)} className="ml-2 text-red-600">
+                      <FontAwesomeIcon icon={faTimes} />
+                    </button>
+                    
+              </form>
+                <div className="flex items-center justify-between mt-1">
+                  
+                  <button
+                    onClick={() => setShowEmojiPickerEDIT(!showEmojiPickerEDIT)}
+                    className="btn btn-secondary ml-2 size-0"
+                  >
+                    <FontAwesomeIcon icon={faSmile} size='sm' />
+                  </button>
+                  {showEmojiPickerEDIT && (
+                    <div className="absolute top-20 right-0 z-30" ref={emojiPickerRef}> 
+                      <Picker  theme = {`${isDarkMode ? 'dark' : 'light'}`} dataXX={dataXXX} 
+                        onEmojiSelect={(e) => { 
+                          setEditMessageContent(editMessageContent + e.native);
+                        }}
+                      />
+                    </div>
+                  )}
+                </div>
+                </div>
+            )}
+            {/* Deleting Icon*/}
+            {isDeletingMessage ===true && isDeletingMessageId === message.id ?(
+            <FontAwesomeIcon icon={faSpinner} spin />
+            ):(
+              <div className="chat-footer opacity-50">
+            {message.edited === true ? (
+                <span className="mr-2">edited</span>
+              ) : null}
+            {formatDateTime(message.timeStamp)}
+            </div>
+            
+            )}
+              
+          </div>
+
+          )}
+        
+        </div>
+        </div>
+          
+        ))
+        ):(
+        <>
+        {isLoading ? (<div className="text-center text-gray-600"><FontAwesomeIcon icon={faSpinner} size='2x' spin /></div> ):(<div className="text-center text-gray-600">No messages</div>  ) }
+      </>
+        )
+      ):(
+        <div className="text-center text-gray-600">
+              <p>Welcome Mr.Harry Kane </p>
+            <p>Select a conversation to view messages</p> 
+              
+            </div>
+      )}
+      </div>
+      {/*Input field */}
+      <div className={`p-4 border-t flex items-center ${isDarkMode ? 'bg-gray-900 text-white  border-gray-800' : 'bg-gray-100 text-black  border-gray-200'}`}>
+      
+        {isRecording ?(
+        <div className={`flex items-center w-full justify-between ${isDarkMode ? 'bg-gray-900 text-white  border-gray-700' : 'bg-gray-100 text-black  border-gray-200'}`}>
+          <span className="mr-2">{Math.floor(recordingDuration / 60)}:{(recordingDuration % 60).toString().padStart(2, '0')}</span>
+          <div id="waveform-recording" className="flex-1"></div>
+          <button onClick={handleStopRecording} className="ml-2 text-red-600 text-lg">
+            <FontAwesomeIcon icon={faStop} size="lg" />
+          </button>
+        </div>
+        ):(
+        <div className={`flex items-center w-full ${isDarkMode ? 'bg-gray-900 text-white  border-gray-700' : 'bg-gray-100 text-black  border-gray-200'} `}>
+        <input 
+          type="file"
+          accept="image/*"
+          ref={fileInputRef}
+          style={{ display: 'none' }}
+          onChange={handleFileChange}
+        />
+        <button
+          onClick={() => fileInputRef.current.click()}
+          className="btn btn-secondary ml-2"
+        >
+          <FontAwesomeIcon icon={faPaperclip} />
+        </button>
+        <TextareaAutosize  
+        placeholder="Type your message..."
+        value={sendMessage}
+        onChange={handleMessage}
+        className={`textarea textarea-bordered flex-1 p-2 resize-none rounded-md overflow-hidden ${isDarkMode ? 'bg-gray-900 text-white  border-gray-700' : 'bg-gray-100 text-black  border-gray-200'}`}
+        onKeyDown={handleKeyDown}
+        minRows={1}
+        
+      /> 
+      <button 
+            onClick={() => setShowEmojiPicker(!showEmojiPicker)}
+            className="btn btn-secondary ml-2"
+          > 
+            <FontAwesomeIcon icon={faSmile} />
+      </button> 
+      {sendMessage.length ===0 && (<button onClick={isRecording ? handleStopRecording : handleStartRecording} className={`btn ml-2 ${isDarkMode ? 'bg-gray-900 text-white' : 'bg-gray-100 text-black'} `}>
+        <FontAwesomeIcon icon={isRecording ? faStop : faMicrophone} />
+      </button>)}
+          
+      {sendMessage.length !==0 && (<button onClick={handleSendMessage} disabled={sendMessage.length ===0}>
+        {isLoadingMessage ? <FontAwesomeIcon icon={faSpinner} spin /> : <FontAwesomeIcon icon={faPaperPlane} />}
+      </button> )}
+      
+      </div>
+      )}
+        </div>
+      {showEmojiPicker && (
+      <div className= {`absolute bottom-20 right-10 z-50 bg-dark`} ref={emojiPickerRef} >
+      <Picker theme = {`${isDarkMode ? 'dark' : 'light'}`} dataXX={dataXXX} 
+        onEmojiSelect={(e) => { 
+          setSendMessage(sendMessage + e.native); 
+      }}
+  />
+  </div>
+      )}
+      </div>
+      ):( 
+        <div className={`w-full bg-gray-100 border-r border-gray-300 flex flex-col  ${isDarkMode ? 'bg-gray-900 text-white' : 'bg-gray-100 text-black'}`}>
+          <div className="p-2 flex justify-between items-center">
+            <h1 className="text-lg font-bold">FonkaGram</h1>
+            <button onClick={toggleDarkMode} className="text-xl">
+              <FontAwesomeIcon icon={isDarkMode ? faSun : faMoon} />
+            </button>
+      </div>
+          {/*Search Bar */}
+          <div className="p-4 flex items-center relative">
+        <input type="text"
+        placeholder="Search Users By Email" 
+        value={searchQueryUser} 
+        onChange={(e) => setSearchQueryUser(e.target.value)} 
+        className={`input input-bordered w-full p-2 rounded-md ${isDarkMode ? 'bg-gray-900 text-white' : 'bg-gray-100 text-black'}`}
+        />
+        <FontAwesomeIcon 
+          icon={faCog} 
+          className="ml-2 cursor-pointer text-gray-600 hover:text-gray-800" 
+          onClick={() => setShowSettings(!showSettings)} 
+        />
+        {showSettings && (
+          <div ref={settingsRef} className={`absolute top-full mt-1 right-0 w-48 border-gray-300 rounded-md shadow-lg z-10 ${isDarkMode ? 'bg-gray-900 text-white' : 'bg-gray-100 text-black'}`}>
+            
+            <div className='p-2 hover:bg-gray-500 cursor-pointer flex items-center' onClick={() => openModal('EditProfile')}>
+              <FontAwesomeIcon icon={faUserEdit} className="mr-2" /> Edit Profile
+            </div>
+            <div className="p-2 hover:bg-gray-500 cursor-pointer flex items-center" onClick={() => openModal('ChangePassword')}>
+              <FontAwesomeIcon icon={faKey} className="mr-2" /> Change Password
+            </div>
+            <div className="p-2 hover:bg-gray-500 cursor-pointer flex items-center" onClick={() => openModal('DeleteAccount')}>
+              <FontAwesomeIcon icon={faTrash} className="mr-2" /> Delete Account
+            </div>
+            <div className="p-2 hover:bg-gray-500 cursor-pointer flex items-center" onClick={() => handleLogOut()}>
+              <FontAwesomeIcon icon={faSignOutAlt} className="mr-2" /> Logout
+            </div>
+          </div>
+        )}
+        {searchResultUser.length > 0 && searchQueryUser.length> 0 && ( 
+          <div className={`absolute top-full mt-1 w-full border-gray-300 rounded-md shadow-lg z-10 ${isDarkMode ? 'bg-gray-900 text-white' : 'bg-gray-100 text-black'}  `}> 
+            {searchResultUser.map(result => (
+              <div  
+              key={result.id}
+              className='p-2 hover:bg-gray-500 cursor-pointer'
+              onClick={()=>handleNewUserClick(result.id,result.name,result.lastName,result.email,result.status,result.lastSeen,result.bio,result.profilePicSearch)}
+              > 
+              {result.profilePicSearch? (
+              
+              <div className="w-12 h-12 rounded-full bg-blue-500 text-white flex items-center justify-center mr-3 text-lg font-semibold overflow-hidden">
+                  <img src={result.profilePicSearch.at(0)} alt={result.profilePicSearch.at(0)} className="w-full h-full object-cover" />    
+                </div>
+              ):(
+                <div
+                  className="w-12 h-12 rounded-full bg-pink-500 text-white flex items-center justify-center mr-3 text-lg font-semibold">
+                  {result.name.charAt(0)}
+                </div>
+              )}
+            
+            <div className="flex-1">
+              <div className="flex justify-between items-center">
+                <div>
+                  <div className="text-lg font-semibold">
+                    {truncateText( `${result.name}`, 8)} {truncateText( `${result.lastName}`, 4)}
+                        
+                    <span className={`ml-2 inline-block w-3 h-3 rounded-full ${result.status === 'true' ? 'bg-green-500' : 'bg-gray-500'}`}></span>
+                      
+                    </div>
+                  <div className="text-sm text-gray-500">{result.email}</div>
+                </div>
+                
+              </div>
+            </div>
+
+              </div>
+            ))} 
+          </div>
+        )}
+           </div> 
+          {/*Conversation List */}
+          <div className="overflow-y-auto flex-grow p-2 ">    
+      {conversations.length > 0 ?(
+        <>
+          {conversations.map(conversation =>(
+            <div 
+                key={conversation.convId}   
+                className={` group p-4 flex items-start ${selectedConversation === conversation.convId ? 'cursor-pointer' : 'cursor-pointer'}  ${selectedConversation && selectedConversation === conversation.convId ? (isDarkMode ? 'bg-gray-800' : 'bg-gray-300') : ''}`}
+                onClick={selectedConversation === conversation.convId ? null : () => { 
+                  handleConversationChange(conversation.convId);
+                  handleConversationClick(conversation.convId, conversation.userId, conversation.userName, conversation.lastName, conversation.status, conversation.lastSeen, conversation.bio, conversation.email, conversation.profilePicConv);  
+                }}
+              
+              >
+              {/* Deleting Conv*/}
+              {isDeletingConv ===true && isDeletingConvId === conversation.convId ?(
+                <FontAwesomeIcon icon={faSpinner} spin />
+              ):(
+                <button
+                className="relative right-3 text-red-500  hidden group-hover:block"
+                onClick={(e) => { e.stopPropagation(); handleDeleteConversation(conversation.convId,conversation.userId); }}
+              >
+                <FontAwesomeIcon icon={faTrashAlt} />
+                    </button> 
+              )}
+                
+                {conversation.userId === Number(sessionStorage.getItem('userId')) ?(
+                <div
+                  className="w-16 h-16 rounded-full bg-blue-500 text-white flex items-center justify-center mr-3 text-lg font-semibold">
+                    <FontAwesomeIcon icon={faBookmark} style={{ fontSize: '34px', color : isDarkMode? 'white':'black' }}  />
+                </div>
+                ):(
+                  <>
+                {conversation.profilePicConv ? ( 
+                
+                <div className="w-16 h-16 rounded-full bg-blue-500 text-white flex items-center justify-center mr-3 text-lg font-semibold overflow-hidden">
+                    <img src={conversation.profilePicConv.at(0)} alt={conversation.profilePicConv.at(0)} className="w-full h-full object-cover" />    
+                </div>
+                ):(
+                  <div
+                  className="w-16 h-16 rounded-full bg-blue-500 text-white flex items-center justify-center mr-3 text-lg font-semibold">
+                    {conversation.userName.charAt(0)}
+                </div>
+                
+                )}
+                </>
+                )}
+                
+                <div className="flex-1">
+                  <div className="flex justify-between items-center">
+                    <div>
+                    {conversation.userId === Number(sessionStorage.getItem('userId')) ?(
+                      <>
+                      Saved Messages
+                      </>
+                    ):(
+                    <div className="text-lg font-semibold">
+                        {truncateText( `${conversation.userName}`, 6)} {truncateText( `${conversation.lastName}`, 4)}
+                    
+                        <span className={`ml-2 inline-block w-3 h-3 rounded-full ${conversation.status === 'true' ? 'bg-green-500' : 'bg-gray-500'}`}></span>
+                      </div>
+                    )}
+                      
+                      {conversation.isAudio && (<div className="text-sm text-gray-500">Voice Message</div>)}
+                      {conversation.isImage && (<div className="text-sm text-gray-500">Photo</div>)}
+                      {!conversation.isAudio && !conversation.isImage && (<div className="text-sm text-gray-500">{truncateText(conversation.message, 15)}</div>)}
+                      
+                      
+                    </div>
+                    <div className="text-sm text-gray-500 text-right">
+                    <div className="flex items-center justify-end">
+                    {conversation.userId === Number(sessionStorage.getItem('userId')) ? (
+                        <></>
+                      ) : (
+                        <>
+                        {conversation.messageSender === Number(sessionStorage.getItem('userId'))?(
+                          <>
+                          {conversation.seen === true ? (
+                            <FontAwesomeIcon icon={faCheck} className="text-blue-500 mr-1" />
+                          ) : (
+                            <FontAwesomeIcon icon={faCheckDouble} className="text-gray-500 mr-1" />
+                          )}
+                          </>
+                        ):(
+                          <div></div>
+                        )}
+                          {conversation.notificationCount > 0 && (
+                            <div className="bg-red-500 text-white rounded-full w-5 h-5 flex items-center justify-center text-xs">
+                              {conversation.notificationCount}
+                            </div>
+                          )}
+                        </>
+                      )}
+
+                      <div>{formatDateTime(conversation.updatedTime)}
+                      </div>
+                      </div>
+                      
+                    </div>
+                  </div>
+                </div>
+            </div>
+          ))}
+      </>
+      ):( 
+        <>
+        {isLoading ? (<div className="text-center text-gray-600"><FontAwesomeIcon icon={faSpinner} size='2x' spin /></div> ):(<div className="text-center text-gray-600">No Conversations</div>  ) }
+      </>
+      )}
+
+          </div>
+        
+        </div>
+      )
+      ):(
+        // Desktop view
+    <>
+      {/*Left Side Bar*/}
+      <div className={`w-1/4 bg-gray-100 border-r border-gray-300 flex flex-col ${isDarkMode ? 'bg-gray-900 text-white' : 'bg-gray-100 text-black'}`}>
+      <div className="p-2 flex justify-between items-center">
+            <h1 className="text-lg font-bold">FonkaGram</h1>
+            <button onClick={toggleDarkMode} className="text-xl">
+              <FontAwesomeIcon icon={isDarkMode ? faSun : faMoon} />
+            </button>
+      </div>
+      {/* Search Bar */}
+      <div className="p-4 flex items-center relative">
+          <input type="text"
+          placeholder="Search Users By Email" 
+          value={searchQueryUser} 
+          onChange={(e) => setSearchQueryUser(e.target.value)} 
+          className={`input input-bordered w-full p-2 rounded-md ${isDarkMode ? 'bg-gray-900 text-white' : 'bg-gray-100 text-black'}`}
+          />
+          <FontAwesomeIcon 
+            icon={faCog} 
+            className="ml-2 cursor-pointer text-gray-600 hover:text-gray-800" 
+            onClick={() => setShowSettings(!showSettings)} 
+          />
+          {showSettings && (
+            <div ref={settingsRef} className={`absolute top-full mt-1 right-0 w-48 border-gray-300 rounded-md shadow-lg z-10 ${isDarkMode ? 'bg-gray-900 text-white' : 'bg-gray-100 text-black'}`}>
+              
+              <div className='p-2 hover:bg-gray-500 cursor-pointer flex items-center' onClick={() => openModal('EditProfile')}>
+                <FontAwesomeIcon icon={faUserEdit} className="mr-2" /> Edit Profile
+              </div>
+              <div className="p-2 hover:bg-gray-500 cursor-pointer flex items-center" onClick={() => openModal('ChangePassword')}>
+                <FontAwesomeIcon icon={faKey} className="mr-2" /> Change Password
+              </div>
+              <div className="p-2 hover:bg-gray-500 cursor-pointer flex items-center" onClick={() => openModal('DeleteAccount')}>
+                <FontAwesomeIcon icon={faTrash} className="mr-2" /> Delete Account
+              </div>
+              <div className="p-2 hover:bg-gray-500 cursor-pointer flex items-center" onClick={() => handleLogOut()}>
+                <FontAwesomeIcon icon={faSignOutAlt} className="mr-2" /> Logout
+              </div>
+            </div>
+          )}
+          {searchResultUser.length > 0 && searchQueryUser.length> 0 && ( 
+            <div className={`absolute top-full mt-1 w-full border-gray-300 rounded-md shadow-lg z-10 ${isDarkMode ? 'bg-gray-900 text-white' : 'bg-gray-100 text-black'}  `}> 
+              {searchResultUser.map(result => (
+                <div  
+                key={result.id}
+                className='p-2 hover:bg-gray-500 cursor-pointer'
+                onClick={()=>handleNewUserClick(result.id,result.name,result.lastName,result.email,result.status,result.lastSeen,result.bio,result.profilePicSearch)}
+                > 
+                {result.profilePicSearch? (
+                
+                <div className="w-12 h-12 rounded-full bg-blue-500 text-white flex items-center justify-center mr-3 text-lg font-semibold overflow-hidden">
+                    <img src={result.profilePicSearch.at(0)} alt={result.profilePicSearch.at(0)} className="w-full h-full object-cover" />    
+                  </div>
+                ):(
+                  <div
+                    className="w-12 h-12 rounded-full bg-pink-500 text-white flex items-center justify-center mr-3 text-lg font-semibold">
+                    {result.name.charAt(0)}
+                  </div>
+                )}
+              
+              <div className="flex-1">
+                <div className="flex justify-between items-center">
+                  <div>
+                    <div className="text-lg font-semibold">
+                      {truncateText( `${result.name}`, 8)} {truncateText( `${result.lastName}`, 4)}
+                          
+                      <span className={`ml-2 inline-block w-3 h-3 rounded-full ${result.status === 'true' ? 'bg-green-500' : 'bg-gray-500'}`}></span>
+                        
+                      </div>
+                    <div className="text-sm text-gray-500">{result.email}</div>
+                  </div>
+                  
+                </div>
+              </div>
+
+                </div>
+              ))} 
+            </div>
+          )}
+      </div> 
+
+      {/* Conversations List */}
+      <div className="overflow-y-auto flex-grow p-2 ">    
+        {conversations.length > 0 ?(
+          <>
+            {conversations.map(conversation =>(
+              <div 
+                  key={conversation.convId}   
+                  className={` group p-4 flex items-start ${selectedConversation === conversation.convId ? 'cursor-pointer' : 'cursor-pointer'}  ${selectedConversation && selectedConversation === conversation.convId ? (isDarkMode ? 'bg-gray-800' : 'bg-gray-300') : ''}`}
+                  onClick={selectedConversation === conversation.convId ? null : () => { 
+                    handleConversationChange(conversation.convId);
+                    handleConversationClick(conversation.convId, conversation.userId, conversation.userName, conversation.lastName, conversation.status, conversation.lastSeen, conversation.bio, conversation.email, conversation.profilePicConv);  
+                  }}
+                
+                >
+                {/* Deleting Conv*/}
+                {isDeletingConv ===true && isDeletingConvId === conversation.convId ?(
+                  <FontAwesomeIcon icon={faSpinner} spin />
+                ):(
+                  <button
+                  className="relative right-3 text-red-500  hidden group-hover:block"
+                  onClick={(e) => { e.stopPropagation(); handleDeleteConversation(conversation.convId,conversation.userId); }}
+                >
+                  <FontAwesomeIcon icon={faTrashAlt} />
+                      </button> 
+                )}
+                  
+                  {conversation.userId === Number(sessionStorage.getItem('userId')) ?(
+                  <div
+                    className="w-16 h-16 rounded-full bg-blue-500 text-white flex items-center justify-center mr-3 text-lg font-semibold">
+                      <FontAwesomeIcon icon={faBookmark} style={{ fontSize: '34px', color : isDarkMode? 'white':'black' }}  />
+                  </div>
+                  ):(
+                    <>
+                  {conversation.profilePicConv ? ( 
+                  
+                  <div className="w-16 h-16 rounded-full bg-blue-500 text-white flex items-center justify-center mr-3 text-lg font-semibold overflow-hidden">
+                      <img src={conversation.profilePicConv.at(0)} alt={conversation.profilePicConv.at(0)} className="w-full h-full object-cover" />    
+                  </div>
+                  ):(
+                    <div
+                    className="w-16 h-16 rounded-full bg-blue-500 text-white flex items-center justify-center mr-3 text-lg font-semibold">
+                      {conversation.userName.charAt(0)}
+                  </div>
+                  
+                  )}
+                  </>
+                  )}
+                  
+                  <div className="flex-1">
+                    <div className="flex justify-between items-center">
+                      <div>
+                      {conversation.userId === Number(sessionStorage.getItem('userId')) ?(
+                        <>
+                        Saved Messages
+                        </>
+                      ):(
+                      <div className="text-lg font-semibold">
+                          {truncateText( `${conversation.userName}`, 6)} {truncateText( `${conversation.lastName}`, 4)}
+                      
+                          <span className={`ml-2 inline-block w-3 h-3 rounded-full ${conversation.status === 'true' ? 'bg-green-500' : 'bg-gray-500'}`}></span>
+                        </div>
+                      )}
+                        
+                        {conversation.isAudio && (<div className="text-sm text-gray-500">Voice Message</div>)}
+                        {conversation.isImage && (<div className="text-sm text-gray-500">Photo</div>)}
+                        {!conversation.isAudio && !conversation.isImage && (<div className="text-sm text-gray-500">{truncateText(conversation.message, 15)}</div>)}
+                        
+                        
+                      </div>
+                      <div className="text-sm text-gray-500 text-right">
+                      <div className="flex items-center justify-end">
+                      {conversation.userId === Number(sessionStorage.getItem('userId')) ? (
+                          <></>
+                        ) : (
+                          <>
+                          {conversation.messageSender === Number(sessionStorage.getItem('userId'))?(
+                            <>
+                            {conversation.seen === true ? (
+                              <FontAwesomeIcon icon={faCheck} className="text-blue-500 mr-1" />
+                            ) : (
+                              <FontAwesomeIcon icon={faCheckDouble} className="text-gray-500 mr-1" />
+                            )}
+                            </>
+                          ):(
+                            <div></div>
+                          )}
+                            {conversation.notificationCount > 0 && (
+                              <div className="bg-red-500 text-white rounded-full w-5 h-5 flex items-center justify-center text-xs">
+                                {conversation.notificationCount}
+                              </div>
+                            )}
+                          </>
+                        )}
+
+                        <div>{formatDateTime(conversation.updatedTime)}
+                        </div>
+                        </div>
+                        
+                      </div>
+                    </div>
+                  </div>
+              </div>
+            ))}
+        </>
+        ):( 
+          <>
+          {isLoading ? (<div className="text-center text-gray-600"><FontAwesomeIcon icon={faSpinner} size='2x' spin /></div> ):(<div className="text-center text-gray-600">No Conversations</div>  ) }
+        </>
+        )}
+
+      </div>
+      </div>
+        
+      {/* Right Content */}
+      <div className='flex flex-col w-3/4'>
+      {/* Conversation Info */}
+
+        {selectedConversation!= null || forSearchUser === true ? (
+          <div className={`p-4 border-b ${isDarkMode ? 'bg-gray-900 text-white  border-gray-800' : 'bg-gray-100 text-black  border-gray-200'}`}>
+          
+          <div onClick={() => openUserModal()}  className="cursor-pointer">
+            <h2 className="text-lg font-semibold">
+              {selectedRecpientId === Number(sessionStorage.getItem('userId'))?(
+                <>
+                Saved Messages
+                </>
+              ):(
+              <>
+              {selectedName} {selectedLastName}
+              </>
+              )}
+              
+            </h2> 
+            <div className="text-sm text-gray-500">
+            {selectedRecpientId === Number(sessionStorage.getItem('userId'))?(
+              <></>
+            ):(
+              <>
+              {selectedOnlineStatus==='true' ? 'Online' : `Last seen: ${formatDateTime(selectedLastSeen)}`}
+              </>
+            )}
+          </div>
+          </div>
+          <div>
+          {isPlaying && (
+            <div className="flex justify-between mt-2">
+            
+          <button onClick={stopCurrentAudio} className="text-red-500">
+            <FontAwesomeIcon icon={faStop} />  
+          </button> 
+        </div> 
+        )} 
+        </div>
+          </div>
+          
+        ) : (
+          <div></div>
+        )}
+        
+
       {/* Messages */}
           
         <div className='flex-1 overflow-y-auto p-4 scrollbar-thin' ref={messagesEndRef}>
           {selectedConversation!= null || forSearchUser === true ? (
-           messages.length > 0 ? (
-           messages.map(message=>( 
+          messages.length > 0 ? (
+          messages.map(message=>( 
             <div key={message.id} id={`message-${message.id}`} className="mb-4">
-             <div>
+            <div>
             {message.senderId !== Number(sessionStorage.getItem('userId'))?(
               <div key={message.id} className="chat chat-start">
               
                 <div className="group chat-bubble bg-white-500 text-white p-2 rounded-lg max-w-xs md:max-w-md break-words">
                         {message.isImage ? (
-                         
+                        
                           <div className='image-container'>
                             {isUploading && uploadingMessageId === message.id && (
                               <FontAwesomeIcon icon={faSpinner} spin className="mr-2"/>
@@ -3396,7 +3989,7 @@ const toggleDarkMode = async () => {
                           <div>
                           {message.content}
                           
-                           {!isDeletingMessage && (<div className="flex items-center justify-between mt-1">
+                          {!isDeletingMessage && (<div className="flex items-center justify-between mt-1">
                         <button className="ml-2 text-red-600 hidden group-hover:block" onClick={() => handleDeleteMessage(message.id)}>
                           <FontAwesomeIcon icon={faTrashAlt} />
                         </button>
@@ -3404,14 +3997,14 @@ const toggleDarkMode = async () => {
                     </div>
                     )}
                 </div>
-                 {/* Deleting Icon*/}
+                {/* Deleting Icon*/}
               {isDeletingMessage ===true && isDeletingMessageId === message.id ?(
               <FontAwesomeIcon icon={faSpinner} spin />
               ):(
               <div className="chat-footer opacity-50">
               {message.edited === true ? (
-    <span className="mr-2">edited</span>
-  ) : null}
+      <span className="mr-2">edited</span>
+      ) : null}
               {formatDateTime(message.timeStamp)}
               </div>
               
@@ -3474,7 +4067,7 @@ const toggleDarkMode = async () => {
                       
                       </span>
                   </div>
-                 {!isDeletingMessage  &&  (<div className="flex items-center justify-between mt-1">
+                {!isDeletingMessage  &&  (<div className="flex items-center justify-between mt-1">
                   <button className="ml-2 text-red-600 hidden group-hover:block" onClick={() => handleDeleteMessage(message.id)}>
                     <FontAwesomeIcon icon={faTrashAlt} />
                   </button>
@@ -3489,10 +4082,10 @@ const toggleDarkMode = async () => {
                   ):(
                   <FontAwesomeIcon icon={faCheckDouble} className="text-gray-500 mr-1" />
                   )}
-                   {!isDeletingMessage  &&  (
-                 
-                   <div className="flex items-center justify-between mt-1">
-                   <button
+                  {!isDeletingMessage  &&  (
+                
+                  <div className="flex items-center justify-between mt-1">
+                  <button
                   className="ml-2 text-gray-600 hidden group-hover:block"
                   onClick={() => handleEditMessage(message)}
                 >
@@ -3562,32 +4155,32 @@ const toggleDarkMode = async () => {
             </div>
 
             )}
-           
-           </div>
-           </div>
+          
+          </div>
+          </div>
             
           ))
-           ):(
-           <>
-           {isLoading ? (<div className="text-center text-gray-600"><FontAwesomeIcon icon={faSpinner} size='2x' spin /></div> ):(<div className="text-center text-gray-600">No messages</div>  ) }
-         </>
-           )
+          ):(
+          <>
+          {isLoading ? (<div className="text-center text-gray-600"><FontAwesomeIcon icon={faSpinner} size='2x' spin /></div> ):(<div className="text-center text-gray-600">No messages</div>  ) }
+        </>
+          )
         ):(
           <div className="text-center text-gray-600">
                 <p>Welcome Mr.Harry Kane </p>
-               <p>Select a conversation to view messages</p> 
+              <p>Select a conversation to view messages</p> 
                 
               </div>
         )}
         </div>
         
           
-      
+
       {/* Input Field */}
-       { (selectedConversation!=null || forSearchUser === true) && isLoading!== true ? (
+      { (selectedConversation!=null || forSearchUser === true) && isLoading!== true ? (
           <div className={`p-4 border-t flex items-center ${isDarkMode ? 'bg-gray-900 text-white  border-gray-800' : 'bg-gray-100 text-black  border-gray-200'}`}>
-         
-           {isRecording ?(
+        
+          {isRecording ?(
           <div className={`flex items-center w-full justify-between ${isDarkMode ? 'bg-gray-900 text-white  border-gray-700' : 'bg-gray-100 text-black  border-gray-200'}`}>
             <span className="mr-2">{Math.floor(recordingDuration / 60)}:{(recordingDuration % 60).toString().padStart(2, '0')}</span>
             <div id="waveform-recording" className="flex-1"></div>
@@ -3618,8 +4211,8 @@ const toggleDarkMode = async () => {
           onKeyDown={handleKeyDown}
           minRows={1}
           
-         /> 
-         <button 
+        /> 
+        <button 
               onClick={() => setShowEmojiPicker(!showEmojiPicker)}
               className="btn btn-secondary ml-2"
             > 
@@ -3636,21 +4229,25 @@ const toggleDarkMode = async () => {
         </div>
         )}
           </div>
-       ):(
-       <div></div>
-       )}
+      ):(
+      <div></div>
+      )}
 
-    </div>
-    {/* Emoji Picker */}
-  {showEmojiPicker && (
-    <div className= {`absolute bottom-20 right-10 z-50 bg-dark`} ref={emojiPickerRef} >
+      </div>
+      {/* Emoji Picker */}
+      {showEmojiPicker && (
+      <div className= {`absolute bottom-20 right-10 z-50 bg-dark`} ref={emojiPickerRef} >
       <Picker theme = {`${isDarkMode ? 'dark' : 'light'}`} dataXX={dataXXX} 
         onEmojiSelect={(e) => { 
           setSendMessage(sendMessage + e.native); 
         }}
       />
-    </div>
-  )}    
+      </div>
+      )}
+      </>    
+      )}
+   
+    
          
   </div>
   );

@@ -1,7 +1,7 @@
 import React, { useState ,useRef,useEffect} from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { faPaperPlane, faCloudDownload, faPause, faTrashAlt,faSmile ,faCog, faUserEdit, faKey, faSignOutAlt, faTrash,faCheck,faTimes,faSpinner,faPaperclip,faMicrophone, faStop, faPlay,faTimesCircle,faDownload} from '@fortawesome/free-solid-svg-icons';
+import { faPaperPlane, faArrowLeft,faCloudDownload, faPause, faTrashAlt,faSmile ,faCog, faUserEdit, faKey, faSignOutAlt, faTrash,faCheck,faTimes,faSpinner,faPaperclip,faMicrophone, faStop, faPlay,faTimesCircle,faDownload} from '@fortawesome/free-solid-svg-icons';
 import { MdEdit } from 'react-icons/md';
 import Picker from '@emoji-mart/react';
 import dataXXX from '@emoji-mart/data';
@@ -13,7 +13,7 @@ import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 
 function Settings() {
   const [activeTab, setActiveTab] = useState('editProfile');
-  
+  const [isMobileView, setIsMobileView] = useState(window.innerWidth < 768); // Mobile view state
   const [firstName, setFirstName] = useState(sessionStorage.getItem('Name'));
   const [lastName, setLastName] = useState(sessionStorage.getItem('LastName'));
   const [bio, setBio] = useState(sessionStorage.getItem('Bio'));
@@ -219,6 +219,13 @@ const handleSubmitPassword = (e) => {
     clearErrorMessageAfterDelay(); // Set error message for the user
   });
 }
+const handleResize = () => {
+  setIsMobileView(window.innerWidth < 768);
+};
+useEffect(() => {
+  window.addEventListener('resize', handleResize);
+  return () => window.removeEventListener('resize', handleResize);
+}, []);
 /** here for DropDown */
 const [isOverlayVisible, setIsOverlayVisible] = useState(false);
 
@@ -720,38 +727,6 @@ const handleDeleteConversation = (id) =>{
       notifications: 2,
       lastMessage: 'Hey, how are you?',
       lastMessageTime: '12:34PM',
-    },{
-      id: 5,
-      firstName: 'John',
-      lastName: 'Doe',
-      online: true,
-      notifications: 2,
-      lastMessage: 'Hey, how are you?',
-      lastMessageTime: '12:34PM',
-    },{
-      id: 6,
-      firstName: 'John',
-      lastName: 'Doe',
-      online: true,
-      notifications: 2,
-      lastMessage: 'Hey, how are you?',
-      lastMessageTime: '12:34PM',
-    },{
-      id: 7,
-      firstName: 'John',
-      lastName: 'Doe',
-      online: true,
-      notifications: 2,
-      lastMessage: 'Hey, how are you?',
-      lastMessageTime: '12:34PM',
-    },{
-      id: 8,
-      firstName: 'John',
-      lastName: 'Doe',
-      online: true,
-      notifications: 2,
-      lastMessage: 'Hey, how are you?',
-      lastMessageTime: '12:34PM',
     }
     // Add more sample conversations as needed
   ];
@@ -920,374 +895,257 @@ const handleDeleteConversation = (id) =>{
   useOutsideClick(emojiPickerRef,() => setShowEmojiPickerEDIT(false));
   useOutsideClick(emojiPickerRef,() => setShowEmojiPicker(false));
   
-    return (
-      <div className="flex h-screen relative">
-        {modalContent && (
-      <div
-        className="modal-overlay"
-        onClick={handleOverlayClick}
-      >
-        <div
-          ref={modalRef}
-          className="modal-content"
-          onClick={(e) => e.stopPropagation()}
-        >
-          <button onClick={closeModal} className="close-button">
-            X
-          </button>
-          {modalContent}
+    return (<div className="flex h-screen relative">
+      {modalContent && (
+        <div className="modal-overlay" onClick={handleOverlayClick}>
+          <div ref={modalRef} className="modal-content" onClick={(e) => e.stopPropagation()}>
+            <button onClick={closeModal} className="close-button">X</button>
+            {modalContent}
+          </div>
         </div>
-      </div>
-    )}
-        {/* Left Sidebar */}
-        <div className="w-1/4 bg-gray-100 border-r border-gray-300 flex flex-col">
-          {/* Search Bar */}
-          <div className="p-4 flex items-center relative">
-          <input
-            type="text"
-            placeholder="Search Users by Email"
-            value={searchQueryUser}
-            onChange={handleSearch}
-            className="input input-bordered w-full p-2 rounded-md"
-          />
-          <FontAwesomeIcon 
-            icon={faCog} 
-            className="ml-2 cursor-pointer text-gray-600 hover:text-gray-800" 
-            onClick={() => setShowSettings(!showSettings)} 
-          />
-          {showSettings && (
-            <div ref={settingsRef} className="absolute top-full mt-1 right-0 w-48 bg-white border border-gray-300 rounded-md shadow-lg z-10">
-               
-              <div className="p-2 hover:bg-gray-200 cursor-pointer flex items-center" 
-              onClick={() => openModal('EditProfile')}>
-                <FontAwesomeIcon icon={faUserEdit} className="mr-2" /> Edit Profile
-              </div>
-              <div className="p-2 hover:bg-gray-200 cursor-pointer flex items-center" onClick={() => openModal('ChangePassword')}>
-                <FontAwesomeIcon icon={faKey} className="mr-2" /> Change Password
-              </div>
-              <div className="p-2 hover:bg-gray-200 cursor-pointer flex items-center" onClick={() => openModal('DeleteAccount')}>
-                <FontAwesomeIcon icon={faTrash} className="mr-2" /> Delete Account
-              </div>
-              <div className="p-2 hover:bg-gray-200 cursor-pointer flex items-center" onClick={() => handleLogOut()}>
-                <FontAwesomeIcon icon={faSignOutAlt} className="mr-2" /> Logout
-              </div>
+      )}
+
+      {isMobileView ? (
+        // Mobile View
+        selectedConversation ? (
+          <div className="flex flex-col w-full">
+            {/* Back Button */}
+            <div className="p-4 bg-gray-200 border-b border-gray-300 flex items-center">
+              <button onClick={() => setSelectedConversation(null)} className="btn btn-secondary mr-2">
+                <FontAwesomeIcon icon={faArrowLeft} />
+              </button>
+              <h2 className="text-lg font-semibold">{selectedConversation.firstName} {selectedConversation.lastName}</h2>
             </div>
-          )}
-          {filteredUsers.length > 0 && (
-            <div className="absolute top-full mt-1 w-full bg-white border border-gray-300 rounded-md shadow-lg z-10">
-              {filteredUsers.map(user => (
+            {/* Messages */}
+            <div className="flex-1 overflow-y-auto p-4">
+              {messages.length ? (
+                messages.map((message, index) => (
+                  <div key={index} className="mb-2">
+                    <div className="bg-blue-100 p-2 rounded-md">{message.content}</div>
+                  </div>
+                ))
+              ) : (
+                <div>No messages</div>
+              )}
+            </div>
+            {/* Input Field */}
+            <div className="p-4 bg-gray-200 border-t border-gray-300 flex items-center">
+              <TextareaAutosize
+                placeholder="Type your message..."
+                value={newMessage}
+                onChange={(e) => setNewMessage(e.target.value)}
+                className="textarea textarea-bordered flex-1 p-2 resize-none rounded-md overflow-hidden"
+                onKeyDown={handleKeyDown}
+                minRows={1}
+              />
+              <button onClick={handleSendMessage} disabled={sendingMessage} className="ml-2">
+                {sendingMessage ? <FontAwesomeIcon icon={faSpinner} spin /> : <FontAwesomeIcon icon={faPaperPlane} />}
+              </button>
+            </div>
+          </div>
+        ) : (
+          <div className="w-full bg-gray-100 border-r border-gray-300 flex flex-col">
+            {/* Search Bar */}
+            <div className="p-4 flex items-center relative">
+              <input
+                type="text"
+                placeholder="Search Users by Email"
+                value={searchQueryUser}
+                onChange={(e) => setSearchQueryUser(e.target.value)}
+                className="input input-bordered w-full p-2 rounded-md"
+              />
+              <FontAwesomeIcon
+                icon={faCog}
+                className="ml-2 cursor-pointer text-gray-600 hover:text-gray-800"
+                onClick={() => setShowSettings(!showSettings)}
+              />
+              {showSettings && (
+                <div ref={settingsRef} className="absolute top-full mt-1 right-0 w-48 bg-white border border-gray-300 rounded-md shadow-lg z-10">
+                  <div className="p-2 hover:bg-gray-200 cursor-pointer flex items-center" onClick={() => openModal('EditProfile')}>
+                    <FontAwesomeIcon icon={faUserEdit} className="mr-2" /> Edit Profile
+                  </div>
+                  <div className="p-2 hover:bg-gray-200 cursor-pointer flex items-center" onClick={() => openModal('ChangePassword')}>
+                    <FontAwesomeIcon icon={faKey} className="mr-2" /> Change Password
+                  </div>
+                  <div className="p-2 hover:bg-gray-200 cursor-pointer flex items-center" onClick={() => openModal('DeleteAccount')}>
+                    <FontAwesomeIcon icon={faTrash} className="mr-2" /> Delete Account
+                  </div>
+                  <div className="p-2 hover:bg-gray-200 cursor-pointer flex items-center" onClick={() => handleLogOut()}>
+                    <FontAwesomeIcon icon={faSignOutAlt} className="mr-2" /> Logout
+                  </div>
+                </div>
+              )}
+            </div>
+            {/* Conversations List */}
+            <div className="overflow-y-auto flex-grow p-2">
+              {conversations.map((conv) => (
                 <div
-                  key={user.id}
-                  className="p-2 hover:bg-gray-200 cursor-pointer"
-                  onClick={() => handleUserSelect(user)}
+                  key={conv.id}
+                  className={`group p-4 flex items-start cursor-pointer ${selectedConversation && selectedConversation.id === conv.id ? 'bg-gray-300' : ''}`}
+                  onClick={() => setSelectedConversation(conv)}
                 >
-                  {user.email}
+                  <div className="w-12 h-12 rounded-full bg-blue-500 text-white flex items-center justify-center mr-3 text-lg font-semibold">
+                    {conv.firstName.charAt(0)}
+                  </div>
+                  <div className="flex-1">
+                    <div className="flex justify-between items-center">
+                      <div>
+                        <div className="text-lg font-semibold">
+                          {conv.firstName} {conv.lastName}
+                          <span className={`ml-2 inline-block w-3 h-3 rounded-full ${conv.online ? 'bg-green-500' : 'bg-gray-500'}`}></span>
+                        </div>
+                        <div className="text-sm text-gray-500">{conv.lastMessage}</div>
+                      </div>
+                      <div className="text-sm text-gray-500 text-right">
+                        <div>{conv.lastMessageTime}</div>
+                        {conv.notifications > 0 && (
+                          <div className="bg-red-500 text-white rounded-full w-5 h-5 flex items-center justify-center text-xs">
+                            {conv.notifications}
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  </div>
                 </div>
               ))}
             </div>
-          )}
-        </div>
-          {/* Conversations List */}
-        <div className="overflow-y-auto flex-grow p-2">
-          {conversations.map((conv) => (
-            <div 
-              key={conv.id}   
-              className={` group p-4 flex items-start cursor-pointer  ${selectedConversation && selectedConversation.id === conv.id ? 'bg-gray-300' : ''}`}
-              onClick={() => handleConversationChange(conv)}
-            >
-              <button
-                className="relative right-3 text-red-500  hidden group-hover:block"
-                onClick={(e) => { e.stopPropagation(); handleDeleteConversation(conv.id); }}
-              >
-                <FontAwesomeIcon icon={faTrashAlt} />
-              </button>
-              
-              <div className="w-12 h-12 rounded-full bg-blue-500 text-white flex items-center justify-center mr-3 text-lg font-semibold">
-                {conv.firstName.charAt(0)}
-              </div>
-              <div className="flex-1">
-                <div className="flex justify-between items-center">
-                  <div>
-                    <div className="text-lg font-semibold">
-                      {conv.firstName} {conv.lastName}
-                      <span className={`ml-2 inline-block w-3 h-3 rounded-full ${conv.online ? 'bg-green-500' : 'bg-gray-500'}`}></span>
-                    </div>
-                    <div className="text-sm text-gray-500">{conv.lastMessage}</div>
+          </div>
+        )
+      ) : (
+    
+     // Desktop View
+        
+        <>
+      {/* Left Sidebar */}
+          <div className="w-1/4 bg-gray-100 border-r border-gray-300 flex flex-col">
+            {/* Search Bar */}
+            <div className="p-4 flex items-center relative">
+              <input
+                type="text"
+                placeholder="Search Users by Email"
+                value={searchQueryUser}
+                onChange={(e) => setSearchQueryUser(e.target.value)}
+                className="input input-bordered w-full p-2 rounded-md"
+              />
+              <FontAwesomeIcon
+                icon={faCog}
+                className="ml-2 cursor-pointer text-gray-600 hover:text-gray-800"
+                onClick={() => setShowSettings(!showSettings)}
+              />
+              {showSettings && (
+                <div ref={settingsRef} className="absolute top-full mt-1 right-0 w-48 bg-white border border-gray-300 rounded-md shadow-lg z-10">
+                  <div className="p-2 hover:bg-gray-200 cursor-pointer flex items-center" onClick={() => openModal('EditProfile')}>
+                    <FontAwesomeIcon icon={faUserEdit} className="mr-2" /> Edit Profile
                   </div>
-                  <div className="text-sm text-gray-500 text-right">
-                    <div>{conv.lastMessageTime}</div>
-                    {conv.notifications > 0 && (
-                      <div className="bg-red-500 text-white rounded-full w-5 h-5 flex items-center justify-center text-xs">
-                        {conv.notifications}
-                      </div>
-                    )}
+                  <div className="p-2 hover:bg-gray-200 cursor-pointer flex items-center" onClick={() => openModal('ChangePassword')}>
+                    <FontAwesomeIcon icon={faKey} className="mr-2" /> Change Password
+                  </div>
+                  <div className="p-2 hover:bg-gray-200 cursor-pointer flex items-center" onClick={() => openModal('DeleteAccount')}>
+                    <FontAwesomeIcon icon={faTrash} className="mr-2" /> Delete Account
+                  </div>
+                  <div className="p-2 hover:bg-gray-200 cursor-pointer flex items-center" onClick={() => handleLogOut()}>
+                    <FontAwesomeIcon icon={faSignOutAlt} className="mr-2" /> Logout
                   </div>
                 </div>
-              </div>
+              )}
             </div>
-          ))}
-        </div>
-      </div>
-
-        {/* Right Content */}
-        <div className="flex flex-col w-3/4">
-          {/* Conversation Info */}
-          
-          {selectedConversation ? (
-            <div className="p-4 bg-gray-200 border-b border-gray-300">
-            <div onClick={() => openUserModal(selectedConversation)}  className="cursor-pointer">
-              <h2 className="text-lg font-semibold">
-                {selectedConversation.firstName} {selectedConversation.lastName}
-              </h2> 
-              <div className="text-sm text-gray-500">
-                {selectedConversation.online ? 'Online' : `Last seen: ${selectedConversation.lastMessageTime}`}
-              </div>
-            </div>
-            <div>
-            {isPlaying && (
-              <div className="flex justify-between mt-2">
-              
-            <button onClick={stopCurrentAudio} className="text-red-500">
-              <FontAwesomeIcon icon={faStop} />  
-            </button> 
-          </div> 
-           )} 
-           </div>
-            </div>
-            
-          ) : (
-            <div></div>
-          )}
-       {/* Fullscreen Image Modal */}
-      {fullscreenImage && (
-        <div className="fixed inset-0 bg-black bg-opacity-75 flex items-center justify-center z-50" onClick={closeFullscreenImage}>
-          <img src={fullscreenImage} alt="Fullscreen" className="max-w-full max-h-full" />
-        </div>
-      )}
-       <div className="flex justify-center mt-2"> 
-        </div>
-  
-          {/* Messages */}
-          
-        <div className="flex-1 overflow-y-auto p-4">
-        {selectedConversation ? (
-          messages.length ? ( 
-            messages.map((message) => (
-            <div key={message.id} id={`message-${message.id}`} className="mb-4">
-            
-                <div className=''>
-                    <div className="chat chat-end">
-                      {editMessageId === message.id ? (
-                        <div className="group chat-bubble bg-blue-500 text-white p-2 rounded-lg max-w-xs md:max-w-md break-words">
-                      <form key={message.id} onSubmit={handleEditMessage}>
-                        <TextareaAutosize
-                          type="text"
-                          value={editMessageContent}
-                          onChange={(e) => setEditMessageContent(e.target.value)}
-                          required
-                          className=''
-                        /> 
-                            <button type="submit" className="ml-2 text-gray-600">
-                              <FontAwesomeIcon icon={faCheck} />
-                            </button>
-                            <button type="button" onClick={() => setEditMessageId(null)} className="ml-2 text-red-600">
-                              <FontAwesomeIcon icon={faTimes} />
-                            </button>
-                            
-                      </form>
-                        <div className="flex items-center justify-between mt-1">
-                          
-                          <button
-                            onClick={() => setShowEmojiPickerEDIT(!showEmojiPickerEDIT)} ref={emojiPickerRef}
-                            className="btn btn-secondary ml-2 size-0"
-                          >
-                            <FontAwesomeIcon icon={faSmile} size='sm' />
-                          </button>
-                          {showEmojiPickerEDIT && (
-                            <div className="absolute top-10 right-5 z-25">
-                              <Picker dataXX={dataXXX} 
-                                onEmojiSelect={(e) => { 
-                                  setEditMessageContent(editMessageContent + e.native);
-                                }}
-                              />
-                            </div>
-                          )}
+            {/* Conversations List */}
+            <div className="overflow-y-auto flex-grow p-2">
+              {conversations.map((conv) => (
+                <div
+                  key={conv.id}
+                  className={`group p-4 flex items-start cursor-pointer ${selectedConversation && selectedConversation.id === conv.id ? 'bg-gray-300' : ''}`}
+                  onClick={() => setSelectedConversation(conv)}
+                >
+                  <div className="w-12 h-12 rounded-full bg-blue-500 text-white flex items-center justify-center mr-3 text-lg font-semibold">
+                    {conv.firstName.charAt(0)}
+                  </div>
+                  <div className="flex-1">
+                    <div className="flex justify-between items-center">
+                      <div>
+                        <div className="text-lg font-semibold">
+                          {conv.firstName} {conv.lastName}
+                          <span className={`ml-2 inline-block w-3 h-3 rounded-full ${conv.online ? 'bg-green-500' : 'bg-gray-500'}`}></span>
                         </div>
+                        <div className="text-sm text-gray-500">{conv.lastMessage}</div>
                       </div>
-
-                      ):(
-                        <div className="group chat-bubble bg-blue-500 text-white p-2 rounded-lg max-w-xs md:max-w-md break-words">
-                        {message.isImage ? (
-                         
-                          <div className='image-container'>
-                            {isUploading && uploadingMessageId === message.id && (
-                              <FontAwesomeIcon icon={faSpinner} spin className="mr-2"/>
-                            )}
-                            {!isUploading && (
-                              <img src={message.content} alt="Uploaded" onClick={() => handleImageClick(message.content)} className="uploaded-image cursor-pointer" />
-                            )}
-                            <div className="flex items-center justify-between mt-1">
-                              <button className="ml-2 text-red-600 hidden group-hover:block" onClick={() => handleDeleteMessage(message.id)}>
-                                <FontAwesomeIcon icon={faTrashAlt} />
-                              </button>
-                            </div>
+                      <div className="text-sm text-gray-500 text-right">
+                        <div>{conv.lastMessageTime}</div>
+                        {conv.notifications > 0 && (
+                          <div className="bg-red-500 text-white rounded-full w-5 h-5 flex items-center justify-center text-xs">
+                            {conv.notifications}
                           </div>
-                        ) : message.isAudio?(
-                        <div>
-                            {isUploading && uploadingMessageId === message.id && (
-                                <FontAwesomeIcon icon={faSpinner} spin className="mr-2" />
-                            )}
-                            {!isUploading && (
-                              <>
-                              {isDownloading && downloadingMessageId === message.id ? (
-                                <FontAwesomeIcon icon={faSpinner} spin className="mr-2" />
-                              ) : (
-                                isAudioDownloaded(message.id) ? (
-                                  <button onClick={() => handlePlayAudio(message.content, message.id)} className="mr-2">
-                                    <FontAwesomeIcon icon={isPlaying && currentAudioId === message.id ? faPause : faPlay} />
-                                  </button>
-                                ) : (
-                                  <button onClick={() => handleDownloadAudio(message.content, message.id)} className="mr-2">
-                                    <FontAwesomeIcon icon={faCloudDownload} />
-                                  </button>
-                                )
-                              )}
-                            </>
-                            )}
-                          <div id={`waveform-${message.id}`} className="rounded-lg max-w-full">
-                          <span className="duration" 
-                            id='{`duration-${message.id}`}'>
-                            
-                            {isPlaying && currentAudioId === message.id
-                          ? `${Math.floor((elapsedTimes[message.id] || 0) / 60)}:${Math.floor((elapsedTimes[message.id] || 0) % 60).toString().padStart(2, '0')}`
-                          : durationsRef.current[message.id]
-                            ? `${Math.floor(durationsRef.current[message.id] / 60)}:${Math.floor(durationsRef.current[message.id] % 60).toString().padStart(2, '0')}`
-                            : '0:00'}
-                            
-                            </span>
-                        </div>
-                          
-                        
-                        
-                            <div className="flex items-center justify-between mt-1" >
-              
-                            <button
-                              className="ml-2 text-red-600 hidden group-hover:block"
-                              onClick={() => handleDeleteMessage(message.id)}
-                            >
-                              <FontAwesomeIcon icon={faTrashAlt} />
-                            </button>
-                            </div>
-                          
-                      </div>
-                        ): (
-                          
-                          <div>
-                          {message.content}
-                          <div className="flex items-center justify-between mt-1" >
-                      <button
-                        className="ml-2 text-gray-600 hidden group-hover:block"
-                        onClick={() => handleEditMessage(message.id)}
-                      >
-                        <MdEdit />
-                      </button>
-                      <button
-                        className="ml-2 text-red-600 hidden group-hover:block"
-                        onClick={() => handleDeleteMessage(message.id)}
-                      >
-                        <FontAwesomeIcon icon={faTrashAlt} />
-                      </button>
-                    </div>
-                    </div>
                         )}
                       </div>
-                      )}
-                      
-                      <div className="chat-footer opacity-50">
-                        2:03PM
-                      </div>
-                      
                     </div>
-                    
-                    
                   </div>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          {/* Right Content */}
+          <div className="flex flex-col w-3/4">
+            {selectedConversation ? (
+              <>
+                <div className="p-4 bg-gray-200 border-b border-gray-300">
+                  <div onClick={() => openUserModal(selectedConversation)} className="cursor-pointer">
+                    <h2 className="text-lg font-semibold">
+                      {selectedConversation.firstName} {selectedConversation.lastName}
+                    </h2>
+                    <div className="text-sm text-gray-500">
+                      {selectedConversation.online ? 'Online' : `Last seen: ${selectedConversation.lastMessageTime}`}
+                    </div>
                   </div>
-            ))
-            ) : (
-            <div className="text-center text-gray-600">No messages</div>
-            )
+                  {isPlaying && (
+                    <div className="flex justify-between mt-2">
+                      <button onClick={stopCurrentAudio} className="text-red-500">
+                        <FontAwesomeIcon icon={faStop} />
+                      </button>
+                    </div>
+                  )}
+                </div>
+                {/* Fullscreen Image Modal */}
+                {fullscreenImage && (
+                  <div className="fixed inset-0 bg-black bg-opacity-75 flex items-center justify-center z-50" onClick={closeFullscreenImage}>
+                    <img src={fullscreenImage} alt="Fullscreen" className="max-w-full max-h-full" />
+                  </div>
+                )}
+                <div className="flex-1 overflow-y-auto p-4">
+                  {messages.length ? (
+                    messages.map((message, index) => (
+                      <div key={index} className="mb-4">
+                        <div className="bg-blue-100 p-2 rounded-md">{message.content}</div>
+                      </div>
+                    ))
+                  ) : (
+                    <div>No messages</div>
+                  )}
+                </div>
+                <div className="p-4 bg-gray-200 border-t border-gray-300 flex items-center">
+                  <TextareaAutosize
+                    placeholder="Type your message..."
+                    value={newMessage}
+                    onChange={(e) => setNewMessage(e.target.value)}
+                    className="textarea textarea-bordered flex-1 p-2 resize-none rounded-md overflow-hidden"
+                    onKeyDown={handleKeyDown}
+                    minRows={1}
+                  />
+                  <button onClick={handleSendMessage} disabled={sendingMessage} className="ml-2">
+                    {sendingMessage ? <FontAwesomeIcon icon={faSpinner} spin /> : <FontAwesomeIcon icon={faPaperPlane} />}
+                  </button>
+                </div>
+              </>
             ) : (
               <div className="text-center text-gray-600">
-                <p>Welcome Mr.Harry Kane </p>
-               <p>Select a conversation to view messages</p> 
-                
+                <p>Welcome Mr. Harry Kane</p>
+                <p>Select a conversation to view messages</p>
               </div>
             )}
           </div>
-          
-            
-          {/* Input Field */}
-        {selectedConversation && (
-          <div className="p-4 bg-gray-200 border-t border-gray-300 flex items-center">
-          {isRecording ?(
-          <div className="flex items-center w-full justify-between">
-            <span className="mr-2">{Math.floor(recordingDuration / 60)}:{(recordingDuration % 60).toString().padStart(2, '0')}</span>
-            <div id="waveform-recording" className="flex-1"></div>
-            <button onClick={handleStopRecording} className="ml-2 text-red-600 text-lg">
-              <FontAwesomeIcon icon={faStop} size="lg" />
-            </button>
-          </div>
-          ):(
-          <div className='flex items-center w-full'>
-          <input 
-            type="file"
-            accept="image/*"
-            ref={fileInputRef}
-            style={{ display: 'none' }}
-            onChange={handleFileChange}
-          />
-          <button
-            onClick={() => fileInputRef.current.click()}
-            className="btn btn-secondary ml-2"
-          >
-            <FontAwesomeIcon icon={faPaperclip} />
-          </button>
-          <TextareaAutosize  
-          placeholder="Type your message..."
-          value={newMessage}
-          onChange={(e) => setNewMessage(e.target.value)}
-          className="textarea textarea-bordered flex-1 p-2 resize-none rounded-md overflow-hidden"
-          onKeyDown={handleKeyDown}
-          minRows={1}
-        /> 
-            <button 
-              onClick={() => setShowEmojiPicker(!showEmojiPicker)}
-              className="btn btn-secondary ml-2"
-            > 
-              <FontAwesomeIcon icon={faSmile} />
-            </button> 
-            <button onClick={isRecording ? handleStopRecording : handleStartRecording} className="btn ml-2">
-          <FontAwesomeIcon icon={isRecording ? faStop : faMicrophone} />
-        </button> 
-            <button onClick={handleSendMessage} disabled={sendingMessage}>
-          {sendingMessage ? <FontAwesomeIcon icon={faSpinner} spin /> : <FontAwesomeIcon icon={faPaperPlane} />}
-        </button> 
-          </div>
-          )}
-          </div>
-        )}
-      </div>
-        {/* Emoji Picker */}
-      {showEmojiPicker && (
-        <div className="absolute bottom-20 right-10 z-50">
-          <Picker dataXX={dataXXX} 
-            onEmojiSelect={(e) => { 
-              setNewMessage(newMessage + e.native);
-            }}
-          />
-        </div>
+        </>
       )}
-      </div>  
+    </div>
   );
 }
 
