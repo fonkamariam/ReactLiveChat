@@ -145,7 +145,7 @@ function ForgotPassword () {
 
   //setIsLoading(false);
   return (
-    <div className="flex items-center justify-center min-h-screen bg-blue-400">
+    <div className="flex flex-col items-center justify-center min-h-screen bg-blue-400">
         <div className="bg-white p-10 rounded-lg flex flex-col items-center gap-4">
             {activeTab === 'ForgotPassword' && (
               <form className="w-full flex flex-col items-center gap-4" onSubmit={handleSubmitForgot}>
@@ -218,10 +218,7 @@ function ForgotPassword () {
               </div>
             )}
           </div>
-          <p>
-          <br/><br/>
-          <Link to="/">Login</Link>
-         </p>
+          
         </div>
       ); 
 }
