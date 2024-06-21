@@ -1,9 +1,9 @@
 import React, {useEffect} from 'react';
-import { BrowserRouter as Router, Route, Routes, Link } from 'react-router-dom';
+import { BrowserRouter as Router, Route, Routes } from 'react-router-dom';
 import LoginPage from './LoginPage';
 import Chats from "./Chats"
 import InsertProfile from './InsertProfile';
-import Settings from './Settings';
+//import Settings from './Settings';
 import SignUp from './SignUp';
 import ForgotPassword from './ForgotPassword';
 import './Beauty.css';
@@ -84,7 +84,7 @@ function App() {
       <div>
        
         <Routes>
-          <Route path='/settings' element={<Settings />} />
+          {/*<Route path='/settings' element={<Settings />} />*/}
           <Route path= "/insertProfile" element={<InsertProfile />} />
           <Route path= "/chats" element={<Chats />} />
           <Route path="/signup" element={<SignUp />} />

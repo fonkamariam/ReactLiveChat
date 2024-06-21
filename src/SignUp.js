@@ -60,6 +60,7 @@ function SignUp() {
       if (response.ok) {
         setIsLoading(false);
         console.log(`Verification Sent to ${email}`);
+        setgoodMessage("");
         setActiveTab('V_SignUp')
         
       } else if (response.status === 10) {
@@ -99,7 +100,7 @@ function SignUp() {
         'Content-Type': 'application/json'
       }, 
       body: JSON.stringify({
-        name,name,
+        name: name,
         email: email, // Use the email from the authData context
         password: password, // Use the password from the authData context
         vertificationNo: code // Use the code entered by the user
