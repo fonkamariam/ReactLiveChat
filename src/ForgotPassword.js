@@ -145,82 +145,77 @@ function ForgotPassword () {
 
   //setIsLoading(false);
   return (
-    <div className="container">
-          
-          <div className="contentSignUp">
+    <div className="flex items-center justify-center min-h-screen bg-blue-400">
+        <div className="bg-white p-10 rounded-lg flex flex-col items-center gap-4">
             {activeTab === 'ForgotPassword' && (
-               <div className="formContainer">
-               
-               <form className='formSignUp' onSubmit={handleSubmitForgot}>
-               <span className='logo'>Fonkagram</span>
-              
-                 <input 
-                 className='emailInput'
-                 placeholder='Email'
-                   type="email" 
-                   required 
-                   value={email} 
-                   onChange={handleEmailChange} 
-                   disabled={isLoading} // Disable input field while loading
-                 /> 
-
-                 <button className='buttonSignUp' disabled={isLoading}>Submit</button>
-                 <p className='login'><Link to="/">Back to login page</Link></p>
-            
-          {errorMessage && <p className='errorMessage'>{errorMessage}</p>}
-          {goodMessage && <p className='goodMessage'>{goodMessage}</p>}
-          {isLoading && <p className='isLoading'>Loading...</p>}
-          
-               </form>
-               
-               
-             </div>
-         
-            )}
-            {activeTab === 'V_ForgotPassword' && ( 
-              <div className="formContainer">
-          
-              <form className='formSignUp' onSubmit={handleSubmitVerifyPassword}>
-              <span className='logo'>Fonkagram</span>
-          <span className='title'>Register</span>
-          
-                <input 
-                className='emailInput'
-                placeholder='Verification Number'
-                  type="Number" 
-                  required 
-                  value={code} 
-                  onChange={handleCodeChange} 
+              <form className="w-full flex flex-col items-center gap-4" onSubmit={handleSubmitForgot}>
+                <span className="text-black font-bold text-2xl">Fonkagram</span>
+                <input
+                  className="w-full p-4 border-b border-blue-400 focus:outline-none"
+                  placeholder="Email"
+                  type="email"
+                  required
+                  value={email}
+                  onChange={handleEmailChange}
                   disabled={isLoading}
                 />
-                
-                <input 
-                    className='emailInput'
-                    placeholder='New Password'
-                    type="current-password" 
-                    required 
-                    value={password} 
-                    onChange={handlePasswordChange} 
-                    disabled={isLoading} // Disable input field while loading
-                  />
-                <input 
-                className='emailInput'
-                placeholder='Re Enter Password'
-                    type="current-password" 
-                    required 
-                    value={rePassword} 
-                    onChange={handleRePasswordChange} 
-                    disabled={isLoading} // Disable input field while loading
-                /> 
-                <button className='buttonSignUp' disabled={isLoading} >Submit</button>
-                <p className='login'><Link to="/">Back to login page</Link></p>
-            
-            {errorMessage && <p className='errorMessage'>{errorMessage}</p>}
-            {goodMessage && <p className='goodMessage'>{goodMessage}</p>}
-            {isLoading && <p className='isLoading'>Loading...</p>}
+                <button className="w-full bg-blue-400 text-black font-bold py-2 mt-4" disabled={isLoading}>
+                  Submit
+                </button>
+                <p className="text-black font-bold mt-4">
+                  <Link to="/">Back to login page</Link>
+                </p>
+                {errorMessage && <p className="text-red-500">{errorMessage}</p>}
+                {goodMessage && <p className="text-green-500">{goodMessage}</p>}
+                {isLoading && <p className="text-blue-500">Loading...</p>}
               </form>
-              
-            </div>
+            )}
+            
+            {activeTab === 'V_ForgotPassword' && (
+              <div className="flex items-center justify-center min-h-screen bg-blue-400">
+                <div className="bg-white p-10 rounded-lg flex flex-col items-center gap-4">
+                  <form className="w-full flex flex-col items-center gap-4" onSubmit={handleSubmitVerifyPassword}>
+                    <span className="text-black font-bold text-2xl">Fonkagram</span>
+                    <span className="text-blue-900 text-lg font-bold">Register</span>
+                    <input
+                      className="w-full p-4 border-b border-blue-400 focus:outline-none"
+                      placeholder="Verification Number"
+                      type="number"
+                      required
+                      value={code}
+                      onChange={handleCodeChange}
+                      disabled={isLoading}
+                    />
+                    <input
+                      className="w-full p-4 border-b border-blue-400 focus:outline-none"
+                      placeholder="New Password"
+                      type="password"
+                      required
+                      value={password}
+                      onChange={handlePasswordChange}
+                      disabled={isLoading}
+                    />
+                    <input
+                      className="w-full p-4 border-b border-blue-400 focus:outline-none"
+                      placeholder="Re-enter Password"
+                      type="password"
+                      required
+                      value={rePassword}
+                      onChange={handleRePasswordChange}
+                      disabled={isLoading}
+                    />
+                    <button className="w-full bg-blue-400 text-black font-bold py-2 mt-4" disabled={isLoading}>
+                      Submit
+                    </button>
+                    <p className="text-black font-bold mt-4">
+                      <Link to="/">Back to login page</Link>
+                    </p>
+                    {errorMessage && <p className="text-red-500">{errorMessage}</p>}
+                    {goodMessage && <p className="text-green-500">{goodMessage}</p>}
+                    {isLoading && <p className="text-blue-500">Loading...</p>}
+                  </form>
+                </div>
+              </div>
             )}
           </div>
           <p>
