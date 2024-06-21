@@ -129,13 +129,14 @@ function Chats() {
   const modalRef = useRef(null);
   const reconnectTimeoutRef = useRef(null);
     const handleConnectionLost = () => {
-    showToast('Connection lost. Attempting to reconnect...');
     // Set a timer to reload the page if connection is not re-established
-    /**
+  
     reconnectTimeoutRef.current = setTimeout(() => {
-      window.location.reload();
-    }, 10000); // 10000ms = 10 seconds, adjust as needed
-     */
+      //window.location.reload();
+      showToast('Connection lost. Attempting to reconnect...');
+    
+    }, 5000); // 10000ms = 10 seconds, adjust as needed
+     
   };
 
   const clearReconnectTimeout = () => {
@@ -976,6 +977,31 @@ useEffect(() => async ()=>{
   const [newPassword,setNewPassword]=useState(''); 
   const [isLoadingMessage, setIsLoadingMessage] =useState(false);
   const [forSearchUser, setForSearchUser] = useState(false); 
+
+  const [isOffline, setIsOffline] = useState(false);
+
+  const handleOffline = () => {
+    setIsOffline(true);
+    //console.log("OFFLINE");
+  };
+
+  const handleOnline = () => {
+    setIsOffline(false);
+    //console.log("ONLINE");
+    // Reload the page when the user comes back online
+    window.location.reload();
+  };
+
+  useEffect(() => {
+    window.addEventListener('offline', handleOffline);
+    window.addEventListener('online', handleOnline);
+
+    return () => {
+      window.removeEventListener('offline', handleOffline);
+      window.removeEventListener('online', handleOnline);
+    };
+  }, []);
+
 // for searching user by email
 useEffect(() => {
   if (searchQueryUser.length > 0) {
@@ -1190,7 +1216,7 @@ const handleConversationClick = async (convId,recpientId,Name,LastName,onlineSta
       sessionStorage.setItem(`${convId}`,JSON.stringify(messagesData));
       setIsLoading(false);
       setMessages(messagesData);
-      console.log(messagesData); // Update messages state with the fetched messages
+      
       setConversations(prevConversations =>{ 
         const updatedConversations = prevConversations.map(conversation => {
           if (conversation.convId === convId) { 
@@ -1807,6 +1833,42 @@ function formatDateTime(isoString) {
     const month = date.toLocaleString('default', { month: 'short' });
     const day = date.getDate();
     return `${month}/${day} at ${timeString}`;
+  }
+}
+function formatDateTimeConv(isoString) {
+  const date = new Date(isoString);
+  const now = new Date();
+
+  const isToday = (date.getDate() === now.getDate() &&
+                   date.getMonth() === now.getMonth() &&
+                   date.getFullYear() === now.getFullYear());
+
+  const oneDay = 24 * 60 * 60 * 1000; // milliseconds in a day
+  const diffDays = Math.round(Math.abs((now - date) / oneDay));
+  
+  const formatTimeConv = (date) => {
+    let hours = date.getHours();
+    const minutes = date.getMinutes();
+    const ampm = hours >= 12 ? 'PM' : 'AM';
+    hours = hours % 12;
+    hours = hours ? hours : 12; // the hour '0' should be '12'
+    const minutesStr = minutes < 10 ? '0' + minutes : minutes; // adding leading zero if needed
+    return `${hours}:${minutesStr}${ampm}`;
+  };
+  const timeString = formatTimeConv(date);
+
+  if (isToday) {
+    // If the date is today, show time in 12-hour format
+    return timeString;
+  } else if (diffDays <= 7) {
+    // If the date is within the past 7 days, show the day of the week and time
+    const daysOfWeek = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
+    return `${daysOfWeek[date.getDay()]}`;
+  } else {
+    // If the date is older than 7 days, show date, month, and time
+    const month = date.toLocaleString('default', { month: 'short' });
+    const day = date.getDate();
+    return `${month}/${day}`;
   }
 }
 // FUNCTION INTEGRATION START
@@ -3108,16 +3170,15 @@ useEffect(() => {
         )}
        
     {isMobileView ? (
+      
       selectedConversation || forSearchUser === true  ?(
         <div className={`flex flex-col w-full ${isDarkMode ? 'bg-gray-900 text-white  border-gray-800' : 'bg-gray-100 text-black  border-gray-200'}`}>
-        {/* Back Button 
-      <div className="p-4 bg-gray-200 border-b border-gray-300 flex items-center">
-        <button onClick={() => {setSelectedConversation(null); setForSearchUser(false);}} className="btn btn-secondary mr-2">
-          <FontAwesomeIcon icon={faArrowLeft} />
-        </button>
-        <h2 className="text-lg font-semibold">{selectedName} {selectedLastName}</h2>
+        
+        {isOffline && (
+        <div className={`flex justify-center items-center${isDarkMode ? 'bg-gray-900' : 'bg-gray-100'}`}>
+          <FontAwesomeIcon icon={faSpinner} spin className="text-2xl" />
         </div>
-        */}
+      )}
         
       {/*Conversation Info*/}
       <div className={`p-4 border-b flex items-center justify-between ${isDarkMode ? 'bg-gray-900 text-white  border-gray-800' : 'bg-gray-100 text-black  border-gray-200'}`}>
@@ -3150,9 +3211,19 @@ useEffect(() => {
         </div>
         </div>
         {/* Profile Picture */}
+
+        {selectedProfilePic !== null? ( 
+                  
         <div className="ml-2 cursor-pointer" onClick={() => openUserModal()} >
           <img src={selectedProfilePic.at(0)} alt="Profile" className="w-8 h-8 rounded-full" />
         </div>
+          ):(
+        <div
+        className="w-8 h-8 rounded-full bg-pink-500 text-white flex items-center justify-center mr-3 text-lg font-semibold">
+          {selectedName.charAt(0)}
+      </div>
+                  
+        )}
         <div>
         {isPlaying && (
           <div className="flex justify-between mt-2">
@@ -3486,6 +3557,11 @@ useEffect(() => {
         <div className={`w-full bg-gray-100 border-r border-gray-300 flex flex-col  ${isDarkMode ? 'bg-gray-900 text-white' : 'bg-gray-100 text-black'}`}>
           <div className="p-2 flex justify-between items-center">
             <h1 className="text-lg font-bold">FonkaGram</h1>
+            {isOffline && (
+        <div className={`flex justify-center items-center${isDarkMode ? 'bg-gray-900' : 'bg-gray-100'}`}>
+          <FontAwesomeIcon icon={faSpinner} spin className="text-2xl" />
+        </div>
+      )}
             <button onClick={toggleDarkMode} className="text-xl">
               <FontAwesomeIcon icon={isDarkMode ? faSun : faMoon} />
             </button>
@@ -3530,7 +3606,7 @@ useEffect(() => {
               > 
               {result.profilePicSearch? (
               
-              <div className="w-12 h-12 rounded-full bg-blue-500 text-white flex items-center justify-center mr-3 text-lg font-semibold overflow-hidden">
+              <div className="w-12 h-12 rounded-full bg-gray-500 text-white flex items-center justify-center mr-3 text-lg font-semibold overflow-hidden">
                   <img src={result.profilePicSearch.at(0)} alt={result.profilePicSearch.at(0)} className="w-full h-full object-cover" />    
                 </div>
               ):(
@@ -3595,12 +3671,12 @@ useEffect(() => {
                   <>
                 {conversation.profilePicConv ? ( 
                 
-                <div className="w-16 h-16 rounded-full bg-blue-500 text-white flex items-center justify-center mr-3 text-lg font-semibold overflow-hidden">
+                <div className="w-16 h-16 rounded-full bg-gray-500 text-white flex items-center justify-center mr-3 text-lg font-semibold overflow-hidden">
                     <img src={conversation.profilePicConv.at(0)} alt={conversation.profilePicConv.at(0)} className="w-full h-full object-cover" />    
                 </div>
                 ):(
                   <div
-                  className="w-16 h-16 rounded-full bg-blue-500 text-white flex items-center justify-center mr-3 text-lg font-semibold">
+                  className="w-16 h-16 rounded-full bg-pink-500 text-white flex items-center justify-center mr-3 text-lg font-semibold">
                     {conversation.userName.charAt(0)}
                 </div>
                 
@@ -3654,7 +3730,7 @@ useEffect(() => {
                         </>
                       )}
 
-                      <div>{formatDateTime(conversation.updatedTime)}
+                      <div>{formatDateTimeConv(conversation.updatedTime)}
                       </div>
                       </div>
                       
@@ -3666,7 +3742,7 @@ useEffect(() => {
       </>
       ):( 
         <>
-        {isLoading ? (<div className="text-center text-gray-600"><FontAwesomeIcon icon={faSpinner} size='2x' spin /></div> ):(<div className="text-center text-gray-600">No Conversations</div>  ) }
+        {isLoading ? (<div className={`text-center ${isDarkMode ? 'bg-gray-900 text-white' : 'bg-gray-100 text-black'} `}><FontAwesomeIcon icon={faSpinner} size='2x' spin /></div> ):(<div className={`text-center ${isDarkMode ? 'bg-gray-900 text-white' : 'bg-gray-100 text-black'}`}>No Conversations, Search User's by Email and Start a Conversation</div>  ) }
       </>
       )}
 
@@ -3850,7 +3926,7 @@ useEffect(() => {
                           </>
                         )}
 
-                        <div>{formatDateTime(conversation.updatedTime)}
+                        <div>{formatDateTimeConv(conversation.updatedTime)}
                         </div>
                         </div>
                         
@@ -3862,7 +3938,8 @@ useEffect(() => {
         </>
         ):( 
           <>
-          {isLoading ? (<div className="text-center text-gray-600"><FontAwesomeIcon icon={faSpinner} size='2x' spin /></div> ):(<div className="text-center text-gray-600">No Conversations</div>  ) }
+          {isLoading ? (<div className="text-center text-gray-600"><FontAwesomeIcon icon={faSpinner} size='2x' spin /></div> ):(<div className="text-center text-gray-600">No Conversations, Search User's by Email and Start a Conversation</div>  ) }
+          
         </>
         )}
 
@@ -3872,10 +3949,15 @@ useEffect(() => {
       {/* Right Content */}
       <div className='flex flex-col w-3/4'>
       {/* Conversation Info */}
-
-        {selectedConversation!= null || forSearchUser === true ? (
+          {isOffline && (
+            <div className={`flex justify-center items-center${isDarkMode ? 'bg-gray-900' : 'bg-gray-100'}`}>
+              <FontAwesomeIcon icon={faSpinner} spin className="text-2xl" />
+            </div>
+          )}
+        
+        {selectedConversation !== null || forSearchUser === true ? (
           <div className={`p-4 border-b ${isDarkMode ? 'bg-gray-900 text-white  border-gray-800' : 'bg-gray-100 text-black  border-gray-200'}`}>
-          
+           
           <div onClick={() => openUserModal()}  className="cursor-pointer">
             <h2 className="text-lg font-semibold">
               {selectedRecpientId === Number(sessionStorage.getItem('userId'))?(
@@ -4166,11 +4248,9 @@ useEffect(() => {
         </>
           )
         ):(
-          <div className="text-center text-gray-600">
-                <p>Welcome Mr.Harry Kane </p>
-              <p>Select a conversation to view messages</p> 
-                
-              </div>
+          <div className="flex justify-center items-center h-full text-center text-gray-600">
+      <p>Select a conversation to view messages</p>
+    </div>
         )}
         </div>
         

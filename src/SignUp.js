@@ -196,7 +196,8 @@ function SignUp() {
                 onChange={handleRePasswordChange} 
                 disabled={isLoading} // Disable input field while loading
             />
-            <p className='login'>You do have an account? <Link to="/">Login</Link></p>
+            <p>You have an account? </p>
+            <button className='login'><Link to="/">Login</Link></button>
             <button className='buttonSignUp' disabled={isLoading}>Register</button>
           
           {errorMessage && <p className='errorMessage'>{errorMessage}</p>}
