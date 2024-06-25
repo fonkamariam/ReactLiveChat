@@ -3205,19 +3205,19 @@ useEffect(() => {
                             ) : (
                               isAudioDownloaded(message.id) ? (
                                 <button onClick={() => handlePlayAudio(message.content, message.id)} 
-                                onTouchEnd={() => {
-                                  //console.log("Play button touched");
-                                  handlePlayAudio(message.content, message.id);
-                                }}  
+                                onTouchStart={(e) => {
+                                  e.stopPropagation(); // Prevent touch event from triggering other elements
+                                  handleDownloadAudio(message.content, message.id);
+                                }}
                                 className="mr-2 phone-icon text-lg sm:text-2xl">
                                   <FontAwesomeIcon icon={isPlaying && currentAudioId === message.id ? faPause : faPlay} />
                                 </button>
                               ) : (
                                 <button onClick={() => handleDownloadAudio(message.content, message.id)} 
-                                onTouchEnd={() => {
-                                  //console.log("Play button touched");
-                                  handlePlayAudio(message.content, message.id);
-                                }} 
+                                onTouchStart={(e) => {
+                                  e.stopPropagation(); // Prevent touch event from triggering other elements
+                                  handleDownloadAudio(message.content, message.id);
+                                }}
                                 className="mr-2 phone-icon text-lg sm:text-2xl">
                                   <FontAwesomeIcon icon={faCloudDownload} />
                                 </button>
@@ -3237,7 +3237,11 @@ useEffect(() => {
                           </span>
                       </div>
                       {!isDeletingMessage && (<div className="flex items-center justify-between mt-1">
-                  <button className="ml-2 text-red-600 hidden group-hover:block" onClick={() => handleDeleteMessage(message.id)}>
+                  <button className="ml-2 text-red-600 hidden group-hover:block" 
+                  onClick={(e) => {
+                    e.stopPropagation(); // Prevent event from bubbling up
+                    handleDeleteMessage(message.id);
+                  }}>
                     <FontAwesomeIcon icon={faTrashAlt} />
                   </button>
                 </div>)}
@@ -3302,21 +3306,24 @@ useEffect(() => {
                         <FontAwesomeIcon icon={faSpinner} spin className="mr-2" />
                       ) : (
                         isAudioDownloaded(message.id) ? (
-                          <button onClick={() => handlePlayAudio(message.content, message.id)}
-                          onTouchEnd={() => {
-                            //console.log("Play button touched");
+                          <button 
+                          onClick={() => handlePlayAudio(message.content, message.id)}
+                          onTouchStart={(e) => {
+                            e.stopPropagation(); // Prevent touch event from triggering other elements
                             handlePlayAudio(message.content, message.id);
-                          }}  
-                          className="mr-2 phone-icon text-lg sm:text-2xl">
+                          }}
+                          className="mr-2 phone-icon text-lg sm:text-2xl"
+                          >
                             <FontAwesomeIcon icon={isPlaying && currentAudioId === message.id ? faPause : faPlay} />
                           </button>
                         ) : (
                           <button onClick={() => handleDownloadAudio(message.content, message.id)} 
-                          onTouchEnd={() => {
-                            //console.log("Play button touched");
-                            handlePlayAudio(message.content, message.id);
-                          }}  
-                          className="mr-2 phone-icon text-lg sm:text-2xl">
+                          onTouchStart={(e) => {
+                            e.stopPropagation(); // Prevent touch event from triggering other elements
+                            handleDownloadAudio(message.content, message.id);
+                          }}
+                          className="mr-2 phone-icon text-lg sm:text-2xl"
+                        >
                             <FontAwesomeIcon icon={faCloudDownload} />
                           </button>
                         )
@@ -3336,7 +3343,11 @@ useEffect(() => {
                     </span>
                 </div>
               {!isDeletingMessage  &&  (<div className="flex items-center justify-between mt-1">
-                <button className="ml-2 text-red-600 hidden group-hover:block" onClick={() => handleDeleteMessage(message.id)}>
+                <button className="ml-2 text-red-600 hidden group-hover:block" 
+                onClick={(e) => {
+                  e.stopPropagation(); // Prevent event from bubbling up
+                  handleDeleteMessage(message.id);
+                }}>
                   <FontAwesomeIcon icon={faTrashAlt} />
                 </button>
               </div>)}
