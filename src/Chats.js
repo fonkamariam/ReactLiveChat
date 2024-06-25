@@ -959,15 +959,15 @@ useEffect(() => async ()=>{
       } else {
         let errorMessage = 'An error occurred';
         if (response.status === 401) {
-          errorMessage = 'Unauthorized';
+          errorMessage = 'Unauthorized Get All Conv';
         } else if (!response.ok) {
-          errorMessage = 'Connection problem ';
+          errorMessage = 'Connection problem Get All Conv';
         }
         showToast(errorMessage);
         throw new Error('Failed to fetch user data');
       }
     } catch (error) {
-    showToast("Connection Refused");
+    showToast("Connection Refused Get All Conv");
     }
   };
   // Fetch Contacts
