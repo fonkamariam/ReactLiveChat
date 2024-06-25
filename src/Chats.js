@@ -930,17 +930,17 @@ useEffect(() => {
   useEffect(() => {selectedRecpIdRef.current = selectedRecpientId;},[selectedRecpientId]);
   
  /** Fetching Conversations Start */
-useEffect(() => async ()=>{
+useEffect(() => {
   // Fetch Conversations
   const fetchConvData = async () => {
-  const keys = Object.keys(sessionStorage); 
-  
-  keys.forEach(key => {
-    // Check if the key is an integer 
-    if (/^\d+$/.test(key)) {
-      sessionStorage.removeItem(key);
-    }  
-  });
+    const keys = Object.keys(sessionStorage); 
+
+    keys.forEach(key => {
+      // Check if the key is an integer 
+      if (/^\d+$/.test(key)) {
+        sessionStorage.removeItem(key);
+      }  
+    });
 
     setIsLoading(true);
     try {
@@ -954,7 +954,7 @@ useEffect(() => async ()=>{
       if (response.ok) {
         const data = await response.json();  
         setIsLoading(false);
-        setConversations(data);  // Update Converstaion data state 
+        setConversations(data);  // Update Conversation data state 
       } else {
         let errorMessage = 'An error occurred';
         if (response.status === 401) {
@@ -966,15 +966,14 @@ useEffect(() => async ()=>{
         throw new Error('Failed to fetch user data');
       }
     } catch (error) {
-    showToast("Connection Refused");
+      showToast("Connection Refused");
     }
   };
-  // Fetch Contacts
   
-  
- await fetchConvData(); // Call fetchData function when component mounts
-  
+  fetchConvData(); // Call fetchConvData function when component mounts
+
 }, [showToast]);
+
 /** Fetching Conversation End */
 
   const handleOffline = () => {
