@@ -639,7 +639,7 @@ function Chats() {
               };
               if(checkConvId(message.record.convId)===true){
                 try {
-                  const messagesResponse = await fetch(`http://localhost:5206/api/Message/GetLastMessage?query=${message.record.convId}`, {
+                  const messagesResponse = await fetch(`https://livechatbackend-xwgx.onrender.com/api/Message/GetLastMessage?query=${message.record.convId}`, {
                     method: 'GET',
                     headers: {
                       'Content-Type': 'application/json',
@@ -772,7 +772,7 @@ function Chats() {
   };
   useEffect(() => {
     const newConnection = new HubConnectionBuilder()
-      .withUrl('http://localhost:5206/messagesHub', {
+      .withUrl('https://livechatbackend-xwgx.onrender.com/messagesHub', {
         accessTokenFactory: () => sessionStorage.getItem('Token'),
         skipNegotiation: true,
         transport: HttpTransportType.WebSockets,
@@ -944,7 +944,7 @@ useEffect(() => async ()=>{
 
     setIsLoading(true);
     try {
-      const response = await fetch('http://localhost:5206/api/Message/GetAllConversationDirect', {
+      const response = await fetch('https://livechatbackend-xwgx.onrender.com/api/Message/GetAllConversationDirect', {
         method: 'GET',
         headers: {
           'Content-Type': 'application/json',
@@ -1005,7 +1005,7 @@ useEffect(() => {
   if (searchQueryUser.length > 0) {
     const fetchSearchResultUser = async () => {
       try {
-        const response = await fetch(`http://localhost:5206/api/Users/SearchUser?query=${searchQueryUser}`, {
+        const response = await fetch(`https://livechatbackend-xwgx.onrender.com/api/Users/SearchUser?query=${searchQueryUser}`, {
           method: 'GET',
           headers: {
             'Content-Type': 'application/json',
@@ -1057,7 +1057,7 @@ const handleSendMessage = async (e) => {
   setIsLoadingMessage(true);
   //setVarOnce(true);
   try {
-    const messagesResponse1 = await fetch('http://localhost:5206/api/Message/SendMessage', {
+    const messagesResponse1 = await fetch('https://livechatbackend-xwgx.onrender.com/api/Message/SendMessage', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -1201,7 +1201,7 @@ const handleConversationClick = async (convId,recpientId,Name,LastName,onlineSta
     return;
   } 
   try {
-    const messagesResponse = await fetch(`http://localhost:5206/api/Message/GetConversationMessage?query=${convId}`, {
+    const messagesResponse = await fetch(`https://livechatbackend-xwgx.onrender.com/api/Message/GetConversationMessage?query=${convId}`, {
       method: 'GET',
       headers: {
         'Content-Type': 'application/json',
@@ -1302,7 +1302,7 @@ const handleDeleteMessage = async (messageId) => {
   setIsDeletingMessage(true);
   setIsDeletingMessageId(messageId);
   try {
-    const response = await fetch(`http://localhost:5206/api/Message/DeleteMessage?deleteMessage=${messageId}`, {
+    const response = await fetch(`https://livechatbackend-xwgx.onrender.com/api/Message/DeleteMessage?deleteMessage=${messageId}`, {
       method: 'DELETE',
       headers: {
         'Content-Type': 'application/json',
@@ -1391,7 +1391,7 @@ const handleDeleteConversation = async (convIdPara,otherUserId) => {
   setIsDeletingConv(true);
   setIsDeletingConvId(convIdPara);
   try {
-    const response = await fetch('http://localhost:5206/api/Message/DeleteConversation', {
+    const response = await fetch('https://livechatbackend-xwgx.onrender.com/api/Message/DeleteConversation', {
       method: 'DELETE',
       headers: {
         'Content-Type': 'application/json',
@@ -1450,7 +1450,7 @@ const handleDeleteConversation = async (convIdPara,otherUserId) => {
 };
 const zeroNotification = async (messageId) => {
   try {
-    const response = await fetch(`http://localhost:5206/api/Message/zeroNotificationMID?messageId=${messageId}`, {
+    const response = await fetch(`https://livechatbackend-xwgx.onrender.com/api/Message/zeroNotificationMID?messageId=${messageId}`, {
       method: 'PUT',
       headers: {
         'Content-Type': 'application/json',
@@ -1469,7 +1469,7 @@ const zeroNotification = async (messageId) => {
 };
 const zeroNotificationCID = async (convIdPara) => {
   try {
-    const response = await fetch(`http://localhost:5206/api/Message/zeroNotificationCID?convIdPara=${convIdPara}`, {
+    const response = await fetch(`https://livechatbackend-xwgx.onrender.com/api/Message/zeroNotificationCID?convIdPara=${convIdPara}`, {
       method: 'PUT',
       headers: {
         'Content-Type': 'application/json',
@@ -1494,7 +1494,7 @@ const handleEditSubmit = async (e) => {
   }
 
   try {
-    const response = await fetch(`http://localhost:5206/api/Message/EditMessage`, {
+    const response = await fetch(`https://livechatbackend-xwgx.onrender.com/api/Message/EditMessage`, {
       method: 'PUT',
       headers: {
         'Content-Type': 'application/json',
@@ -1560,7 +1560,7 @@ const handleEditMessage = (message) => {
 const deleteAccount = () => {
   if (window.confirm('Are you sure you want to delete this item?')) {
     setIsLoadingModal(true); // Set loading state to true before making the API call
-fetch('http://localhost:5206/api/Users/DeleteAccount', {
+fetch('https://livechatbackend-xwgx.onrender.com/api/Users/DeleteAccount', {
   method: 'DELETE',
   headers: {
     'Content-Type': 'application/json',
@@ -1623,7 +1623,7 @@ const handleBioChange = (e) => {
 const handleSubmitProfile = (e) => {
   e.preventDefault();
   setIsLoadingModal(true); // Set loading state to true before making the API call
-  fetch('http://localhost:5206/api/UserProfile/UpdatUserProfile', {
+  fetch('https://livechatbackend-xwgx.onrender.com/api/UserProfile/UpdatUserProfile', {
     method: 'PUT',
     headers: {
       'Content-Type': 'application/json',
@@ -1694,7 +1694,7 @@ if (newPassword.length < 5) {
   return; // Stop form submission if password is invalid
 }
 setIsLoadingModal(true); // Set loading state to true before making the API call
-fetch('http://localhost:5206/api/Users/ChangePassword', {
+fetch('https://livechatbackend-xwgx.onrender.com/api/Users/ChangePassword', {
   method: 'POST',
   headers: {
     'Content-Type': 'application/json',
@@ -1884,7 +1884,7 @@ recorderRef.current.stopRecording(async () => {
   
   
     try {
-      const messagesResponse1 = await fetch('http://localhost:5206/api/Message/SendMessage', {
+      const messagesResponse1 = await fetch('https://livechatbackend-xwgx.onrender.com/api/Message/SendMessage', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -2292,7 +2292,7 @@ const handleRemoveClick = async () => {
   console.log("curr Index",currentImageIndex);
   console.log("currIndex Backend",profilePicturesArray.length - currentImageIndex -1);
   try {
-    const messagesResponse1 = await fetch(`http://localhost:5206/api/UserProfile/DeleteProfilePic?urlId=${ profilePicturesArray.length - currentImageIndex -1 }`, {
+    const messagesResponse1 = await fetch(`https://livechatbackend-xwgx.onrender.com/api/UserProfile/DeleteProfilePic?urlId=${ profilePicturesArray.length - currentImageIndex -1 }`, {
       method: 'DELETE',
       headers: {
         'Content-Type': 'application/json',
@@ -2333,7 +2333,7 @@ const handleSetToMainClick = async () => {
 
   setIsDeletingProfilePic(true);
   try {
-    const messagesResponse1 = await fetch(`http://localhost:5206/api/UserProfile/MainProfilePic?urlId=${ profilePicturesArray.length - currentImageIndex -1 }`, {
+    const messagesResponse1 = await fetch(`https://livechatbackend-xwgx.onrender.com/api/UserProfile/MainProfilePic?urlId=${ profilePicturesArray.length - currentImageIndex -1 }`, {
       method: 'PUT',
       headers: {
         'Content-Type': 'application/json',
@@ -2413,7 +2413,7 @@ const handleFileChange = async (event) => {
       // Add a temporary message with a loading icon
       
       try {
-      const messagesResponse1 = await fetch('http://localhost:5206/api/Message/SendMessage', {
+      const messagesResponse1 = await fetch('https://livechatbackend-xwgx.onrender.com/api/Message/SendMessage', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -2573,7 +2573,7 @@ const handleFileChange = async (event) => {
     const downloadURL = await getDownloadURL(storageRef);
     
     try {
-      const messagesResponse1 = await fetch('http://localhost:5206/api/UserProfile/AddProfilePic', {
+      const messagesResponse1 = await fetch('https://livechatbackend-xwgx.onrender.com/api/UserProfile/AddProfilePic', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -2699,7 +2699,7 @@ const toggleDarkMode = async () => {
   sessionStorage.setItem('Dark', !temp);
   
   try {
-    const response = await fetch(`http://localhost:5206/api/Users/LightDark?value=${!temp}`, {
+    const response = await fetch(`https://livechatbackend-xwgx.onrender.com/api/Users/LightDark?value=${!temp}`, {
       method: 'PUT',
       headers: {
         'Content-Type': 'application/json',

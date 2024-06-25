@@ -49,7 +49,7 @@ function SignUp() {
       return;
     }
     setIsLoading(true); // Set loading state to true before making the API call
-    fetch('http://localhost:5206/api/Users/registerOne', {
+    fetch('https://livechatbackend-xwgx.onrender.com/api/Users/registerOne', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json'
@@ -94,7 +94,7 @@ function SignUp() {
       return; 
     }
     setIsLoading(true); // Set loading state to true before making the API call
-    fetch('http://localhost:5206/api/Users/registerTwo', {
+    fetch('https://livechatbackend-xwgx.onrender.com/api/Users/registerTwo', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json'

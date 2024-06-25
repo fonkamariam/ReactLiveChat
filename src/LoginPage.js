@@ -31,8 +31,8 @@ function LoginPage() {
       return; // Stop form submission if password is invalid
     }
     setIsLoading(true); // Set loading state to true before making the API call
-    console.log("loggin in...");
-    fetch('http://localhost:5206/api/Users/login', {
+    console.log("loggin in..."); 
+    fetch('https://livechatbackend-xwgx.onrender.com/api/Users/login', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json'

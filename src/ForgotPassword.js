@@ -27,7 +27,7 @@ function ForgotPassword () {
   const handleSubmitForgot = (e) => {
     e.preventDefault();
     setIsLoading(true); // Set loading state to true before making the API call
-    fetch('http://localhost:5206/api/Users/ForgotPassword', {
+    fetch('https://livechatbackend-xwgx.onrender.com/api/Users/ForgotPassword', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json'
@@ -96,7 +96,7 @@ function ForgotPassword () {
       return;
     }
     setIsLoading(true); // Set loading state to true before making the API call
-    fetch('http://localhost:5206/api/Users/UpdatePasswordThroughCode', {
+    fetch('https://livechatbackend-xwgx.onrender.com/api/Users/UpdatePasswordThroughCode', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json'
