@@ -94,7 +94,7 @@ function ForgotPassword () {
       setErrorMessage("Password Doesn't Match");
       clearErrorMessageAfterDelay();
       return;
-    }
+    } 
     setIsLoading(true); // Set loading state to true before making the API call
     fetch('https://livechatbackend-xwgx.onrender.com/api/Users/UpdatePasswordThroughCode', {
       method: 'POST',
