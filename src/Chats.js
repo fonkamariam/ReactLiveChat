@@ -3204,11 +3204,21 @@ useEffect(() => {
                               <FontAwesomeIcon icon={faSpinner} spin className="mr-2" />
                             ) : (
                               isAudioDownloaded(message.id) ? (
-                                <button onClick={() => handlePlayAudio(message.content, message.id)} className="mr-2">
+                                <button onClick={() => handlePlayAudio(message.content, message.id)} 
+                                onTouchEnd={() => {
+                                  //console.log("Play button touched");
+                                  handlePlayAudio(message.content, message.id);
+                                }}  
+                                className="mr-2 phone-icon text-lg sm:text-2xl">
                                   <FontAwesomeIcon icon={isPlaying && currentAudioId === message.id ? faPause : faPlay} />
                                 </button>
                               ) : (
-                                <button onClick={() => handleDownloadAudio(message.content, message.id)} className="mr-2">
+                                <button onClick={() => handleDownloadAudio(message.content, message.id)} 
+                                onTouchEnd={() => {
+                                  //console.log("Play button touched");
+                                  handlePlayAudio(message.content, message.id);
+                                }} 
+                                className="mr-2 phone-icon text-lg sm:text-2xl">
                                   <FontAwesomeIcon icon={faCloudDownload} />
                                 </button>
                               )
@@ -3292,11 +3302,21 @@ useEffect(() => {
                         <FontAwesomeIcon icon={faSpinner} spin className="mr-2" />
                       ) : (
                         isAudioDownloaded(message.id) ? (
-                          <button onClick={() => handlePlayAudio(message.content, message.id)} className="mr-2">
+                          <button onClick={() => handlePlayAudio(message.content, message.id)}
+                          onTouchEnd={() => {
+                            //console.log("Play button touched");
+                            handlePlayAudio(message.content, message.id);
+                          }}  
+                          className="mr-2 phone-icon text-lg sm:text-2xl">
                             <FontAwesomeIcon icon={isPlaying && currentAudioId === message.id ? faPause : faPlay} />
                           </button>
                         ) : (
-                          <button onClick={() => handleDownloadAudio(message.content, message.id)} className="mr-2">
+                          <button onClick={() => handleDownloadAudio(message.content, message.id)} 
+                          onTouchEnd={() => {
+                            //console.log("Play button touched");
+                            handlePlayAudio(message.content, message.id);
+                          }}  
+                          className="mr-2 phone-icon text-lg sm:text-2xl">
                             <FontAwesomeIcon icon={faCloudDownload} />
                           </button>
                         )
