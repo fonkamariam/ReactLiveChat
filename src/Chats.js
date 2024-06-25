@@ -955,19 +955,18 @@ useEffect(() => async ()=>{
         const data = await response.json();  
         setIsLoading(false);
         setConversations(data);  // Update Converstaion data state 
-        
       } else {
         let errorMessage = 'An error occurred';
         if (response.status === 401) {
-          errorMessage = 'Unauthorized Get All Conv';
+          errorMessage = 'Unauthorized';
         } else if (!response.ok) {
-          errorMessage = 'Connection problem Get All Conv';
+          errorMessage = 'Connection problem ';
         }
         showToast(errorMessage);
         throw new Error('Failed to fetch user data');
       }
     } catch (error) {
-    showToast("Connection Refused Get All Conv");
+    showToast("Connection Refused");
     }
   };
   // Fetch Contacts
