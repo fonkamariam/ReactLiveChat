@@ -3776,8 +3776,8 @@ useEffect(() => {
                 <div className="flex justify-between items-center">
                   <div>
                     <div className="text-lg font-semibold">
-                      {truncateText( `${result.name}`, 8)} {truncateText( `${result.lastName}`, 4)}
-                          
+                      {truncateText( `${result.name}`, 12)}
+                   
                       <span className={`ml-2 inline-block w-3 h-3 rounded-full ${result.status === 'true' ? 'bg-green-500' : 'bg-gray-500'}`}></span>
                         
                       </div>
@@ -3849,11 +3849,12 @@ useEffect(() => {
                         Saved Messages
                         </>
                       ):(
-                      <div className="text-lg font-semibold">
-                          {truncateText( `${conversation.userName}`, 6)} {truncateText( `${conversation.lastName}`, 4)}
                       
-                          <span className={`ml-2 inline-block w-3 h-3 rounded-full ${conversation.status === 'true' ? 'bg-green-500' : 'bg-gray-500'}`}></span>
-                        </div>
+                      <div className="text-lg font-semibold">
+                      {truncateText(`${conversation.userName}`, 6)}{' '}
+                      {conversation.lastName ? truncateText(`${conversation.lastName}`, 4) : ''}
+                      <span className={`ml-2 inline-block w-3 h-3 rounded-full ${conversation.status === 'true' ? 'bg-green-500' : 'bg-gray-500'}`}></span>
+                    </div> 
                       )}
                         
                         {conversation.isAudio && (<div className="text-sm text-gray-500">Voice Message</div>)}
@@ -3927,7 +3928,7 @@ useEffect(() => {
                 </>
               ):(
               <>
-              {selectedName} {selectedLastName}
+              {selectedName} {selectedLastName ? selectedLastName : ''}
               </>
               )}
               
