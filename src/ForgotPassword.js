@@ -37,20 +37,19 @@ function ForgotPassword () {
     .then(response => {
       if (response.ok) {
         setIsLoading(false);
-        console.log(`Verification Sent to ${email}`);
         setActiveTab('V_ForgotPassword'); // Navigate to the verifySignU
         
-      } else if (response.status === 10) {
+      } else if (response.status === 400) {
         // Handle bad request
         setIsLoading(false);
         setErrorMessage('Invalid Email');
         clearErrorMessageAfterDelay();
-      }else if (response.status === 20) {
+      }else if (response.status === 401) {
         // Handle bad request
         setIsLoading(false);
         setErrorMessage('Couldnt Send Email,check if email is valid and try again');
         clearErrorMessageAfterDelay();
-      } else if (response.status ===30) {
+      } else if (response.status ===500) {
         // Handle other errors
         setIsLoading(false);
         setErrorMessage('Connection Problem. Please try again.');
@@ -58,7 +57,7 @@ function ForgotPassword () {
       }else{
         console.log(response.json());
         setIsLoading(false);
-        setErrorMessage('I dont what problem it is, check Backend');
+        setErrorMessage('Connection Problem');
         clearErrorMessageAfterDelay();
       } 
     })
@@ -115,7 +114,7 @@ function ForgotPassword () {
         setTimeout(() => {
           navigate(`/`); // Redirect the user after displaying the error message
         }, 2000); // Redirect after 3 seconds (adjust the delay as needed)
-      }else if (response.status === 10) { 
+      }else if (response.status === 400) { 
         // Handle bad request
         setIsLoading(false);
         setErrorMessage('Invalid Email or Expired'); 
@@ -123,7 +122,7 @@ function ForgotPassword () {
         setTimeout(() => {
           navigate(`/forgotpassword`); // Redirect the user after displaying the error message
         }, 2000); // Redirect after 3 seconds (adjust the delay as needed)
-      }else if (response.status === 20) {
+      }else if (response.status === 401) {
         // Handle bad request
         setIsLoading(false);
         setErrorMessage('Invalid Number or Verification Number Expired,Try again');

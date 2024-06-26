@@ -63,12 +63,12 @@ function SignUp() {
         setgoodMessage("");
         setActiveTab('V_SignUp')
         
-      } else if (response.status === 10) {
+      } else if (response.status === 400) {
         // Handle bad request
         setIsLoading(false);
         setErrorMessage('Email already in use');
         clearErrorMessageAfterDelay();
-      }else if (response.status === 20) {
+      }else if (response.status === 401) {
         // Handle bad request
         setIsLoading(false);
         setErrorMessage('Could not Send Email, Try again later');
@@ -110,12 +110,12 @@ function SignUp() {
       if (response.ok) {
         console.log('OK');
         return response.json();
-      }else if (response.status === 10) {
+      }else if (response.status === 400) {
         // Handle bad request
         setIsLoading(false);
         setErrorMessage('Incorrect Verification Number'); 
         clearErrorMessageAfterDelay();
-      }else if (response.status === 20) {
+      }else if (response.status === 401) {
         // Handle bad request
         setIsLoading(false);
         setErrorMessage('Verification Number Expired,Try again');
@@ -125,7 +125,7 @@ function SignUp() {
         }, 2000); // Redirect after 3 seconds (adjust the delay as needed)
       } else {
         setIsLoading(false);
-        setErrorMessage('Connection Problem. Please try again.Backend');
+        setErrorMessage('Connection Problem. Please try again.');
         clearErrorMessageAfterDelay(); // Set error message for the user
         }
     }).then(data => {

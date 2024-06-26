@@ -31,7 +31,6 @@ function LoginPage() {
       return; // Stop form submission if password is invalid
     }
     setIsLoading(true); // Set loading state to true before making the API call
-    console.log("loggin in..."); 
     fetch('https://livechatbackend-xwgx.onrender.com/api/Users/login', {
       method: 'POST',
       headers: {
@@ -43,14 +42,13 @@ function LoginPage() {
       }) 
     }).then(response => {
       if (response.ok) {
-        console.log('OK');
         return response.json(); 
-      }else if (response.status === 10) {
+      }else if (response.status === 400) {
         // Handle bad request
         setIsLoading(false);
         setErrorMessage('Email Invalid'); 
         clearErrorMessageAfterDelay();
-      }else if (response.status === 20) {
+      }else if (response.status === 401) {
         // Handle bad request
         
         setIsLoading(false);
@@ -58,7 +56,6 @@ function LoginPage() {
         clearErrorMessageAfterDelay();
         
       } else { 
-        console.log("here");
         setIsLoading(false);
         setErrorMessage('Connection Problem. Please try again.'); 
         clearErrorMessageAfterDelay(); // Set error message for the user
@@ -89,7 +86,7 @@ function LoginPage() {
       
     }).catch(error => {
       setIsLoading(false);
-      setErrorMessage('Connection Problem. Fetch Error.');
+      setErrorMessage('Connection Problem.');
       clearErrorMessageAfterDelay(); // Set error message for the user
     }); 
     
