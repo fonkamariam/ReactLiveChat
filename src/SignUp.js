@@ -227,10 +227,11 @@ function SignUp() {
             
            <button className='buttonSignUp' onClick={backToSignUp}>Back to registration form</button>
             <button className='buttonSignUp' disabled={isLoading}>Enter</button>
-          </form>
-          {isLoading && <p className='isLoading'>Loading...</p>}
+            {isLoading && <p className='isLoading'>Loading...</p>}
           {errorMessage && <p className='errorMessage' style={{ color: 'red' }}>{errorMessage}</p>}
-        </div>
+        
+          </form>
+          </div>
         )}
       </div>
      
