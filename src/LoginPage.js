@@ -63,13 +63,16 @@ function LoginPage() {
     }).then(data => {
       if (data ) {
       sessionStorage.setItem('userId', data.id);
-      console.log("Logged In");
       sessionStorage.setItem('Token', data.token); 
       sessionStorage.setItem('RefreshToken',data.refreshToken);
       sessionStorage.setItem('RefreshTokenExpiry',data.refreshTokenExpiry)
       sessionStorage.setItem('Name',data.name);
-      sessionStorage.setItem('LastName',data.lastName);
-      sessionStorage.setItem('Bio',data.bio );
+      if (data.lastName !== null){ sessionStorage.setItem('LastName',data.lastName);
+    }else {sessionStorage.setItem('LastName','');
+  }
+      if(data.bio!==null){sessionStorage.setItem('Bio',data.bio );
+    }else{sessionStorage.setItem('Bio','' );
+    }
       sessionStorage.setItem('Dark',data.dark);
       if(data.profilePicture !== null){
         sessionStorage.setItem('ProfilePic', JSON.stringify(data.profilePicture));  
