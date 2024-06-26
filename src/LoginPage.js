@@ -32,7 +32,7 @@ function LoginPage() {
     }
     setIsLoading(true); // Set loading state to true before making the API call
     console.log("loggin in..."); 
-    fetch('https://livechatbackend-xwgx.onrender.com:8080/api/Users/login', {
+    fetch('https://livechatbackend-xwgx.onrender.com/api/Users/login', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json'

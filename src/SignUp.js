@@ -8,7 +8,7 @@ function SignUp() {
   const [email, setEmailPara] = useState('');
   const [errorMessage, setErrorMessage] = useState('');
   const [password,setPassword]=useState('');
-  const [rePassword, setRePassword]=useState('');
+  const [rePassword, setRePassword]=useState(''); 
   const [isLoading, setIsLoading] = useState(false);
   const [code, setCode] = useState('');
   
