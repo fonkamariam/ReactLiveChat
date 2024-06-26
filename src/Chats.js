@@ -2919,10 +2919,10 @@ useEffect(() => {
                     )}
                   </div>
                 </div>
-                <h2 className="text-2xl font-semibold text-center mb-2">{selectedName} {selectedLastName}</h2>
+                <h2 className="text-2xl font-semibold text-center mb-2">{selectedName} {selectedLastName ? selectedLastName : ''}</h2>
                 <p className="text-center text-gray-500 mb-4">{selectedEmail}</p>
                 
-                <p className="text-center mb-4"><strong>Bio: </strong><br />{selectedBio}</p>
+                <p className="text-center mb-4"><strong>Bio: </strong><br />{selectedBio ? selectedBio : ''}</p>
                 
                 <div className="flex justify-center">
                   <button
