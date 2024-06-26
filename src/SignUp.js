@@ -197,9 +197,11 @@ function SignUp() {
                 onChange={handleRePasswordChange} 
                 disabled={isLoading} // Disable input field while loading
             />
+            <button className='buttonSignUp' disabled={isLoading}>Register</button>
+
             <p>You have an account? </p>
             <button className='login'><Link to="/">Login</Link></button>
-            <button className='buttonSignUp' disabled={isLoading}>Register</button>
+            
           
           {errorMessage && <p className='errorMessage'>{errorMessage}</p>}
           {goodMessage && <p className='goodMessage'>{goodMessage}</p>}
@@ -225,8 +227,9 @@ function SignUp() {
             />
             
             
-           <button className='buttonSignUp' onClick={backToSignUp}>Back to registration form</button>
             <button className='buttonSignUp' disabled={isLoading}>Enter</button>
+            <button className='buttonSignUp' onClick={backToSignUp}>Back to registration form</button>
+           
             {isLoading && <p className='isLoading'>Loading...</p>}
           {errorMessage && <p className='errorMessage' style={{ color: 'red' }}>{errorMessage}</p>}
         
