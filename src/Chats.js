@@ -757,10 +757,12 @@ function Chats() {
     });
   }, [handleMessageQueue]);
 
- const fetchMissedUpdates = useCallback(() =>{
+ /*
+  const fetchMissedUpdates = useCallback(() =>{
     
-
+ console.log("fetching Missed Updates");
  });
+ */
   const handleConnectionLost = useCallback(() => {
     console.log("handle Connection Lost function");
     showToast('Connection Lost');
@@ -795,7 +797,7 @@ function Chats() {
       connection.start()
         .then(result => {
           clearReconnectTimeout();
-          fetchMissedUpdates();
+          //fetchMissedUpdates();
           console.log('Connected! Start');
           connection.on('ReceiveMessage', async message => {
             messageQueue.current.push(message);
