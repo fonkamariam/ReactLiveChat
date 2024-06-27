@@ -757,11 +757,18 @@ function Chats() {
     });
   }, [handleMessageQueue]);
 
-  
+ const fetchMissedUpdates = useCallback(() =>{
+    
+
+ });
   const handleConnectionLost = useCallback(() => {
+    console.log("handle Connection Lost function");
+    showToast('Connection Lost');
+    /*
     reconnectTimeoutRef.current = setTimeout(() => {
       showToast('Connection lost. Attempting to reconnect...');
     }, 5000); // 5000ms = 5 seconds, adjust as needed
+    */
   }, [showToast]);
 
   const clearReconnectTimeout = () => {
@@ -788,7 +795,8 @@ function Chats() {
       connection.start()
         .then(result => {
           clearReconnectTimeout();
-          // console.log('Connected!');
+          fetchMissedUpdates();
+          console.log('Connected! Start');
           connection.on('ReceiveMessage', async message => {
             messageQueue.current.push(message);
             processMessages();
@@ -861,11 +869,13 @@ function Chats() {
           });
 
           connection.onclose(() => {
+            console.log("Connection Closed");
             handleConnectionLost();
           });
         })
         .catch(e => {
           showToast('WebSocket failed');
+          console.log("Connection Failed");
           handleConnectionLost();
         });
     }
@@ -874,6 +884,7 @@ function Chats() {
     return () => {
       if (connection) {
         connection.stop();
+        console.log("Connection Stopped");
       }
       clearReconnectTimeout();
     };
@@ -915,8 +926,6 @@ useEffect(() => {
     document.removeEventListener('visibilitychange', handleVisibilityChange);
   };
 }, [connection, handleConnectionLost, processMessages, showToast]);
-
-
 
 // JavaScript visiblity Change
   /** UseEffects End ws Connection*/
@@ -985,7 +994,7 @@ useEffect(() => {
     setIsOffline(false);
     //console.log("ONLINE");
     // Reload the page when the user comes back online
-    window.location.reload();
+    //window.location.reload();
   };
 
   useEffect(() => {
@@ -1826,7 +1835,6 @@ const stopCurrentAudio = () => {
 useEffect(() => {
   stopCurrentAudio();
 }, [selectedConversation]);
-
 const handleStartRecording = async () => {
   try {
     const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
@@ -2213,7 +2221,6 @@ useEffect(() => {
 const handleImageClick = (src) => {
   setFullImagePicture(src);
 };
-
 const closeFullImagePic = () =>{
    setFullImagePicture(null);
    setFullImageOTHER(null);
@@ -2235,11 +2242,9 @@ const closeFullscreenImage = () => {
   setCurrentImageIndex(0);
   setIsDropdownOpen(false); // Close dropdown when fullscreen mode is closed
 };
-
 const handleNextImage = () => {
   setCurrentImageIndex((prevIndex) => (prevIndex + 1) % profilePicturesArray.length);
 };
-
 const handlePrevImage = () => {
   setCurrentImageIndex((prevIndex) => (prevIndex - 1 + profilePicturesArray.length) % profilePicturesArray.length);
 };
@@ -2922,7 +2927,7 @@ useEffect(() => {
                 <h2 className="text-2xl font-semibold text-center mb-2">{selectedName} {selectedLastName ? selectedLastName : ''}</h2>
                 <p className="text-center text-gray-500 mb-4">{selectedEmail}</p>
                 
-                <p className="text-center mb-4"><strong>Bio: </strong><br />{selectedBio ? selectedBio : ''}</p>
+                <p className="text-center mb-4"><strong> Bio: </strong><br />{selectedBio ? selectedBio : ''}</p>
                 
                 <div className="flex justify-center">
                   <button
