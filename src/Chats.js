@@ -891,16 +891,17 @@ function Chats() {
       clearReconnectTimeout();
     };
   }, [connection, handleConnectionLost, processMessages, showToast]);
+ 
   useEffect(() => {
     const handleVisibilityChange = async () => {
       try {
         if (document.visibilityState === 'visible') {
-          if (connection.state !== signalR.HubConnectionState.Connected) {
+          if (connection) {
             console.log("Visibility changed to visible, notifying server.");
             await connection.invoke ('VisibilityChanged', 'visible');
           }
         } else {
-          if (connection.state === signalR.HubConnectionState.Connected) {
+          if (connection) {
             console.log("Visibility changed to hidden, notifying server.");
             await connection.invoke('VisibilityChanged', 'hidden');
           }
