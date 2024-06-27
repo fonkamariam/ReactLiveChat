@@ -125,9 +125,7 @@ function LoginPage() {
 
       <p>You don't have an account?</p>
       <button disabled={isLoading} className='login'> <Link to="/SignUp">Register</Link></button>
-
-      <p disabled={isLoading} className='login'><Link to="/forgotpassword">ForgotPassword</Link></p>
-        
+      <button disabled={isLoading} className='login'> <Link to="/forgotpassword">ForgotPassword</Link></button>  
           
       {errorMessage && <p className='errorMessage'>{errorMessage}</p>}
       {isLoading && <p className='isLoading'>Loading...</p>}
