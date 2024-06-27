@@ -2,7 +2,7 @@
 import React, { useState ,useEffect,useRef,useMemo } from 'react';
 import { useNavigate} from 'react-router-dom';
 import { HttpTransportType, HubConnectionBuilder } from "@microsoft/signalr";                   
-import * as signalR from '@microsoft/signalr';
+//import * as signalR from '@microsoft/signalr';
 import { toast, ToastContainer } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
 import { useCallback } from 'react';
