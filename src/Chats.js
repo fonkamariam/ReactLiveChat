@@ -798,7 +798,7 @@ function Chats() {
         .then(result => {
           clearReconnectTimeout();
           //fetchMissedUpdates();
-          console.log('Connected! Start');
+          console.log('Connected Initial! Start');
           connection.on('ReceiveMessage', async message => {
             messageQueue.current.push(message);
             processMessages();
@@ -871,7 +871,7 @@ function Chats() {
           });
 
           connection.onclose(() => {
-            console.log("Connection Closed");
+            console.log("Initial Connection Closed");
             handleConnectionLost();
           });
         })
@@ -886,7 +886,7 @@ function Chats() {
     return () => {
       if (connection) {
         connection.stop();
-        console.log("Connection Stopped");
+        console.log("Initial Connection Stopped");
       }
       clearReconnectTimeout();
     };
@@ -898,10 +898,13 @@ useEffect(() => {
     if (document.visibilityState === 'visible') {
       if (connection.state === signalR.HubConnectionState.Disconnected) {
         try {
+          console.log("visiblity connection start");
           await connection.start();
           
       
         } catch (error) {
+          console.log("visiblity connection error");
+          
           console.error('Error starting connection:', error);
           showToast(error);
         }
@@ -911,6 +914,8 @@ useEffect(() => {
     } else {
       if (connection.state === signalR.HubConnectionState.Connected) {
         try {
+          console.log("visiblity connection stop");
+          
           await connection.stop();
           
         } catch (error) {
@@ -987,12 +992,19 @@ useEffect(() => {
 
 /** Fetching Conversation End */
 
-  const handleOffline = () => {
+  const handleOffline = async () => {
     setIsOffline(true);
+    await connection.stop();
+    console.log("OFFLINE stop");
+    
     //console.log("OFFLINE");
   };
 
-  const handleOnline = () => {
+  const handleOnline = async () => {
+    await connection.start();
+    console.log("ONLINE start");
+    
+          
     setIsOffline(false);
     //console.log("ONLINE");
     // Reload the page when the user comes back online
