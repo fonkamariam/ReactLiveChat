@@ -991,25 +991,17 @@ useEffect(() => {
 }, [showToast]);
 
 /** Fetching Conversation End */
+const handleOffline = useCallback(async () => {
+  setIsOffline(true);
+  await connection.stop();
+  console.log("OFFLINE stop");
+}, [connection]);
 
-  const handleOffline = async () => {
-    setIsOffline(true);
-    await connection.stop();
-    console.log("OFFLINE stop");
-    
-    //console.log("OFFLINE");
-  };
-
-  const handleOnline = async () => {
-    await connection.start();
-    console.log("ONLINE start");
-    
-          
-    setIsOffline(false);
-    //console.log("ONLINE");
-    // Reload the page when the user comes back online
-    //window.location.reload();
-  };
+const handleOnline = useCallback(async () => {
+  await connection.start();
+  console.log("ONLINE start");
+  setIsOffline(false);
+}, [connection]);
 
   useEffect(() => {
     window.addEventListener('offline', handleOffline);
@@ -1019,7 +1011,7 @@ useEffect(() => {
       window.removeEventListener('offline', handleOffline);
       window.removeEventListener('online', handleOnline);
     };
-  }, []);
+  }, [handleOffline,handleOnline]);
 
 // for searching user by email
 useEffect(() => {
