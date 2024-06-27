@@ -891,48 +891,33 @@ function Chats() {
       clearReconnectTimeout();
     };
   }, [connection, handleConnectionLost, processMessages, showToast]);
-
-
-useEffect(() => {
-  const handleVisibilityChange = async () => {
-    if (document.visibilityState === 'visible') {
-      if (connection.state === signalR.HubConnectionState.Disconnected) {
-        try {
-          console.log("visiblity connection start");
-          connection.invoke('VisibilityChanged', 'visible');
-          
-      
-        } catch (error) {
-          console.log("visiblity connection error");
-          
-          console.error('Error starting connection:', error);
-          showToast(error);
+  useEffect(() => {
+    const handleVisibilityChange = async () => {
+      try {
+        if (document.visibilityState === 'visible') {
+          if (connection.state !== signalR.HubConnectionState.Connected) {
+            console.log("Visibility changed to visible, notifying server.");
+            await connection.invoke ('VisibilityChanged', 'visible');
+          }
+        } else {
+          if (connection.state === signalR.HubConnectionState.Connected) {
+            console.log("Visibility changed to hidden, notifying server.");
+            await connection.invoke('VisibilityChanged', 'hidden');
+          }
         }
-      } else {
-        
+      } catch (error) {
+        console.error('Error during visibility change:', error);
+        showToast(error);
       }
-    } else {
-      if (connection.state === signalR.HubConnectionState.Connected) {
-        try {
-          console.log("visiblity connection stop");
-          
-          connection.invoke('VisibilityChanged', 'hidden');
-          
-        } catch (error) {
-          //console.error('Error stopping connection:', error);
-        }
-      } else {
-        //console.log('Connection is already disconnected.');
-      }
-    }
-  };
-
-  document.addEventListener('visibilitychange', handleVisibilityChange);
-
-  return () => {
-    document.removeEventListener('visibilitychange', handleVisibilityChange);
-  };
-}, [connection, handleConnectionLost, processMessages, showToast]);
+    };
+  
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+  
+    return () => {
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+    };
+  }, [connection, showToast]);
+  
 
 // JavaScript visiblity Change
   /** UseEffects End ws Connection*/
