@@ -899,7 +899,7 @@ useEffect(() => {
       if (connection.state === signalR.HubConnectionState.Disconnected) {
         try {
           console.log("visiblity connection start");
-          await connection.start();
+          connection.invoke('VisibilityChanged', 'visible');
           
       
         } catch (error) {
@@ -916,7 +916,7 @@ useEffect(() => {
         try {
           console.log("visiblity connection stop");
           
-          await connection.stop();
+          connection.invoke('VisibilityChanged', 'hidden');
           
         } catch (error) {
           //console.error('Error stopping connection:', error);
@@ -993,12 +993,12 @@ useEffect(() => {
 /** Fetching Conversation End */
 const handleOffline = useCallback(async () => {
   setIsOffline(true);
-  await connection.stop();
+  connection.invoke('OnlineOffline', false);
   console.log("OFFLINE stop");
 }, [connection]);
 
 const handleOnline = useCallback(async () => {
-  await connection.start();
+  connection.invoke('OnlineOffline', true);
   console.log("ONLINE start");
   setIsOffline(false);
 }, [connection]);
@@ -1046,8 +1046,9 @@ const handleLogOut = (e) =>{
   
   navigate(`/`);
     sessionStorage.clear();
+    //localStorage.clear();
     if (connection) {
-      connection.stop().then(() => console.log('Disconnected due to tab change or minimization'));
+      connection.stop().then(() => console.log('Disconnected due to LOGOUT'));
     }
     
 
