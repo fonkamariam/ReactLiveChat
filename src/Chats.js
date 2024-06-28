@@ -908,7 +908,7 @@ function Chats() {
         }
       } catch (error) {
         console.error('Error during visibility change:', error);
-        showToast(error);
+        window.location.reload();
       }
     };
   
@@ -984,9 +984,9 @@ const handleOffline = useCallback(async () => {
 }, [connection]);
 
 const handleOnline = useCallback(async () => {
+  setIsOffline(false);
   connection.invoke('OnlineOffline', true);
   console.log("ONLINE start");
-  setIsOffline(false);
 }, [connection]);
 
   useEffect(() => {
@@ -1034,7 +1034,9 @@ const handleLogOut = (e) =>{
     sessionStorage.clear();
     //localStorage.clear();
     if (connection) {
-      connection.stop().then(() => console.log('Disconnected due to LOGOUT'));
+      connection.invoke('UserLoggingOut');
+      console.log("Invoked Log out");
+      //connection.stop().then(() => console.log('Disconnected due to LOGOUT'));
     }
     
 
