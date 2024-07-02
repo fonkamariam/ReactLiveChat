@@ -196,6 +196,7 @@ function Chats() {
   },[]);
   
   const handleMessageQueue = useCallback(async (message) => {
+    console.log(message);
     if (message.type === 'INSERT') { 
       //set Conversation state
       let contentRefined = message.record.content;
@@ -800,6 +801,8 @@ function Chats() {
   
     // Process messages
     if (messageQueue.current.length > 0) {
+      console.log('Message Queue');
+                    
       const message = messageQueue.current.shift();
       handleMessageQueue(message).finally(() => {
         isProcessing.current = false;
@@ -809,6 +812,8 @@ function Chats() {
   
     // Process user profiles
     if (userProfileQueue.current.length > 0) {
+      console.log('UserProfile Queue');
+      
       const userProfile = userProfileQueue.current.shift();
       handleUserProfileQueue(userProfile).finally(() => {
         isProcessing.current = false;
@@ -818,6 +823,8 @@ function Chats() {
   
     // Process conversations
     if (conversationQueue.current.length > 0) {
+      console.log('conversation Queue');
+      
       const conversation = conversationQueue.current.shift();
       handleConversationQueue(conversation).finally(() => {
         isProcessing.current = false;
@@ -827,6 +834,8 @@ function Chats() {
   
     // Process user status changes
     if (userStatusQueue.current.length > 0) {
+      console.log('online/offline Queue');
+      
       const userStatus = userStatusQueue.current.shift();
       handleUserStatusQueue(userStatus).finally(() => {
         isProcessing.current = false;
@@ -970,21 +979,27 @@ function Chats() {
                 console.log('Connected Initial! Start');
                 
                 connection.on('ReceiveMessage', message => {
+                    console.log('ReceiveMessage');
                     eventQueue.current.push({ type: 'ReceiveMessage', payload: message });
                     processEvents();
                 });
 
                 connection.on('Receive UserProfile', userPayLoad => {
+                  console.log('Receive UserProfile');
+                    
                     eventQueue.current.push({ type: 'ReceiveUserProfile', payload: userPayLoad });
                     processEvents();
                 });
 
                 connection.on('Receive Conversation', convPayLoad => {
+                  console.log('ReceiveConversation');
+                    
                     eventQueue.current.push({ type: 'ReceiveConversation', payload: convPayLoad });
                     processEvents();
                 });
 
                 connection.on('UserStatusChanged', (userId, isOnline) => {
+                    console.log('UserStatusChange');
                     eventQueue.current.push({ type: 'UserStatusChanged', payload: { userId, isOnline } });
                     processEvents();
                 });
