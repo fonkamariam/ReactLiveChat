@@ -124,6 +124,77 @@ function Chats() {
   const modalRef = useRef(null);
   const reconnectTimeoutRef = useRef(null);
   const messagesEndRef = useRef(null);
+  
+  const eventQueue = useRef([]);
+  //const isProcessingEvent = useRef(false);
+  const userProfileQueue = useRef([]);
+  const conversationQueue = useRef([]);
+  const userStatusQueue = useRef([]);
+  
+  const handleUserProfileQueue = useCallback(async (userProfile) => {
+    // Handle the user profile payload
+    setConversations(prevConversations => {
+      const updatedConversations = prevConversations.map(conversation => {
+        if (conversation.userId === userProfile.userId) {
+          let array = JSON.parse(userProfile.profilePic);
+          array = array.reverse();
+          return {
+            ...conversation,
+            userName: userProfile.name,
+            lastName: userProfile.lastName,
+            bio: userProfile.bio,
+            profilePicConv: array
+          };
+        }
+        return conversation;
+      });
+      return updatedConversations;
+    });
+  
+    if (selectedConversationRef.current !== null && selectedRecpIdRef.current === userProfile.userId) {
+      setSelectedName(userProfile.name);
+      setSelectedLastName(userProfile.lastName);
+      setSelectedBio(userProfile.bio);
+    }
+  },[]);
+  
+  const handleConversationQueue = useCallback( async (conversation) => {
+    // Handle the conversation payload
+    if (selectedConversationRef.current === conversation.convId) {
+      setMessages([]);
+      setConversations(prevConversations => {
+        const updatedConversations1 = prevConversations
+          .filter(Xconversation => Xconversation.convId !== conversation.convId)
+          .sort((a, b) => new Date(b.updatedTime) - new Date(a.updatedTime));
+        return updatedConversations1;
+      });
+  
+      setSelectedConversation(null);
+      setForSearchUser(false);
+      setSelectedRecpientId(null);
+    } else {
+      setConversations(prevConversations => {
+        const updatedConversations1 = prevConversations
+          .filter(Xconversation => Xconversation.convId !== conversation.convId)
+          .sort((a, b) => new Date(b.updatedTime) - new Date(a.updatedTime));
+        return updatedConversations1;
+      });
+    }
+  },[]);
+  
+  const handleUserStatusQueue = useCallback( async (userStatus) => {
+    // Handle the user status payload
+    setConversations(prevConversations => {
+      const updatedConversations = prevConversations.map(conversation => {
+        if (conversation.userId === userStatus.userId) {
+          return { ...conversation, status: String(userStatus.isActive), lastSeen: new Date(userStatus.lastSeen) };
+        }
+        return conversation;
+      });
+      return updatedConversations;
+    });
+  },[]);
+  
   const handleMessageQueue = useCallback(async (message) => {
     if (message.type === 'INSERT') { 
       //set Conversation state
@@ -145,7 +216,7 @@ function Chats() {
      
       
       if (conversationsRef.current.length === 0 || existingConversation1 === false ) {
-        console.log("HHHHHHHHHH");
+        //console.log("HHHHHHHHHH");
         // Notification count if 0 and 1
         if(selectedConversationRef.current === null && selectedRecpIdRef.current === message.record.senderId){
           console.log("here first sc null");
@@ -715,7 +786,105 @@ function Chats() {
     }else{
       console.log("Problem Message not upd,del,ins");
     }
-  }, []); // Add dependencies if any
+  }, []);
+
+  const processEvents = useCallback(() => {
+    if (isProcessing.current) return;
+    
+    if (messageQueue.current.length === 0 && userProfileQueue.current.length === 0 && conversationQueue.current.length === 0 && userStatusQueue.current.length === 0) {
+      isProcessing.current = false;
+      return;
+    }
+  
+    isProcessing.current = true;
+  
+    // Process messages
+    if (messageQueue.current.length > 0) {
+      const message = messageQueue.current.shift();
+      handleMessageQueue(message).finally(() => {
+        isProcessing.current = false;
+        processEvents();
+      });
+    }
+  
+    // Process user profiles
+    if (userProfileQueue.current.length > 0) {
+      const userProfile = userProfileQueue.current.shift();
+      handleUserProfileQueue(userProfile).finally(() => {
+        isProcessing.current = false;
+        processEvents();
+      });
+    }
+  
+    // Process conversations
+    if (conversationQueue.current.length > 0) {
+      const conversation = conversationQueue.current.shift();
+      handleConversationQueue(conversation).finally(() => {
+        isProcessing.current = false;
+        processEvents();
+      });
+    }
+  
+    // Process user status changes
+    if (userStatusQueue.current.length > 0) {
+      const userStatus = userStatusQueue.current.shift();
+      handleUserStatusQueue(userStatus).finally(() => {
+        isProcessing.current = false;
+        processEvents();
+      });
+    }
+  }, [handleMessageQueue,handleUserProfileQueue,handleUserStatusQueue,handleConversationQueue]);
+  
+  const fetchMissedUpdates = useCallback( async () => {
+    try {
+      const response = await fetch('https://livechatbackend-xwgx.onrender.com/api/Message/GetMissedPayloads', {
+        method: 'GET',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${sessionStorage.getItem('Token')}`
+        }
+      });
+  
+      if (response.ok) {
+        const data = await response.json();
+  
+        data.forEach(update => {
+          switch (update.type) {
+            case 'INSERT':
+              if (update.table === 'Messages') {
+                messageQueue.current.push(update.record);
+              }
+              break;
+            case 'UPDATE':
+              if (update.table === 'UserProfile') {
+                userProfileQueue.current.push(update.record);
+              }
+              break;
+            case 'DELETE':
+              if (update.table === 'Conversation') {
+                conversationQueue.current.push(update.old_record);
+              }
+              break;
+            default:
+              break;
+          }
+        });
+  
+        // Handle user status updates
+        data.forEach(update => {
+          if (update.key) {
+            userStatusQueue.current.push({ userId: update.key, ...update.value });
+          }
+        });
+  
+        processEvents();
+      } else {
+        throw new Error('Failed to fetch missed updates');
+      }
+    } catch (error) {
+      console.error('Error fetching missed updates:', error);
+    }
+  },[processEvents]);
 
   const showToast = useCallback((message) => {
     toast.error(message, {
@@ -757,20 +926,14 @@ function Chats() {
     });
   }, [handleMessageQueue]);
 
- /*
-  const fetchMissedUpdates = useCallback(() =>{
-    
- console.log("fetching Missed Updates");
- });
- */
   const handleConnectionLost = useCallback(() => {
     console.log("handle Connection Lost function");
-    showToast('Connection Lost');
-    /*
+    //showToast('Connection Lost');
+    
     reconnectTimeoutRef.current = setTimeout(() => {
       showToast('Connection lost. Attempting to reconnect...');
     }, 5000); // 5000ms = 5 seconds, adjust as needed
-    */
+    
   }, [showToast]);
 
   const clearReconnectTimeout = () => {
@@ -794,104 +957,53 @@ function Chats() {
 
   useEffect(() => {
     if (connection) {
-      connection.start()
-        .then(result => {
-          clearReconnectTimeout();
-          //fetchMissedUpdates();
-          console.log('Connected Initial! Start');
-          connection.on('ReceiveMessage', async message => {
-            messageQueue.current.push(message);
-            processMessages();
-          });
+        connection.start()
+            .then(result => {
+                clearReconnectTimeout();
+                fetchMissedUpdates();
+                console.log('Connected Initial! Start');
+                
+                connection.on('ReceiveMessage', message => {
+                    eventQueue.current.push({ type: 'ReceiveMessage', payload: message });
+                    processEvents();
+                });
 
-          connection.on('Receive UserProfile', userPayLoad => {
-            setConversations(prevConversations => {
-              const updatedConversations = prevConversations.map(conversation => {
-                if (conversation.userId === userPayLoad.record.userId) {
-                  let array = JSON.parse(userPayLoad.record.profilePic);
-                  array = array.reverse();
-                  return {
-                    ...conversation,
-                    userName: userPayLoad.record.name,
-                    lastName: userPayLoad.record.lastName,
-                    bio: userPayLoad.record.bio,
-                    status: userPayLoad.record.status,
-                    profilePicConv: array,
-                    lastSeen: userPayLoad.record.lastSeen,
-                  };
-                }
-                return conversation;
-              });
-              return updatedConversations;
+                connection.on('Receive UserProfile', userPayLoad => {
+                    eventQueue.current.push({ type: 'ReceiveUserProfile', payload: userPayLoad });
+                    processEvents();
+                });
+
+                connection.on('Receive Conversation', convPayLoad => {
+                    eventQueue.current.push({ type: 'ReceiveConversation', payload: convPayLoad });
+                    processEvents();
+                });
+
+                connection.on('UserStatusChanged', (userId, isOnline) => {
+                    eventQueue.current.push({ type: 'UserStatusChanged', payload: { userId, isOnline } });
+                    processEvents();
+                });
+
+                connection.onclose(() => {
+                    console.log("Initial Connection Closed");
+                    handleConnectionLost();
+                });
+            })
+            .catch(e => {
+                showToast('WebSocket failed');
+                console.log("Connection Failed");
+                handleConnectionLost();
             });
-
-            if (selectedConversationRef.current !== null && selectedRecpIdRef.current === userPayLoad.record.userId) {
-              setSelectedName(userPayLoad.record.name);
-              setSelectedLastName(userPayLoad.record.lastName);
-              setSelectedBio(userPayLoad.record.bio);
-              setSelectedOnlineStatus(userPayLoad.record.status);
-              setSelectedLastSeen(userPayLoad.record.lastSeen);
-            }
-          });
-
-          connection.on('Receive Conversation', convPayLoad => {
-            if (selectedConversationRef.current === convPayLoad.old_record.convId) {
-              setMessages([]);
-              setConversations(prevConversations => {
-                const updatedConversations1 = prevConversations
-                  .filter(conversation => conversation.convId !== convPayLoad.old_record.convId)
-                  .sort((a, b) => new Date(b.updatedTime) - new Date(a.updatedTime));
-                return updatedConversations1;
-              });
-
-              setSelectedConversation(null);
-              setForSearchUser(false);
-              setSelectedRecpientId(null);
-            } else {
-              setConversations(prevConversations => {
-                const updatedConversations1 = prevConversations
-                  .filter(conversation => conversation.convId !== convPayLoad.old_record.convId)
-                  .sort((a, b) => new Date(b.updatedTime) - new Date(a.updatedTime));
-                return updatedConversations1;
-              });
-            }
-          });
-
-          connection.on('UserStatusChanged', (userId, isOnline) => {
-            setConversations(prevConversations => {
-              const updatedConversations = prevConversations.map(conversation => {
-                if (conversation.userId === userId) {
-                  let time = new Date();
-                  return { ...conversation, status: String(isOnline), lastSeen: time };
-                }
-                return conversation;
-              });
-              return updatedConversations;
-            });
-          });
-
-          connection.onclose(() => {
-            console.log("Initial Connection Closed");
-            handleConnectionLost();
-          });
-        })
-        .catch(e => {
-          showToast('WebSocket failed');
-          console.log("Connection Failed");
-          handleConnectionLost();
-        });
     }
 
-    // Cleanup on unmount
     return () => {
-      if (connection) {
-        connection.stop();
-        console.log("Initial Connection Stopped");
-      }
-      clearReconnectTimeout();
+        if (connection) {
+            connection.stop();
+            console.log("Initial Connection Stopped");
+        }
+        clearReconnectTimeout();
     };
-  }, [connection, handleConnectionLost, processMessages, showToast]);
- 
+}, [connection, handleConnectionLost, processMessages, showToast, processEvents,fetchMissedUpdates]);
+
   useEffect(() => {
     const handleVisibilityChange = async () => {
       try {
@@ -979,9 +1091,9 @@ useEffect(() => {
 /** Fetching Conversation End */
 const handleOffline = useCallback(async () => {
   setIsOffline(true);
-  connection.invoke('OnlineOffline', false);
+  //connection.invoke('OnlineOffline', false);
   console.log("OFFLINE stop");
-}, [connection]);
+}, []);
 
 const handleOnline = useCallback(async () => {
   setIsOffline(false);
@@ -1041,6 +1153,8 @@ const handleLogOut = (e) =>{
     
 
 };
+
+
 const handleMessage = (e) =>{
   if (!isLoadingMessage){
   setSendMessage(e.target.value);
