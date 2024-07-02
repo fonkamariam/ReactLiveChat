@@ -187,7 +187,7 @@ function Chats() {
     setConversations(prevConversations => {
       const updatedConversations = prevConversations.map(conversation => {
         if (conversation.userId === userStatus.userId) {
-          return { ...conversation, status: String(userStatus.isActive), lastSeen: new Date(userStatus.lastSeen) };
+          return { ...conversation, status: String(userStatus.isOnline), lastSeen: new Date(userStatus.lastSeen) };
         }
         return conversation;
       });
@@ -834,9 +834,10 @@ function Chats() {
   
     // Process user status changes
     if (userStatusQueue.current.length > 0) {
-      console.log('online/offline Queue');
       
       const userStatus = userStatusQueue.current.shift();
+      console.log('online/offline Queue',userStatus.payload);
+      
       handleUserStatusQueue(userStatus.payload).finally(() => {
         isProcessing.current = false;
         processEvents();
