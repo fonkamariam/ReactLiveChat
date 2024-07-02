@@ -125,7 +125,7 @@ function Chats() {
   const reconnectTimeoutRef = useRef(null);
   const messagesEndRef = useRef(null);
   
-  const eventQueue = useRef([]);
+  //const eventQueue = useRef([]);
   //const isProcessingEvent = useRef(false);
   const userProfileQueue = useRef([]);
   const conversationQueue = useRef([]);
@@ -982,27 +982,27 @@ function Chats() {
                 
                 connection.on('ReceiveMessage', message => {
                     console.log('ReceiveMessage',message);
-                    eventQueue.current.push({ type: 'ReceiveMessage', payload: message });
+                    messageQueue.current.push({ type: 'ReceiveMessage', payload: message });
                     processEvents();
                 });
 
                 connection.on('Receive UserProfile', userPayLoad => {
                   console.log('Receive UserProfile');
                     
-                    eventQueue.current.push({ type: 'ReceiveUserProfile', payload: userPayLoad });
+                    userProfileQueue.current.push({ type: 'ReceiveUserProfile', payload: userPayLoad });
                     processEvents();
                 });
 
                 connection.on('Receive Conversation', convPayLoad => {
                   console.log('ReceiveConversation');
                     
-                    eventQueue.current.push({ type: 'ReceiveConversation', payload: convPayLoad });
+                    conversationQueue.current.push({ type: 'ReceiveConversation', payload: convPayLoad });
                     processEvents();
                 });
 
                 connection.on('UserStatusChanged', (userId, isOnline) => {
                     console.log('UserStatusChange');
-                    eventQueue.current.push({ type: 'UserStatusChanged', payload: { userId, isOnline } });
+                    userStatusQueue.current.push({ type: 'UserStatusChanged', payload: { userId, isOnline } });
                     processEvents();
                 });
 
