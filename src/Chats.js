@@ -196,7 +196,7 @@ function Chats() {
   },[]);
   
   const handleMessageQueue = useCallback(async (message) => {
-    console.log(message);
+    
     if (message.type === 'INSERT') { 
       //set Conversation state
       let contentRefined = message.record.content;
@@ -862,18 +862,18 @@ function Chats() {
           switch (update.type) {
             case 'INSERT':
               if (update.table === 'Messages') {
-                messageQueue.current.push(update.record);
+                messageQueue.current.push({ type: 'ReceiveMessage', payload: update });
               }
               break;
             case 'UPDATE':
               if (update.table === 'UserProfile') {
-                userProfileQueue.current.push(update.record);
+                userProfileQueue.current.push({ type: 'ReceiveUserProfile', payload: update });
               }
               break;
             case 'DELETE':
               if (update.table === 'Conversation') {
-                conversationQueue.current.push(update.old_record);
-              }
+                conversationQueue.current.push({ type: 'ReceiveConversation', payload: update });
+               }
               break;
             default:
               break;
@@ -883,7 +883,8 @@ function Chats() {
         // Handle user status updates
         data.forEach(update => {
           if (update.key) {
-            userStatusQueue.current.push({ userId: update.key, ...update.value });
+            userStatusQueue.current.push({ type: 'UserStatusChanged', payload : { userId:update.key, isOnline:update.value } });
+            
           }
         });
   
