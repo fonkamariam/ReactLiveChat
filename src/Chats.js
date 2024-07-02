@@ -790,6 +790,8 @@ function Chats() {
   }, []);
 
   const processEvents = useCallback(() => {
+    console.log("ProcessEvent Called");
+    console.log("messageQueue",messageQueue.current);
     if (isProcessing.current) return;
     
     if (messageQueue.current.length === 0 && userProfileQueue.current.length === 0 && conversationQueue.current.length === 0 && userStatusQueue.current.length === 0) {
