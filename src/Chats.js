@@ -4002,7 +4002,7 @@ useEffect(() => {
                       </span>{' '}
                       {conversation.lastName ? 
                       <span style={{ fontSize: '0.80em' }}>
-                          {truncateText(`${conversation.lastName}`, 7)}
+                          {truncateText(`${conversation.lastName}`, 10)}
                         </span> : ''}
                       <span className={`ml-2 inline-block w-3 h-3 rounded-full ${conversation.status === 'true' ? 'bg-green-500' : 'bg-gray-500'}`}></span>
                     </div> 
