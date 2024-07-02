@@ -822,7 +822,7 @@ function Chats() {
       console.log('UserProfile Queue');
       
       const userProfile = userProfileQueue.current.shift();
-      handleUserProfileQueue(userProfile.payload).finally(() => {
+      handleUserProfileQueue(userProfile.payload.record).finally(() => {
         isProcessing.current = false;
         processEvents();
       });
@@ -833,7 +833,7 @@ function Chats() {
       console.log('conversation Queue');
       
       const conversation = conversationQueue.current.shift();
-      handleConversationQueue(conversation.payload).finally(() => {
+      handleConversationQueue(conversation.payload.record).finally(() => {
         isProcessing.current = false;
         processEvents();
       });
