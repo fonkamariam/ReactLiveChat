@@ -806,7 +806,7 @@ function Chats() {
       console.log('Message Queue');
                     
       const message = messageQueue.current.shift();
-      handleMessageQueue(message).finally(() => {
+      handleMessageQueue(message.payload).finally(() => {
         isProcessing.current = false;
         processEvents();
       });
@@ -817,7 +817,7 @@ function Chats() {
       console.log('UserProfile Queue');
       
       const userProfile = userProfileQueue.current.shift();
-      handleUserProfileQueue(userProfile).finally(() => {
+      handleUserProfileQueue(userProfile.payload).finally(() => {
         isProcessing.current = false;
         processEvents();
       });
@@ -828,7 +828,7 @@ function Chats() {
       console.log('conversation Queue');
       
       const conversation = conversationQueue.current.shift();
-      handleConversationQueue(conversation).finally(() => {
+      handleConversationQueue(conversation.payload).finally(() => {
         isProcessing.current = false;
         processEvents();
       });
@@ -839,7 +839,7 @@ function Chats() {
       console.log('online/offline Queue');
       
       const userStatus = userStatusQueue.current.shift();
-      handleUserStatusQueue(userStatus).finally(() => {
+      handleUserStatusQueue(userStatus.payload).finally(() => {
         isProcessing.current = false;
         processEvents();
       });
