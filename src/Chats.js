@@ -889,7 +889,7 @@ function Chats() {
       console.log("False New feature fetching Missed Updates");
       setIsOffline(false);
     }
-  },[processEvents,isOffline]);
+  },[processEvents,setIsOffline]);
 
   const showToast = useCallback((message) => {
     toast.error(message, {
