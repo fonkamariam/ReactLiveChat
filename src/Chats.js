@@ -887,7 +887,7 @@ function Chats() {
 
     } finally {
       console.log("False New feature fetching Missed Updates");
-      isOffline(false);
+      setIsOffline(false);
     }
   },[processEvents,isOffline]);
 
