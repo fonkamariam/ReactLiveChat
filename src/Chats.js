@@ -3997,8 +3997,13 @@ useEffect(() => {
                       ):(
                       
                       <div className="text-lg font-semibold">
-                      {truncateText(`${conversation.userName}`, 6)}{' '}
-                      {conversation.lastName ? truncateText(`${conversation.lastName}`, 4) : ''}
+                      <span style={{ fontSize: '0.85em' }}>
+                        {truncateText(`${conversation.userName}`, 6)}
+                      </span>{' '}
+                      {conversation.lastName ? 
+                      <span style={{ fontSize: '0.85em' }}>
+                          {truncateText(`${conversation.lastName}`, 4)}
+                        </span> : ''}
                       <span className={`ml-2 inline-block w-3 h-3 rounded-full ${conversation.status === 'true' ? 'bg-green-500' : 'bg-gray-500'}`}></span>
                     </div> 
                       )}
