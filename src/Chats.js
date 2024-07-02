@@ -834,7 +834,7 @@ function Chats() {
       });
     }
   }, [handleMessageQueue,handleUserProfileQueue,handleUserStatusQueue,handleConversationQueue]);
-  
+
   const fetchMissedUpdates = useCallback( async () => {
     try {
       const response = await fetch('https://livechatbackend-xwgx.onrender.com/api/Message/GetMissedPayloads', {
@@ -883,8 +883,13 @@ function Chats() {
       }
     } catch (error) {
       console.error('Error fetching missed updates:', error);
+      window.location.reload();
+
+    } finally {
+      console.log("False New feature fetching Missed Updates");
+      isOffline(false);
     }
-  },[processEvents]);
+  },[processEvents,isOffline]);
 
   const showToast = useCallback((message) => {
     toast.error(message, {
@@ -960,6 +965,7 @@ function Chats() {
         connection.start()
             .then(result => {
                 clearReconnectTimeout();
+                setIsOffline(true);
                 fetchMissedUpdates();
                 console.log('Connected Initial! Start');
                 
