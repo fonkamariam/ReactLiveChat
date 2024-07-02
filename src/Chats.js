@@ -2797,7 +2797,7 @@ const handleOverlayClick = (e) => {
 };
 const truncateText = (text, maxLength) => {
   if (text.length > maxLength) {
-    return text.slice(0, maxLength) + 'e';
+    return text.slice(0, maxLength);
   }
   return text;
 };
@@ -4002,7 +4002,7 @@ useEffect(() => {
                       </span>{' '}
                       {conversation.lastName ? 
                       <span style={{ fontSize: '0.80em' }}>
-                          {truncateText(`${conversation.lastName}`, 6)}
+                          {truncateText(`${conversation.lastName}`, 7)}
                         </span> : ''}
                       <span className={`ml-2 inline-block w-3 h-3 rounded-full ${conversation.status === 'true' ? 'bg-green-500' : 'bg-gray-500'}`}></span>
                     </div> 
