@@ -186,8 +186,8 @@ function Chats() {
     // Handle the user status payload
     setConversations(prevConversations => {
       const updatedConversations = prevConversations.map(conversation => {
-        if (conversation.userId === userStatus.userId) {
-          return { ...conversation, status: String(userStatus.isOnline), lastSeen: new Date(userStatus.lastSeen) };
+        if (conversation.userId === Number(userStatus.userId)) {
+          return { ...conversation, status: String(userStatus.isOnline), lastSeen: userStatus.lastSeen };
         }
         return conversation;
       });
@@ -883,7 +883,7 @@ function Chats() {
         // Handle user status updates
         data.forEach(update => {
           if (update.key) {
-            userStatusQueue.current.push({ type: 'UserStatusChanged', payload : { userId:update.key, isOnline:update.value } });
+            userStatusQueue.current.push({ type: 'UserStatusChanged', payload : { userId:update.key, isOnline:update.value.isActive,lastSeen:update.value.lastSeen } });
             
           }
         });
@@ -1000,9 +1000,9 @@ function Chats() {
                     processEvents();
                 });
 
-                connection.on('UserStatusChanged', (userId, isOnline) => {
+                connection.on('UserStatusChanged', (userId, isOnline,lastSeen) => {
                     console.log('UserStatusChange');
-                    userStatusQueue.current.push({ type: 'UserStatusChanged', payload: { userId, isOnline } });
+                    userStatusQueue.current.push({ type: 'UserStatusChanged', payload: { userId, isOnline,lastSeen } });
                     processEvents();
                 });
 
