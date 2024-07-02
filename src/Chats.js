@@ -974,12 +974,12 @@ function Chats() {
         connection.start()
             .then(result => {
                 clearReconnectTimeout();
-                setIsOffline(true);
-                fetchMissedUpdates();
+                //setIsOffline(true);
+                //fetchMissedUpdates();
                 console.log('Connected Initial! Start');
                 
                 connection.on('ReceiveMessage', message => {
-                    console.log('ReceiveMessage');
+                    console.log('ReceiveMessage',message);
                     eventQueue.current.push({ type: 'ReceiveMessage', payload: message });
                     processEvents();
                 });
