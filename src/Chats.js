@@ -1016,11 +1016,14 @@ function Chats() {
         if (document.visibilityState === 'visible') {
           if (connection) {
             console.log("Visibility changed to visible, notifying server.");
+            fetchMissedUpdates();
             await connection.invoke ('VisibilityChanged', 'visible');
           }
         } else {
           if (connection) {
             console.log("Visibility changed to hidden, notifying server.");
+            setIsOffline(true);
+            
             await connection.invoke('VisibilityChanged', 'hidden');
           }
         }
@@ -1035,7 +1038,7 @@ function Chats() {
     return () => {
       document.removeEventListener('visibilitychange', handleVisibilityChange);
     };
-  }, [connection, showToast]);
+  }, [connection, showToast,fetchMissedUpdates]);
   
 
 // JavaScript visiblity Change
@@ -1102,10 +1105,10 @@ const handleOffline = useCallback(async () => {
 }, []);
 
 const handleOnline = useCallback(async () => {
-  setIsOffline(false);
+  fetchMissedUpdates();
   connection.invoke('OnlineOffline', true);
   console.log("ONLINE start");
-}, [connection]);
+}, [connection,fetchMissedUpdates]);
 
   useEffect(() => {
     window.addEventListener('offline', handleOffline);
