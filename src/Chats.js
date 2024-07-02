@@ -195,7 +195,7 @@ function Chats() {
       });
       return updatedConversations;
     });
-    if (selectedConversationRef.current !== null && selectedRecpIdRef.current === userProfile.userId) {
+    if (selectedConversationRef.current !== null && selectedRecpIdRef.current === userStatus.userId) {
       setSelectedOnlineStatus(String(userStatus.isOnline));
       setSelectedLastSeen(userStatus.lastSeen);
 
