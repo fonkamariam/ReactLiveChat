@@ -133,9 +133,10 @@ function Chats() {
   
   const handleUserProfileQueue = useCallback(async (userProfile) => {
     // Handle the user profile payload
+    console.log(userProfile);
     setConversations(prevConversations => {
       const updatedConversations = prevConversations.map(conversation => {
-        if (conversation.userId === userProfile.userId) {
+        if (conversation.userId === Number(userProfile.userId)) {
           let array = JSON.parse(userProfile.profilePic);
           array = array.reverse();
           return {
@@ -155,6 +156,7 @@ function Chats() {
       setSelectedName(userProfile.name);
       setSelectedLastName(userProfile.lastName);
       setSelectedBio(userProfile.bio);
+
     }
   },[]);
   
@@ -193,6 +195,11 @@ function Chats() {
       });
       return updatedConversations;
     });
+    if (selectedConversationRef.current !== null && selectedRecpIdRef.current === userProfile.userId) {
+      setSelectedOnlineStatus(String(userStatus.isOnline));
+      setSelectedLastSeen(userStatus.lastSeen);
+
+    }
   },[]);
   
   const handleMessageQueue = useCallback(async (message) => {
@@ -836,7 +843,6 @@ function Chats() {
     if (userStatusQueue.current.length > 0) {
       
       const userStatus = userStatusQueue.current.shift();
-      console.log('online/offline Queue',userStatus.payload);
       
       handleUserStatusQueue(userStatus.payload).finally(() => {
         isProcessing.current = false;
