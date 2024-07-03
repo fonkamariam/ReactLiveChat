@@ -837,7 +837,7 @@ function Chats() {
       console.log('conversation Queue');
       
       const conversation = conversationQueue.current.shift();
-      handleConversationQueue(conversation.payload.record).finally(() => {
+      handleConversationQueue(conversation.payload.old_record).finally(() => {
         isProcessing.current = false;
         processEvents();
       });
@@ -953,12 +953,12 @@ function Chats() {
   }, [handleMessageQueue]);
 
   const handleConnectionLost = useCallback(() => {
-    console.log("handle Connection Lost function");
+    //console.log("handle Connection Lost function");
     //showToast('Connection Lost');
     
     reconnectTimeoutRef.current = setTimeout(() => {
       showToast('Connection lost. Attempting to reconnect...');
-    }, 5000); // 5000ms = 5 seconds, adjust as needed
+    }, 7000); // 5000ms = 5 seconds, adjust as needed
     
   }, [showToast]);
 
@@ -1022,7 +1022,7 @@ function Chats() {
                 });
             })
             .catch(e => {
-                showToast('WebSocket failed');
+                showToast('Connection Failed');
                 console.log("Connection Failed");
                 handleConnectionLost();
             });
