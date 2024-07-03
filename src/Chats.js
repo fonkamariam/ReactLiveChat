@@ -4478,11 +4478,11 @@ useEffect(() => {
             > 
               <FontAwesomeIcon icon={faSmile} />
         </button> 
-        {sendMessage.length ===0 && (<button disabled={isOffline} onClick={isRecording ? handleStopRecording : handleStartRecording} className={`btn ml-2 ${isDarkMode ? 'bg-gray-900 text-white' : 'bg-gray-100 text-black'} `}>
+        {(sendMessage.length ===0 && isOffline === false )&& (<button onClick={isRecording ? handleStopRecording : handleStartRecording} className={`btn ml-2 ${isDarkMode ? 'bg-gray-900 text-white' : 'bg-gray-100 text-black'} `}>
           <FontAwesomeIcon icon={isRecording ? faStop : faMicrophone} />
         </button>)}
             
-        {sendMessage.length !==0 && (<button onClick={handleSendMessage} disabled={sendMessage.length ===0 && isOffline}>
+        {(sendMessage.length !==0 && isOffline ===false) && (<button onClick={handleSendMessage} disabled={sendMessage.length ===0}>
           {isLoadingMessage ? <FontAwesomeIcon icon={faSpinner} spin /> : <FontAwesomeIcon icon={faPaperPlane} />}
         </button> )}
         
