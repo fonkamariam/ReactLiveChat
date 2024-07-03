@@ -2997,7 +2997,7 @@ useEffect(() => {
               maxLength={70}
             />
             
-            <div className="mb-4">
+            <div className="flex justify-center mt-4 mb-4">
             <button className="px-6 py-2 bg-blue-500 text-white rounded-lg" disabled={isLoadingModal}>
               Set
             </button>
@@ -3042,7 +3042,7 @@ useEffect(() => {
               /> 
               
              
-              <div className="mb-4">
+              <div className="flex justify-center mt-4 mb-4">
               <button className="px-6 py-2 bg-blue-500 text-white rounded-lg" disabled={isLoadingModal}>
                 Submit
               </button>
@@ -4458,6 +4458,7 @@ useEffect(() => {
           />
           <button
             onClick={() => fileInputRef.current.click()}
+            disabled={isOffline}
             className="btn btn-secondary ml-2"
           >
             <FontAwesomeIcon icon={faPaperclip} />
@@ -4477,11 +4478,11 @@ useEffect(() => {
             > 
               <FontAwesomeIcon icon={faSmile} />
         </button> 
-        {sendMessage.length ===0 && (<button onClick={isRecording ? handleStopRecording : handleStartRecording} className={`btn ml-2 ${isDarkMode ? 'bg-gray-900 text-white' : 'bg-gray-100 text-black'} `}>
+        {sendMessage.length ===0 && (<button disabled={isOffline} onClick={isRecording ? handleStopRecording : handleStartRecording} className={`btn ml-2 ${isDarkMode ? 'bg-gray-900 text-white' : 'bg-gray-100 text-black'} `}>
           <FontAwesomeIcon icon={isRecording ? faStop : faMicrophone} />
         </button>)}
             
-        {sendMessage.length !==0 && (<button onClick={handleSendMessage} disabled={sendMessage.length ===0}>
+        {sendMessage.length !==0 && (<button onClick={handleSendMessage} disabled={sendMessage.length ===0 && isOffline}>
           {isLoadingMessage ? <FontAwesomeIcon icon={faSpinner} spin /> : <FontAwesomeIcon icon={faPaperPlane} />}
         </button> )}
         
