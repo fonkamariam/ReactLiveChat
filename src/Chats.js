@@ -956,11 +956,8 @@ function Chats() {
     //console.log("handle Connection Lost function");
     //showToast('Connection Lost');
     
-    reconnectTimeoutRef.current = setTimeout(() => {
-      showToast('Connection lost. Attempting to reconnect...');
-    }, 7000); // 5000ms = 5 seconds, adjust as needed
     
-  }, [showToast]);
+  }, []);
 
   const clearReconnectTimeout = () => {
     if (reconnectTimeoutRef.current) {
@@ -1132,6 +1129,7 @@ const handleOffline = useCallback(async () => {
 }, []);
 
 const handleOnline = useCallback(async () => {
+  setIsOffline(true)
   fetchMissedUpdates();
   connection.invoke('OnlineOffline', true);
   console.log("ONLINE start");
@@ -2797,24 +2795,24 @@ const handleOverlayClick = (e) => {
   }
 };
 const truncateText = (firstName, lastName, b) => {
-  if ((firstName.length + lastName.length) <= 20) {
+  if ((firstName.length + lastName.length) <= 18) {
     if (b === 0) {
         return `${firstName}`;
     }
     return `${lastName}`;
     } else {
-        if (firstName.length === 20) {
+        if (firstName.length === 18) {
             if (b === 0) {
                 return `${firstName}`;
             }
             return '';
-        } else if (firstName.length > 20) {
+        } else if (firstName.length > 18) {
             if (b === 0) {
-                return `${firstName.substring(0, 17)}...`;
+                return `${firstName.substring(0, 15)}...`;
             }
             return '';
         } else {
-            const lastNameAllowed = 20 - firstName.length - 3;
+            const lastNameAllowed = 18 - firstName.length - 3;
             if (b === 1) {
                 return `${lastName.substring(0, lastNameAllowed)}...`;
             }
