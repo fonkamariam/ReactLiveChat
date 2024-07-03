@@ -201,7 +201,7 @@ function SignUp() {
 
             <p>You have an account? </p>
             
-            <button className='login'><Link to="/">Login</Link></button>
+            
       {isLoading ? (
           <button className='text-black font-bold mt-2' disabled>Login</button>
         ) : (
