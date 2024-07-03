@@ -3945,11 +3945,11 @@ useEffect(() => {
                   <div>
                     <div className="text-lg font-semibold">
                       <span style={{ fontSize: '0.80em' }}>
-                        {truncateText(`${result.name},${result.lastName}`, 0)}
+                        {truncateText(result.name,result.lastName,0)}
                       </span>{' '}
                       {result.lastName ? 
                       <span style={{ fontSize: '0.80em' }}>
-                          {truncateText(`${result.name},${result.lastName}`, 1)}
+                          {truncateText(result.name,result.lastName,0)}
                         </span> : ''}
                    
                       <span className={`ml-2 inline-block w-3 h-3 rounded-full ${result.status === 'true' ? 'bg-green-500' : 'bg-gray-500'}`}></span>
@@ -4033,11 +4033,12 @@ useEffect(() => {
                       
                       <div className="text-lg font-semibold">
                       <span style={{ fontSize: '0.80em' }}>
-                        {truncateText(`${conversation.userName},${conversation.lastName}`, 0)}
-                      </span>{' '}
+                        {truncateText(conversation.userName,conversation.lastName,0)}
+                        
+                      </span>
                       {conversation.lastName ? 
                       <span style={{ fontSize: '0.80em' }}>
-                          {truncateText(`${conversation.userName},${conversation.lastName}`, 1)}
+                          {truncateText(conversation.userName,conversation.lastName,1)}
                         </span> : ''}
                       <span className={`ml-2 inline-block w-3 h-3 rounded-full ${conversation.status === 'true' ? 'bg-green-500' : 'bg-gray-500'}`}></span>
                     </div> 
