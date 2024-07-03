@@ -158,6 +158,7 @@ function Chats() {
       setSelectedName(userProfile.name);
       setSelectedLastName(userProfile.lastName);
       setSelectedBio(userProfile.bio);
+      setSelectedDeleted(true);
 
     }
   },[]);
@@ -1720,12 +1721,11 @@ fetch('https://livechatbackend-xwgx.onrender.com/api/Users/DeleteAccount', {
   } 
 }).then(response => {
   if (response.ok) {
-    console.log('OK,Updated');
     setIsLoadingModal(false);
     setgoodMessage('Deleted');
     clearErrorMessageAfterDelay();
     setTimeout(() => {
-      handleLogOut();
+      //handleLogOut();
       navigate(`/`); // Redirect the user after displaying the error message
     }, 2000); // Redirect after 3 seconds (adjust the delay as needed)
   }else if (response.status === 10) { 
