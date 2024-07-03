@@ -34,6 +34,7 @@ function Chats() {
   const [selectedConversation, setSelectedConversation] = useState(null); // State for the selected conversation
   const [selectedRecpientId, setSelectedRecpientId] = useState(null);//for sending a message by id
   const [selectedName,setSelectedName]=useState(null);
+  const [selecteDeleted,setSelectedDeleted]= useState(false);
   const [selectedLastName,setSelectedLastName]=useState(null);
   const [editMessageId, setEditMessageId] = useState(null);
   const [editMessageContent, setEditMessageContent] = useState('');
@@ -133,7 +134,7 @@ function Chats() {
   
   const handleUserProfileQueue = useCallback(async (userProfile) => {
     // Handle the user profile payload
-    console.log(userProfile);
+    
     setConversations(prevConversations => {
       const updatedConversations = prevConversations.map(conversation => {
         if (conversation.userId === Number(userProfile.userId)) {
@@ -144,7 +145,8 @@ function Chats() {
             userName: userProfile.name,
             lastName: userProfile.lastName,
             bio: userProfile.bio,
-            profilePicConv: array
+            profilePicConv: array,
+            deleted: userProfile.deleted
           };
         }
         return conversation;
@@ -1310,7 +1312,7 @@ const handleSendMessage = async (e) => {
     showToast('Connection Refused');
   }
 };
-const handleConversationClick = async (convId,recpientId,Name,LastName,onlineStatus,lastSeen,bio,email,profilePicConv) => {
+const handleConversationClick = async (convId,recpientId,Name,LastName,onlineStatus,lastSeen,bio,email,profilePicConv,deletedPara) => {
   setIsLoading(true);
   setForSearchUser(false);
   setMessages([]);
@@ -1323,6 +1325,8 @@ const handleConversationClick = async (convId,recpientId,Name,LastName,onlineSta
   setSelectedBio(bio);
   setSelectedEmail(email);
   setSelectedProfilePic(profilePicConv);
+  setSelectedDeleted(deletedPara);
+
 
   
   const storedMessages = sessionStorage.getItem(`${convId}`);
@@ -3975,7 +3979,7 @@ useEffect(() => {
                   className={` group p-4 flex items-start ${selectedConversation === conversation.convId ? 'cursor-pointer' : 'cursor-pointer'}  ${selectedConversation && selectedConversation === conversation.convId ? (isDarkMode ? 'bg-gray-800' : 'bg-gray-300') : ''}`}
                   onClick={selectedConversation === conversation.convId ? null : () => { 
                     handleConversationChange(conversation.convId);
-                    handleConversationClick(conversation.convId, conversation.userId, conversation.userName, conversation.lastName, conversation.status, conversation.lastSeen, conversation.bio, conversation.email, conversation.profilePicConv);  
+                    handleConversationClick(conversation.convId, conversation.userId, conversation.userName, conversation.lastName, conversation.status, conversation.lastSeen, conversation.bio, conversation.email, conversation.profilePicConv,conversation.deleted);  
                   }}
                 
                 >
@@ -3998,7 +4002,7 @@ useEffect(() => {
                   </div>
                   ):(
                     <>
-                  {conversation.profilePicConv ? ( 
+                  {conversation.profilePicConv && conversation.deleted === false ? ( 
                   
                   <div className="w-16 h-16 rounded-full bg-blue-500 text-white flex items-center justify-center mr-3 text-lg font-semibold overflow-hidden">
                       <img src={conversation.profilePicConv.at(0)} alt={conversation.profilePicConv.at(0)} className="w-full h-full object-cover" />    
@@ -4014,7 +4018,15 @@ useEffect(() => {
                   )}
                   
                   <div className="flex-1">
-                    <div className="flex justify-between items-center">
+                    {conversation.deleted === true ? (
+                      <div className = 'flex justify-between items-center' >
+                      <div className="text-lg font-semibold">
+                        Deleted Account                  
+                      <span className={`ml-2 inline-block w-3 h-3 rounded-full bg-black`}></span>                   
+                    </div>
+                    </div>
+                    ):(
+                     <div className="flex justify-between items-center">
                       <div>
                       {conversation.userId === Number(sessionStorage.getItem('userId')) ?(
                         <>
@@ -4071,6 +4083,10 @@ useEffect(() => {
                         
                       </div>
                     </div>
+                    )}
+                    
+
+                    
                   </div>
               </div>
             ))}
@@ -4096,8 +4112,19 @@ useEffect(() => {
         
         {selectedConversation !== null || forSearchUser === true ? (
           <div className={`p-4 border-b ${isDarkMode ? 'bg-gray-900 text-white  border-gray-800' : 'bg-gray-100 text-black  border-gray-200'}`}>
-           
-          <div onClick={() => openUserModal()}  className="cursor-pointer">
+           {selecteDeleted === true ? (<div>
+             <h2 className = 'text-lg font-semibold'>
+              {selectedName} {selectedLastName ? selectedLastName : ''}
+              </h2>
+              <div className="text-sm text-gray-500">
+            
+              <>
+              Last seen a long time ago
+              </>
+            
+          </div>
+           </div>):(
+            <div onClick={() => openUserModal()}  className="cursor-pointer">
             <h2 className="text-lg font-semibold">
               {selectedRecpientId === Number(sessionStorage.getItem('userId'))?(
                 <>
@@ -4120,6 +4147,10 @@ useEffect(() => {
             )}
           </div>
           </div>
+           )}
+           
+          
+
           <div>
           {isPlaying && (
             <div className="flex justify-between mt-2">
@@ -4396,7 +4427,7 @@ useEffect(() => {
           
 
       {/* Input Field */}
-      { (selectedConversation!=null || forSearchUser === true) && isLoading!== true ? (
+      { (selectedConversation!=null || forSearchUser === true) && isLoading!== true && selecteDeleted === false? (
           <div className={`p-4 border-t flex items-center ${isDarkMode ? 'bg-gray-900 text-white  border-gray-800' : 'bg-gray-100 text-black  border-gray-200'}`}>
         
           {isRecording ?(
