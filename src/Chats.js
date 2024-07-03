@@ -139,7 +139,8 @@ function Chats() {
       const updatedConversations = prevConversations.map(conversation => {
         if (conversation.userId === Number(userProfile.userId)) {
           let array = JSON.parse(userProfile.profilePic);
-          array = array.reverse();
+          if (array !== null){array = array.reverse();}
+          
           return {
             ...conversation,
             userName: userProfile.name,
@@ -1566,12 +1567,8 @@ const handleDeleteConversation = async (convIdPara,otherUserId) => {
         setSelectedRecpientId(null);
         }
 
-      /**
-      if (selectedConversationRef.current === convIdPara ){
-        console.log("yesss");
-        setMessages([]);
-        setSelectedConversation(null);
-       }
+      
+      
         
       setConversations(prevConversations =>{
         const updatedConversations1 = prevConversations
@@ -1581,7 +1578,7 @@ const handleDeleteConversation = async (convIdPara,otherUserId) => {
         return updatedConversations1;
         });
       
-       */
+       
     } else {
       setIsDeletingConv(false);
       setIsDeletingConvId(null);
