@@ -97,14 +97,14 @@ function LoginPage() {
   }
   
   return (
-    <div className="formContainer">
+    <div className="h-screen flex items-center justify-center bg-blue-500">
   
-      <form className='formSignUp' onSubmit={handleSubmit}>
-      <span className='logo'>Fonkagram</span>
-      <span className='title'>Login</span>
+      <form className='bg-white p-5 rounded-lg flex flex-col items-center gap-4' onSubmit={handleSubmit}>
+      <span className='text-gray-700 text-lg font-bold'>Fonkagram</span>
+      <span className='text-gray-700 text-lg font-bold'>Login</span>
       <input 
           placeholder='Email'
-          className='emailInput'
+          className='p-3 w-64 border-b border-blue-500'
           type="email" 
           required 
           value={email} 
@@ -114,22 +114,35 @@ function LoginPage() {
            
         <input 
             placeholder='Password'
-            className='emailInput'
+            className='p-3 w-64 border-b border-blue-500'
             type="Password" 
             required 
             value={password} 
             onChange={handlePasswordChange} 
             disabled={isLoading} // Disable input field while loading
           />
-       <button className='buttonSignUp' disabled={isLoading}>Login</button>
+        <button className='bg-blue-500 text-black p-2 font-bold cursor-pointer' disabled={isLoading}>Login</button>
 
-      <p>You don't have an account?</p>
-      <button disabled={isLoading} className='login'> <Link to="/SignUp">Register</Link></button>
-      <button disabled={isLoading} className='login'> <Link to="/forgotpassword">ForgotPassword</Link></button>  
+          <p>You don't have an account?</p>
           
-      {errorMessage && <p className='errorMessage'>{errorMessage}</p>}
-      {isLoading && <p className='isLoading'>Loading...</p>}
-          
+       {isLoading ? (
+          <button className='text-black font-bold mt-2' disabled>Register</button>
+        ) : (
+          <Link to="/SignUp">
+            <button className='text-black font-bold mt-2'>Register</button>
+          </Link>
+        )}
+        {isLoading ? (
+          <button className='text-black font-bold mt-2' disabled>ForgotPassword</button>
+        ) : (
+          <Link to="/forgotpassword">
+            <button className='text-black font-bold mt-2'>ForgotPassword</button>
+          </Link>
+        )}
+              
+        {errorMessage && <p className='text-red-500 text-lg mt-2'>{errorMessage}</p>}
+        {isLoading && <p className='text-black text-sm mt-2'>Loading...</p>}
+            
       </form>
       </div>
   );

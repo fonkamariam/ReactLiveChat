@@ -150,7 +150,7 @@ function ForgotPassword () {
               <form className="w-full flex flex-col items-center gap-4" onSubmit={handleSubmitForgot}>
                 <span className="text-black font-bold text-2xl">Fonkagram</span>
                 <input
-                  className="w-full p-4 border-b border-blue-400 focus:outline-none"
+                  className="p-3 w-64 border-b border-blue-500"
                   placeholder="Email"
                   type="email"
                   required
@@ -161,13 +161,18 @@ function ForgotPassword () {
                 <button className="w-full bg-blue-400 text-black font-bold py-2 mt-4" disabled={isLoading}>
                   Submit
                 </button>
-                <p className="text-black font-bold mt-4">
-                  <Link to="/">Back to login page</Link>
-                </p>
-                {errorMessage && <p className="text-red-500">{errorMessage}</p>}
-                {goodMessage && <p className="text-green-500">{goodMessage}</p>}
-                {isLoading && <p className="text-blue-500">Loading...</p>}
-              </form>
+                
+        {isLoading ? (
+            <button className='text-black font-bold mt-2' disabled>Login</button>
+        ) : (
+          <Link to="/">
+            <button className='text-black font-bold mt-2'>Login</button>
+          </Link>
+        )}  
+        {errorMessage && <p className="text-red-500">{errorMessage}</p>}
+      {goodMessage && <p className="text-green-500">{goodMessage}</p>}
+      {isLoading && <p className="text-blue-500">Loading...</p>}
+    </form>
             )}
             
             {activeTab === 'V_ForgotPassword' && (
@@ -177,7 +182,7 @@ function ForgotPassword () {
                     <span className="text-black font-bold text-2xl">Fonkagram</span>
                     <span className="text-blue-900 text-lg font-bold">Register</span>
                     <input
-                      className="w-full p-4 border-b border-blue-400 focus:outline-none"
+                      className="p-3 w-64 border-b border-blue-500"
                       placeholder="Verification Number"
                       type="number"
                       required
@@ -186,7 +191,7 @@ function ForgotPassword () {
                       disabled={isLoading}
                     />
                     <input
-                      className="w-full p-4 border-b border-blue-400 focus:outline-none"
+                      className="p-3 w-64 border-b border-blue-500"
                       placeholder="New Password"
                       type="password"
                       required
@@ -203,12 +208,16 @@ function ForgotPassword () {
                       onChange={handleRePasswordChange}
                       disabled={isLoading}
                     />
-                    <button className="w-full bg-blue-400 text-black font-bold py-2 mt-4" disabled={isLoading}>
+                    <button className="bg-blue-500 text-black p-2 font-bold cursor-pointer" disabled={isLoading}>
                       Submit
                     </button>
-                    <p className="text-black font-bold mt-4">
-                      <Link to="/">Back to login page</Link>
-                    </p>
+              {isLoading ? (
+              <button className='text-black font-bold mt-2' disabled>Login</button>
+          ) : (
+            <Link to="/">
+              <button className='text-black font-bold mt-2'>Login</button>
+            </Link>
+          )}  
                     {errorMessage && <p className="text-red-500">{errorMessage}</p>}
                     {goodMessage && <p className="text-green-500">{goodMessage}</p>}
                     {isLoading && <p className="text-blue-500">Loading...</p>}

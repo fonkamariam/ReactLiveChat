@@ -1,4 +1,4 @@
-//import userEvent from '@testing-library/user-event';
+// https://fonkagram.netlify.app/
 import React, { useState ,useEffect,useRef,useMemo } from 'react';
 import { useNavigate} from 'react-router-dom';
 import { HttpTransportType, HubConnectionBuilder } from "@microsoft/signalr";                   
@@ -2795,11 +2795,32 @@ const handleOverlayClick = (e) => {
   setBio(sessionStorage.getItem('Bio'));
   }
 };
-const truncateText = (text, maxLength) => {
-  if (text.length > maxLength) {
-    return text.slice(0, maxLength);
-  }
-  return text;
+const truncateText = (firstName, lastName, b) => {
+  if ((firstName.length + lastName.length) <= 20) {
+    if (b === 0) {
+        return `${firstName}`;
+    }
+    return `${lastName}`;
+    } else {
+        if (firstName.length === 20) {
+            if (b === 0) {
+                return `${firstName}`;
+            }
+            return '';
+        } else if (firstName.length > 20) {
+            if (b === 0) {
+                return `${firstName.substring(0, 17)}...`;
+            }
+            return '';
+        } else {
+            const lastNameAllowed = 20 - firstName.length - 3;
+            if (b === 1) {
+                return `${lastName.substring(0, lastNameAllowed)}...`;
+            }
+            return `${firstName}`;
+        }
+    } 
+ 
 };
 
 useEffect(() => {
@@ -3899,7 +3920,7 @@ useEffect(() => {
             </div>
           )}
           {searchResultUser.length > 0 && searchQueryUser.length> 0 && ( 
-            <div className={`absolute top-full mt-1 w-full border-gray-300 rounded-md shadow-lg z-10 ${isDarkMode ? 'bg-gray-900 text-white' : 'bg-gray-100 text-black'}  `}> 
+            <div className={`absolute top-full mt-1 w-full border-gray-300 rounded-md shadow-lg z-10 ${isDarkMode ? 'bg-gray-900 text-white' : 'bg-gray-100 text-black'} style = {{ maxHeight: '20rem', overflowY: 'auto'}}  `}> 
               {searchResultUser.map(result => (
                 <div  
                 key={result.id}
@@ -3922,14 +3943,19 @@ useEffect(() => {
                 <div className="flex justify-between items-center">
                   <div>
                     <div className="text-lg font-semibold">
-                      {truncateText( `${result.name}`, 12)}
+                      <span style={{ fontSize: '0.80em' }}>
+                        {truncateText(`${result.name},${result.lastName}`, 0)}
+                      </span>{' '}
+                      {result.lastName ? 
+                      <span style={{ fontSize: '0.80em' }}>
+                          {truncateText(`${result.name},${result.lastName}`, 1)}
+                        </span> : ''}
                    
                       <span className={`ml-2 inline-block w-3 h-3 rounded-full ${result.status === 'true' ? 'bg-green-500' : 'bg-gray-500'}`}></span>
                         
                       </div>
                     <div className="text-sm text-gray-500">{result.email}</div>
                   </div>
-                  
                 </div>
               </div>
 
@@ -3998,20 +4024,20 @@ useEffect(() => {
                       
                       <div className="text-lg font-semibold">
                       <span style={{ fontSize: '0.80em' }}>
-                        {truncateText(`${conversation.userName}`, 11)}
+                        {truncateText(`${conversation.userName},${conversation.lastName}`, 0)}
                       </span>{' '}
                       {conversation.lastName ? 
                       <span style={{ fontSize: '0.80em' }}>
-                          {truncateText(`${conversation.lastName}`, 10)}
+                          {truncateText(`${conversation.userName},${conversation.lastName}`, 1)}
                         </span> : ''}
                       <span className={`ml-2 inline-block w-3 h-3 rounded-full ${conversation.status === 'true' ? 'bg-green-500' : 'bg-gray-500'}`}></span>
                     </div> 
                       )}
                         
-                        {conversation.isAudio && (<div className="text-sm text-gray-500">Voice Message</div>)}
-                        {conversation.isImage && (<div className="text-sm text-gray-500">Photo</div>)}
-                        {!conversation.isAudio && !conversation.isImage && (<div className="text-sm text-gray-500">{truncateText(conversation.message, 15)}</div>)}
-                        
+                    {conversation.isAudio && (<div className="text-sm text-gray-500">Voice Message</div>)}
+                    {conversation.isImage && (<div className="text-sm text-gray-500">Photo</div>)}
+                    {!conversation.isAudio && !conversation.isImage && (<div className="text-sm text-gray-500">{truncateText(conversation.message, 15)}</div>)}
+                    
                         
                       </div>
                       <div className="text-sm text-gray-500 text-right">

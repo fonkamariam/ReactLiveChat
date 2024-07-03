@@ -153,15 +153,15 @@ function SignUp() {
     setActiveTab('SignUp')
   }
  return (
-      <div className="contentSignUp">
+      <div className="h-screen flex items-center justify-center bg-blue-500">
         {activeTab === 'SignUp' && (
-          <div className="formContainer">
-          <form className='formSignUp' onSubmit={handleSubmitSignUp}>
-          <span className='logo'>Fonkagram</span>
-          <span className='title'>Register</span>
+          <div >
+          <form className='bg-white p-5 rounded-lg flex flex-col items-center gap-4' onSubmit={handleSubmitSignUp}>
+          <span className='text-gray-700 text-lg font-bold'>Fonkagram</span>
+          <span className='text-gray-700 text-lg font-bold'>Register</span>
             
           <input 
-            className='emailInput'
+            className='p-3 w-64 border-b border-blue-500'
               type="text" 
               placeholder='Name'
               required 
@@ -171,7 +171,7 @@ function SignUp() {
             />
             
             <input 
-            className='emailInput'
+            className='p-3 w-64 border-b border-blue-500'
               type="email" 
               placeholder='Email'
               required 
@@ -180,7 +180,7 @@ function SignUp() {
               disabled={isLoading} // Disable input field while loading
             />
             <input 
-            className='emailInput'
+            className='p-3 w-64 border-b border-blue-500'
                 type="current-password" 
                 placeholder='Password'
                 required 
@@ -189,7 +189,7 @@ function SignUp() {
                 disabled={isLoading} // Disable input field while loading
               />
             <input 
-            className='emailInput'
+            className='p-3 w-64 border-b border-blue-500'
                 type="current-password" 
                 placeholder='Re-Enter Password'
                 required 
@@ -197,27 +197,34 @@ function SignUp() {
                 onChange={handleRePasswordChange} 
                 disabled={isLoading} // Disable input field while loading
             />
-            <button className='buttonSignUp' disabled={isLoading}>Register</button>
+            <button className='bg-blue-500 text-black p-2 font-bold cursor-pointer' disabled={isLoading}>Register</button>
 
             <p>You have an account? </p>
-            <button className='login'><Link to="/">Login</Link></button>
             
+            <button className='login'><Link to="/">Login</Link></button>
+      {isLoading ? (
+          <button className='text-black font-bold mt-2' disabled>Login</button>
+        ) : (
+          <Link to="/">
+            <button className='text-black font-bold mt-2'>Login</button>
+          </Link>
+      )}  
           
-          {errorMessage && <p className='errorMessage'>{errorMessage}</p>}
-          {goodMessage && <p className='goodMessage'>{goodMessage}</p>}
-          {isLoading && <p className='isLoading'>Loading...</p>}
+          {errorMessage && <p className='text-red-500 text-lg mt-2'>{errorMessage}</p>}
+          {goodMessage && <p className='text-green-500 text-lg mt-2'>{goodMessage}</p>}
+          {isLoading && <p className='text-black text-sm mt-2'>Loading...</p>}
           </form>
           
         </div>
      
         )}
         {activeTab === 'V_SignUp' && ( 
-          <div className="formContainer">
-          <form className='formSignUp' onSubmit={handleSubmitVSignUp}>
-          <span className='logo'>Fonkagram</span>
-          <span className='title'>Enter verification number  </span>
+          <div>
+          <form className='bg-white p-5 rounded-lg flex flex-col items-center gap-4' onSubmit={handleSubmitVSignUp}>
+          <span className='text-gray-700 text-lg font-bold'>Fonkagram</span>
+          <span className='text-gray-700 text-lg font-bold'>Enter verification number  </span>
             <input 
-            className='emailInput'
+            className='p-3 w-64 border-b border-blue-500'
             placeholder='Verification Number'
               type="Number" 
               required 
@@ -227,11 +234,18 @@ function SignUp() {
             />
             
             
-            <button className='buttonSignUp' disabled={isLoading}>Enter</button>
-            <button className='buttonSignUp' onClick={backToSignUp}>Back to registration form</button>
-           
-            {isLoading && <p className='isLoading'>Loading...</p>}
-          {errorMessage && <p className='errorMessage' style={{ color: 'red' }}>{errorMessage}</p>}
+            <button className='bg-blue-500 text-black p-2 font-bold cursor-pointer' disabled={isLoading}>Enter</button>
+            <button className='bg-blue-500 text-black p-2 font-bold cursor-pointer' onClick={backToSignUp}>Back to registration form</button>
+            <p>Back to Registration Page</p>
+            {isLoading ? (
+          <button className='text-black font-bold mt-2' disabled>Register</button>
+        ) : (
+          <Link to="/SignUp">
+            <button className='text-black font-bold mt-2'>Register</button>
+          </Link>
+      )}  
+            {isLoading && <p className='text-black text-sm mt-2'>Loading...</p>}
+          {errorMessage && <p className='text-red-500 text-lg mt-2' style={{ color: 'red' }}>{errorMessage}</p>}
         
           </form>
           </div>
