@@ -2912,7 +2912,7 @@ useEffect(() => {
             onClick={(e) => e.stopPropagation()}
           >
           {editProfileModal && (
-            <div className={`edit-profile-container ${isDarkMode ? 'bg-gray-900 text-white' : 'bg-gray-100 text-black'}`}>
+            <div className={`flex flex-col items-center ${isDarkMode ? 'bg-gray-900 text-white' : 'bg-gray-100 text-black'}`}>
             <div className="flex flex-col items-center mb-4">
                 <div className="w-24 h-24 rounded-full bg-gray-300 mb-2 overflow-hidden">
                 { profilePicturesArray && profilePicturesArray.length > 0 ? (
@@ -2964,8 +2964,8 @@ useEffect(() => {
                 </button>
               </div>
             
-            <form className={`form-sign-up  ${isDarkMode ? 'bg-gray-900 text-white' : 'bg-gray-100 text-black'}`} onSubmit={handleSubmitProfile}>
-            <span className="title">Edit Profile</span> <br />
+            <form className={`w-full max-w-md  ${isDarkMode ? 'bg-gray-900 text-white' : 'bg-gray-100 text-black'}`} onSubmit={handleSubmitProfile}>
+            <span className="text-gray-700 text-lg font-bold">Edit Profile</span> <br />
             <label>Name</label>
             <input
               className={`email-input ${isDarkMode ? 'bg-gray-900 text-white' : 'bg-gray-100 text-black'}`}
@@ -2996,112 +2996,124 @@ useEffect(() => {
               disabled={isLoadingModal}
               maxLength={70}
             />
-            <button className="button-sign-up" disabled={isLoadingModal}>
+            
+            <div className="mb-4">
+            <button className="px-6 py-2 bg-blue-500 text-white rounded-lg" disabled={isLoadingModal}>
               Set
             </button>
+      </div>
+
             {errorMessage && <p className="error-message">{errorMessage}</p>}
             {goodMessage && <p className="good-message">{goodMessage}</p>}
             {isLoadingModal && <p className="is-loading">Loading...</p>}
           </form>
-          <button
-                    onClick={closeModal}
-                    className="px-6 py-2 bg-red-500 text-white rounded-lg shadow hover:bg-blue-600 transition duration-200"
-                  >
-                    Close
-                  </button>
+          
+          <div className="mt-4">
+      <button
+        onClick={closeModal}
+        className="px-6 py-2 bg-red-500 text-white rounded-lg shadow hover:bg-blue-600 transition duration-200"
+      >
+        Close
+      </button>
+    </div>
             </div>
           )}
-            {changePasswordModal && (
-            <div className={`edit-profile-container ${isDarkMode ? 'bg-gray-900 text-white' : 'bg-gray-100 text-black'}`}>
-          <form className={`form-sign-up  ${isDarkMode ? 'bg-gray-900 text-white' : 'bg-gray-100 text-black'}`} onSubmit={handleSubmitPassword}>
-            <span className="title">Change Password</span> <br />
-            <input
-              className={`email-input ${isDarkMode ? 'bg-gray-900 text-white' : 'bg-gray-100 text-black'}`}
-              placeholder='Old Password'
-              type="current-password" 
-              required 
-              value={oldPassword}
-              onChange={handleOldPasswordChange}
-              disabled={isLoadingModal} // Disable input field while loading
-            />
-            <input
-              className={`email-input ${isDarkMode ? 'bg-gray-900 text-white' : 'bg-gray-100 text-black'}`}
-              placeholder='New Password'
-              type="current-password" 
-              required 
-              value={newPassword}
-              onChange={handleNewPasswordChange}
-              disabled={isLoadingModal} // Disable input field while loading
-            /> 
-            
-            <button className="button-sign-up" disabled={isLoadingModal}>
-              Submit
-            </button>
-            {errorMessage && <p className="error-message">{errorMessage}</p>}
-            {goodMessage && <p className="good-message">{goodMessage}</p>}
-            {isLoadingModal && <p className="is-loading">Loading...</p>}
-          </form>
-          <button
-                    onClick={closeModal}
-                    className="px-6 py-2 bg-red-500 text-white rounded-lg shadow hover:bg-blue-600 transition duration-200"
-                  >
-                    Close
-                  </button>
-            </div>
-            )}
-            {deleteAccountModal && (
-            <div className={`edit-profile-container ${isDarkMode ? 'bg-gray-900 text-white' : 'bg-gray-100 text-black'}`}>
-          <form className= {`form-sign-up  ${isDarkMode ? 'bg-gray-900 text-white' : 'bg-gray-100 text-black'}`} onSubmit={deleteAccount}>
-            <span className="title">Danger Zone</span> <br />
-              Are you sure you want to delete this account? <br /><br />
-            <button className='buttonTabDelete' onClick={deleteAccount}  disabled={isLoadingModal} >Delete</button>
+          {changePasswordModal && (
+              <div className={`edit-profile-container ${isDarkMode ? 'bg-gray-900 text-white' : 'bg-gray-100 text-black'}`}>
+            <form className={`form-sign-up  ${isDarkMode ? 'bg-gray-900 text-white' : 'bg-gray-100 text-black'}`} onSubmit={handleSubmitPassword}>
+              <span className="title">Change Password</span> <br />
+              <input
+                className={`email-input ${isDarkMode ? 'bg-gray-900 text-white' : 'bg-gray-100 text-black'}`}
+                placeholder='Old Password'
+                type="current-password" 
+                required 
+                value={oldPassword}
+                onChange={handleOldPasswordChange}
+                disabled={isLoadingModal} // Disable input field while loading
+              />
+              <input
+                className={`email-input ${isDarkMode ? 'bg-gray-900 text-white' : 'bg-gray-100 text-black'}`}
+                placeholder='New Password'
+                type="current-password" 
+                required 
+                value={newPassword}
+                onChange={handleNewPasswordChange}
+                disabled={isLoadingModal} // Disable input field while loading
+              /> 
+              
+             
+              <div className="mb-4">
+              <button className="px-6 py-2 bg-blue-500 text-white rounded-lg" disabled={isLoadingModal}>
+                Submit
+              </button>
+               </div>
+              {errorMessage && <p className="error-message">{errorMessage}</p>}
+              {goodMessage && <p className="good-message">{goodMessage}</p>}
+              {isLoadingModal && <p className="is-loading">Loading...</p>}
+            </form>
+            <div className="mt-4">
+      <button
+        onClick={closeModal}
+        className="px-6 py-2 bg-red-500 text-white rounded-lg shadow hover:bg-blue-600 transition duration-200"
+      >
+        Close
+      </button>
+    </div>
+          </div>
+          )}
+          {deleteAccountModal && (
+          <div className={`flex flex-col items-center ${isDarkMode ? 'bg-gray-900 text-white' : 'bg-gray-100 text-black'}`}>
+        <form className= {`w-full max-w-md  ${isDarkMode ? 'bg-gray-900 text-white' : 'bg-gray-100 text-black'}`} onSubmit={deleteAccount}>
+          <span className="text-red-700 text-lg font-bold">Danger Zone</span> <br />
+            Are you sure you want to delete this account? <br /><br />
+          <button className='px-4 py-2 bg-red-500 text-white rounded-lg shadow hover:bg-red-600 transition duration-200' onClick={deleteAccount}  disabled={isLoadingModal} >Delete</button>
+        
+        {isLoadingModal && <p className='text-black text-sm mt-2'>Loading...</p>}
           
-          {isLoadingModal && <p className='isLoading'>Loading...</p>}
-            
-        </form>
-        <button
-                    onClick={closeModal}
-                    className="px-6 py-2 bg-red-500 text-white rounded-lg shadow hover:bg-blue-600 transition duration-200"
-                  >
-                    Close
-                  </button>
-            </div>
-            )}
-            {viewUserModal && (
-              <div className={`p-6 rounded-lg shadow-lg max-w-md mx-auto ${isDarkMode ? 'bg-gray-900 text-white' : 'bg-white text-black'}`}>
-                <div className="flex justify-center mb-4">
-                  <div className="w-32 h-32 rounded-full bg-gray-300 overflow-hidden">
-                    {selectedProfilePic && selectedProfilePic.length > 0 ? (
-                      <img
-                        src={selectedProfilePic[0]}
-                        alt="Profile Pic"
-                        className="w-full h-full object-cover cursor-pointer"
-                        onClick={() => handleOtherProfilePic(0)}
-                      />
-                    ) : (
-                      
-                      <div
-                      className="w-32 h-32 rounded-full bg-pink-500 mb-2 overflow-hidden  text-white flex items-center justify-center mr-3 text-lg font-bold">
-                          {selectedName.charAt(0)}
-                      </div>
-                    )}
-                  </div>
-                </div>
-                <h2 className="text-2xl font-semibold text-center mb-2">{selectedName} {selectedLastName ? selectedLastName : ''}</h2>
-                <p className="text-center text-gray-500 mb-4">{selectedEmail}</p>
-                
-                <p className="text-center mb-4"><strong> Bio: </strong><br />{selectedBio ? selectedBio : ''}</p>
-                
-                <div className="flex justify-center">
-                  <button
-                    onClick={() => { setModalContent(null); setViewUserModal(false); }}
-                    className="px-6 py-2 bg-blue-500 text-white rounded-lg shadow hover:bg-blue-600 transition duration-200"
-                  >
-                    Close
-                  </button>
+      </form>
+      <button
+                  onClick={closeModal}
+                  className="px-6 py-2 bg-red-500 text-white rounded-lg shadow hover:bg-blue-600 transition duration-200"
+                >
+                  Close
+                </button>
+          </div>
+          )}
+          {viewUserModal && (
+            <div className={`p-6 rounded-lg shadow-lg max-w-md mx-auto ${isDarkMode ? 'bg-gray-900 text-white' : 'bg-white text-black'}`}>
+              <div className="flex justify-center mb-4">
+                <div className="w-32 h-32 rounded-full bg-gray-300 overflow-hidden">
+                  {selectedProfilePic && selectedProfilePic.length > 0 ? (
+                    <img
+                      src={selectedProfilePic[0]}
+                      alt="Profile Pic"
+                      className="w-full h-full object-cover cursor-pointer"
+                      onClick={() => handleOtherProfilePic(0)}
+                    />
+                  ) : (
+                    
+                    <div
+                    className="w-32 h-32 rounded-full bg-pink-500 mb-2 overflow-hidden  text-white flex items-center justify-center mr-3 text-lg font-bold">
+                        {selectedName.charAt(0)}
+                    </div>
+                  )}
                 </div>
               </div>
-            )}
+              <h2 className="text-2xl font-semibold text-center mb-2">{selectedName} {selectedLastName ? selectedLastName : ''}</h2>
+              <p className="text-center text-gray-500 mb-4">{selectedEmail}</p>
+              
+              <p className="text-center mb-4"><strong> Bio: </strong><br />{selectedBio ? selectedBio : ''}</p>
+              
+              <div className="flex justify-center">
+                <button
+                  onClick={() => { setModalContent(null); setViewUserModal(false); }}
+                  className="px-6 py-2 bg-blue-500 text-white rounded-lg shadow hover:bg-blue-600 transition duration-200"
+                >
+                  Close
+                </button>
+              </div>
+            </div>
+          )}
             
             
             
