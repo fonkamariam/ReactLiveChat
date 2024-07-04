@@ -955,12 +955,7 @@ function Chats() {
     });
   }, [handleMessageQueue]);
 
-  const handleConnectionLost = useCallback(() => {
-    //console.log("handle Connection Lost function");
-    //showToast('Connection Lost');
-    
-    
-  }, []);
+  
 
   const clearReconnectTimeout = () => {
     if (reconnectTimeoutRef.current) {
@@ -1028,7 +1023,7 @@ function Chats() {
 
                 connection.onclose(() => {
                     console.log("Initial Connection Closed");
-                    handleConnectionLost();
+                    //handleConnectionLost();
                 });
             })
             .catch(e => {
