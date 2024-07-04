@@ -126,7 +126,7 @@ function Chats() {
   const emojiPickerRef = useRef(null);
   const settingsRef = useRef(null);
   const modalRef = useRef(null);
-  const reconnectTimeoutRef = useRef(null);
+  //const reconnectTimeoutRef = useRef(null);
   const messagesEndRef = useRef(null);
   
   //const eventQueue = useRef([]);
@@ -134,6 +134,7 @@ function Chats() {
   const userProfileQueue = useRef([]);
   const conversationQueue = useRef([]);
   const userStatusQueue = useRef([]);
+  const connectionRef = useRef(null);
   
   const handleUserProfileQueue = useCallback(async (userProfile) => {
     // Handle the user profile payload
@@ -957,86 +958,76 @@ function Chats() {
 
   
 
-  const clearReconnectTimeout = () => {
-    if (reconnectTimeoutRef.current) {
-      clearTimeout(reconnectTimeoutRef.current);
-      reconnectTimeoutRef.current = null;
+
+  useEffect(() => {
+    const createConnection = () => {
+      const connection = new HubConnectionBuilder()
+        .withUrl('https://livechatbackend-xwgx.onrender.com/messagesHub', {
+          accessTokenFactory: () => sessionStorage.getItem('Token'),
+          skipNegotiation: true,
+          transport: HttpTransportType.WebSockets,
+        })
+        .withAutomaticReconnect()
+        .build();
+
+      connectionRef.current = connection;
+      setConnection(connection);
+
+      connection.start()
+        .then(() => {
+          console.log('Connected Initial! Start');
+
+          connection.on('ReceiveMessage', message => {
+            console.log('ReceiveMessage', message);
+            // Handle the received message
+          });
+
+          connection.on('Receive UserProfile', userPayLoad => {
+            console.log('Receive UserProfile');
+            // Handle the received user profile
+          });
+
+          connection.on('Receive Conversation', convPayLoad => {
+            console.log('Receive Conversation');
+            // Handle the received conversation
+          });
+
+          connection.on('UserStatusChanged', (userId, isOnline, lastSeen) => {
+            console.log('UserStatusChange');
+            // Handle the user status change
+          });
+
+          connection.on('Typing', (typer, valueBool) => {
+            console.log('Typing');
+            if (selectedRecpientId !== null && selectedRecpientId === typer) {
+              console.log('Typing Selected');
+              setSelectedTyping(valueBool);
+            }
+          });
+
+          connection.onclose(() => {
+            console.log('Initial Connection Closed');
+            //handleConnectionLost();
+          });
+        })
+        .catch(error => {
+          console.error('Connection Failed', error);
+          //handleConnectionLost();
+        });
+    };
+
+    if (!connectionRef.current) {
+      createConnection();
     }
-  };
-  useEffect(() => {
-    const newConnection = new HubConnectionBuilder()
-      .withUrl('https://livechatbackend-xwgx.onrender.com/messagesHub', {
-        accessTokenFactory: () => sessionStorage.getItem('Token'),
-        skipNegotiation: true,
-        transport: HttpTransportType.WebSockets,
-      })
-      .withAutomaticReconnect()
-      .build();
-
-    setConnection(newConnection);
-  }, []);
-
-
-  useEffect(() => {
-    if (!connection) return;
-        connection.start()
-            .then(result => {
-                clearReconnectTimeout();
-                //setIsOffline(true);
-                //fetchMissedUpdates();
-                console.log('Connected Initial! Start');
-                
-                connection.on('ReceiveMessage', message => {
-                    console.log('ReceiveMessage',message);
-                    messageQueue.current.push({ type: 'ReceiveMessage', payload: message });
-                    processEvents();
-                });
-
-                connection.on('Receive UserProfile', userPayLoad => {
-                  console.log('Receive UserProfile');
-                    
-                    userProfileQueue.current.push({ type: 'ReceiveUserProfile', payload: userPayLoad });
-                    processEvents();
-                });
-
-                connection.on('Receive Conversation', convPayLoad => {
-                  console.log('ReceiveConversation');
-                    
-                    conversationQueue.current.push({ type: 'ReceiveConversation', payload: convPayLoad });
-                    processEvents();
-                });
-
-                connection.on('UserStatusChanged', (userId, isOnline,lastSeen) => {
-                    console.log('UserStatusChange');
-                    userStatusQueue.current.push({ type: 'UserStatusChanged', payload: { userId, isOnline,lastSeen } });
-                    processEvents();
-                });
-
-                connection.on('Typing',(typer,valueBool)=>{
-                  console.log("Typing");
-                    if (selectedRecpientId !== null && selectedRecpientId === typer){
-                      console.log("Typing Selected");
-                       setSelectedTyping(valueBool);
-                    }
-                    
-                });
-
-                connection.onclose(() => {
-                    console.log("Initial Connection Closed");
-                    //handleConnectionLost();
-                });
-            })
-            .catch(e => {
-                
-                console.log("Connection Failed");
-                //handleConnectionLost();
-            });
-    
 
     return () => {
-      connection.stop().then(() => console.log('Initial Connection Stopped'));
+      if (connectionRef.current) {
+        connectionRef.current.stop()
+          .then(() => console.log('Initial Connection Stopped'))
+          .catch(error => console.error('Error stopping connection', error));
+      }
     };
-}, [connection, processMessages, processEvents,selectedRecpientId]);
+  }, [ processEvents, selectedRecpientId]);
 
   useEffect(() => {
     const handleVisibilityChange = async () => {
