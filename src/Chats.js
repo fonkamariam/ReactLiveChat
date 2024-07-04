@@ -977,15 +977,7 @@ function Chats() {
 
     setConnection(newConnection);
   }, []);
-useEffect(()=> { 
-  const heartbeatInterval = 7000;
-  const sendHeartbeat = async ()=> {
-    if(connection){
 
-    await connection.invoke("Heartbeat").catch(err => console.error(err.toString()));
-    }}
-  setInterval(sendHeartbeat, heartbeatInterval)}
-  ,[connection]);
 
   useEffect(() => {
     if (connection) {
@@ -1138,9 +1130,8 @@ const handleOffline = useCallback(async () => {
 }, []);
 
 const handleOnline = useCallback(async () => {
-  setIsOffline(true)
-  fetchMissedUpdates();
-}, [fetchMissedUpdates]);
+  window.location.reload();
+}, []);
 
   useEffect(() => {
     window.addEventListener('offline', handleOffline);
