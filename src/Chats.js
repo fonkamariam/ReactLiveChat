@@ -983,7 +983,7 @@ function Chats() {
 
 
   useEffect(() => {
-    if (connection) {
+    if (!connection) return;
         connection.start()
             .then(result => {
                 clearReconnectTimeout();
@@ -1032,20 +1032,16 @@ function Chats() {
                 });
             })
             .catch(e => {
-                showToast('Connection Failed');
+                
                 console.log("Connection Failed");
-                handleConnectionLost();
+                //handleConnectionLost();
             });
-    }
+    
 
     return () => {
-        if (connection) {
-            connection.stop();
-            console.log("Initial Connection Stopped");
-        }
-        clearReconnectTimeout();
+      connection.stop().then(() => console.log('Initial Connection Stopped'));
     };
-}, [connection, handleConnectionLost, processMessages, showToast, processEvents,fetchMissedUpdates,selectedRecpientId]);
+}, [connection, processMessages, processEvents,selectedRecpientId]);
 
   useEffect(() => {
     const handleVisibilityChange = async () => {
