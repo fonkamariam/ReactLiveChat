@@ -159,7 +159,7 @@ function Chats() {
       setSelectedName(userProfile.name);
       setSelectedLastName(userProfile.lastName);
       setSelectedBio(userProfile.bio);
-      setSelectedDeleted(true);
+      setSelectedDeleted(userProfile.deleted);
 
     }
   },[]);
@@ -977,6 +977,15 @@ function Chats() {
 
     setConnection(newConnection);
   }, []);
+useEffect(()=> { 
+  const heartbeatInterval = 7000;
+  const sendHeartbeat = async ()=> {
+    if(connection){
+
+    await connection.invoke("Heartbeat").catch(err => console.error(err.toString()));
+    }}
+  setInterval(sendHeartbeat, heartbeatInterval)}
+  ,[connection]);
 
   useEffect(() => {
     if (connection) {
@@ -1131,9 +1140,7 @@ const handleOffline = useCallback(async () => {
 const handleOnline = useCallback(async () => {
   setIsOffline(true)
   fetchMissedUpdates();
-  connection.invoke('OnlineOffline', true);
-  console.log("ONLINE start");
-}, [connection,fetchMissedUpdates]);
+}, [fetchMissedUpdates]);
 
   useEffect(() => {
     window.addEventListener('offline', handleOffline);
