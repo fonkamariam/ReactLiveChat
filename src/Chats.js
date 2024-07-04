@@ -1198,28 +1198,28 @@ const handleLogOut = (e) =>{
 
 };
 
-const handleTyping = (isTyping) => {
-  console.log('Typing:', isTyping);
-  console.log(selectedTyping);
-  
-};
-const handleMessage = (e) =>{
+
+const handleMessage = useCallback(async (e) =>{
   if (!isLoadingMessage){
   setSendMessage(e.target.value);
-  handleTyping(true); // Call the typing function with true when user starts typing
-
-      // Clear the previous timeout if any
+  //handleTyping(true);
+  if (connection && selectedRecpientId!== null) {
+    await connection.invoke('Typing',selectedRecpientId,true);
+  }
+  
       if (typingTimeoutRef.current) {
         clearTimeout(typingTimeoutRef.current);
       }
 
-      // Set a new timeout to detect when the user stops typing
-      typingTimeoutRef.current = setTimeout(() => {
-        handleTyping(false); // Call the typing function with false when user stops typing
+      typingTimeoutRef.current = setTimeout( async () => {
+        //handleTyping(false);
+        if (connection && selectedRecpientId !== null) {
+          await connection.invoke('Typing',selectedRecpientId,false);
+        } 
       }, 2000); // Adjust the timeout duration as needed
 }
 
-};
+},[connection,selectedRecpientId,isLoadingMessage]);
 const insertMessage = (newMessage) => {
   setMessages(prevMessages => {
     const updatedMessages = [...prevMessages, newMessage]; // Add the new message to the existing array
@@ -2846,6 +2846,12 @@ const truncateText = (firstName, lastName, b) => {
     } 
  
 };
+const truncateText101 = (text, maxLength) => {
+  if (text.length > maxLength) {
+    return text.slice(0, maxLength) + '...';
+  }
+  return text;
+};
 
 useEffect(() => {
   const handleClickOutside = (event) => {
@@ -4080,7 +4086,7 @@ useEffect(() => {
                         
                     {conversation.isAudio && (<div className="text-sm text-gray-500">Voice Message</div>)}
                     {conversation.isImage && (<div className="text-sm text-gray-500">Photo</div>)}
-                    {!conversation.isAudio && !conversation.isImage && (<div className="text-sm text-gray-500">{truncateText(conversation.message, 15)}</div>)}
+                    {!conversation.isAudio && !conversation.isImage && (<div className="text-sm text-gray-500">{truncateText101(conversation.message, 15)}</div>)}
                     
                         
                       </div>
@@ -4174,7 +4180,8 @@ useEffect(() => {
               <></>
             ):(
               <>
-              {selectedOnlineStatus==='true' ? 'Online' : `Last seen: ${formatDateTime(selectedLastSeen)}`}
+              {selectedOnlineStatus==='true' ? selectedTyping ? 'Typing...' :  'Online' : `Last seen: ${formatDateTime(selectedLastSeen)}`}
+              
               </>
             )}
           </div>
