@@ -35,6 +35,7 @@ function Chats() {
   const [selectedRecpientId, setSelectedRecpientId] = useState(null);//for sending a message by id
   const [selectedName,setSelectedName]=useState(null);
   const [selecteDeleted,setSelectedDeleted]= useState(false);
+  const [selectedTyping,setSelectedTyping] = useState(false);
   const [selectedLastName,setSelectedLastName]=useState(null);
   const [editMessageId, setEditMessageId] = useState(null);
   const [editMessageContent, setEditMessageContent] = useState('');
@@ -55,6 +56,8 @@ function Chats() {
   const [selectedBio,setSelectedBio] = useState(null);
   const [selectedEmail,setSelectedEmail] = useState(null);
   const [selectedProfilePic,setSelectedProfilePic] = useState([]);
+  const typingTimeoutRef = useRef(null);
+
   // Variable Integration start
   //const [searchQueryUser, setSearchQueryUser] = useState('');
   //const [selectedConversation, setSelectedConversation] = useState(null);
@@ -1014,6 +1017,15 @@ function Chats() {
                     processEvents();
                 });
 
+                connection.on('Typing',(typer,valueBool)=>{
+                  console.log("Typing");
+                    if (selectedRecpientId !== null && selectedRecpientId === typer){
+                      console.log("Typing Selected");
+                       setSelectedTyping(valueBool);
+                    }
+                    
+                });
+
                 connection.onclose(() => {
                     console.log("Initial Connection Closed");
                     handleConnectionLost();
@@ -1033,7 +1045,7 @@ function Chats() {
         }
         clearReconnectTimeout();
     };
-}, [connection, handleConnectionLost, processMessages, showToast, processEvents,fetchMissedUpdates]);
+}, [connection, handleConnectionLost, processMessages, showToast, processEvents,fetchMissedUpdates,selectedRecpientId]);
 
   useEffect(() => {
     const handleVisibilityChange = async () => {
@@ -1186,10 +1198,25 @@ const handleLogOut = (e) =>{
 
 };
 
-
+const handleTyping = (isTyping) => {
+  console.log('Typing:', isTyping);
+  console.log(selectedTyping);
+  
+};
 const handleMessage = (e) =>{
   if (!isLoadingMessage){
   setSendMessage(e.target.value);
+  handleTyping(true); // Call the typing function with true when user starts typing
+
+      // Clear the previous timeout if any
+      if (typingTimeoutRef.current) {
+        clearTimeout(typingTimeoutRef.current);
+      }
+
+      // Set a new timeout to detect when the user stops typing
+      typingTimeoutRef.current = setTimeout(() => {
+        handleTyping(false); // Call the typing function with false when user stops typing
+      }, 2000); // Adjust the timeout duration as needed
 }
 
 };
