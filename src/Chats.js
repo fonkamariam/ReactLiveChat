@@ -955,10 +955,7 @@ function Chats() {
       processMessages();
     });
   }, [handleMessageQueue]);
-  const handleConnectionLost = useCallback(() => {
-    //console.log("handle Connection Lost function");
-    //showToast('Connection Lost');
-    
+  const handleConnectionLost = useCallback(() => {    
     reconnectTimeoutRef.current = setTimeout(() => {
       showToast('Connection lost. Attempting to reconnect...');
     }, 7000); // 5000ms = 5 seconds, adjust as needed
@@ -1037,7 +1034,7 @@ function Chats() {
         }
         clearReconnectTimeout();
     };
-}, [connection, handleConnectionLost, processMessages, showToast, processEvents,clearReconnectTimeout]);
+}, [connection, handleConnectionLost, showToast, processEvents,clearReconnectTimeout]);
 setSelectedTyping(false);
   /**
   const processTyping = useCallback((typer,valueBool)=>{
