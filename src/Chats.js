@@ -947,12 +947,12 @@ function Chats() {
     
   }, [showToast]);
 
-  const clearReconnectTimeout = useCallback(() => {
+  const clearReconnectTimeout = () => {
     if (reconnectTimeoutRef.current) {
       clearTimeout(reconnectTimeoutRef.current);
       reconnectTimeoutRef.current = null;
     }
-  },[]);
+  };
   useEffect(() => {
     const newConnection = new HubConnectionBuilder()
       .withUrl('https://livechatbackend-xwgx.onrender.com/messagesHub', {
@@ -1014,13 +1014,14 @@ function Chats() {
     }
 
     return () => {
-        if (connection) {
-            connection.stop();
-            console.log("Initial Connection Stopped");
-        }
-        clearReconnectTimeout();
-    };
-}, [connection, handleConnectionLost, showToast, processEvents,clearReconnectTimeout]);
+      if (connection) {
+          connection.stop();
+          console.log("Initial Connection Stopped");
+      }
+      clearReconnectTimeout();
+  };
+}, [connection, handleConnectionLost, showToast, processEvents,fetchMissedUpdates,selectedRecpientId]);
+
 setSelectedTyping(false);
   /**
   const processTyping = useCallback((typer,valueBool)=>{
