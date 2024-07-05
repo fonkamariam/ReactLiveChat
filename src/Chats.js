@@ -81,7 +81,7 @@ function Chats() {
 
   const storedProfilePictures = sessionStorage.getItem('ProfilePic');
   const profilePicturesArray = useMemo(() => {
-    return storedProfilePictures !== null ? JSON.parse(storedProfilePictures) : [];
+  return storedProfilePictures !== null ? JSON.parse(storedProfilePictures) : [];
   }, [storedProfilePictures]);const [currentImageIndex, setCurrentImageIndex] = useState(0);
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
   const [isSettingNewPic, setIsSettingNewPic] = useState(false);
@@ -939,28 +939,14 @@ function Chats() {
     }
   }, [messages]);
 
-  const processMessages = useCallback(() => {
-    if (isProcessing.current) return;
-    
-    if (messageQueue.current.length === 0) {
-      isProcessing.current = false;
-      return;
-    }
   
-    isProcessing.current = true;
-    const message = messageQueue.current.shift();
-  
-    handleMessageQueue(message).finally(() => {
-      isProcessing.current = false;
-      processMessages();
-    });
-  }, [handleMessageQueue]);
   const handleConnectionLost = useCallback(() => {    
     reconnectTimeoutRef.current = setTimeout(() => {
       showToast('Connection lost. Attempting to reconnect...');
-    }, 7000); // 5000ms = 5 seconds, adjust as needed
+    }, 5000); // 5000ms = 5 seconds, adjust as needed
     
   }, [showToast]);
+
   const clearReconnectTimeout = useCallback(() => {
     if (reconnectTimeoutRef.current) {
       clearTimeout(reconnectTimeoutRef.current);
