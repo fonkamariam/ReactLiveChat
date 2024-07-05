@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { HubConnectionBuilder, HttpTransportType } from '@microsoft/signalr';
 
-const useSignalRConnection = (handleConnectionLost, processEvents,processTyping,messageQueue, userProfileQueue, conversationQueue, userStatusQueue) => {
+const useSignalRConnection = (handleConnectionLost, processEvents,messageQueue, userProfileQueue, conversationQueue, userStatusQueue) => {
   const [connection, setConnection] = useState(null);
   
   useEffect(() => {
@@ -41,12 +41,12 @@ const useSignalRConnection = (handleConnectionLost, processEvents,processTyping,
             userStatusQueue.current.push({ type: 'UserStatusChanged', payload: { userId, isOnline,lastSeen } });
             processEvents();
           });
-
+/**
           connection.on('Typing', (typer, valueBool) => {
             console.log('Typing');
             processTyping(typer,valueBool);
           });
-
+ */
           connection.onclose(() => {
             console.log('Initial Connection Closed');
             handleConnectionLost();
@@ -71,7 +71,7 @@ const useSignalRConnection = (handleConnectionLost, processEvents,processTyping,
           .catch(error => console.error('Error stopping connection', error));
       }
     };
-  }, [connection,handleConnectionLost, processEvents, processTyping, messageQueue, userProfileQueue, conversationQueue, userStatusQueue]);
+  }, [connection,handleConnectionLost, processEvents, messageQueue, userProfileQueue, conversationQueue, userStatusQueue]);
   return connection;
 };
 

@@ -955,13 +955,16 @@ function Chats() {
     console.log('Handling connection lost');
     // Your logic to handle connection lost
   }, []);
+  /**
   const processTyping = useCallback((typer,valueBool)=>{
     if (selectedRecpientId !== null && selectedRecpientId === typer) {
       console.log('Typing Selected');
       setSelectedTyping(valueBool);
     }
   },[selectedRecpientId,setSelectedTyping]);
-  const connection = useSignalRConnection(handleConnectionLost, processEvents, processTyping, messageQueue, userProfileQueue, conversationQueue, userStatusQueue);
+   */
+  setSelectedTyping(false);
+  const connection = useSignalRConnection(handleConnectionLost, processEvents, messageQueue, userProfileQueue, conversationQueue, userStatusQueue);
 
 
   useEffect(() => {
