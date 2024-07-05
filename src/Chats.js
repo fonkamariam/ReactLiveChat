@@ -27,7 +27,8 @@ function Chats() {
   let valueDark = false;
   if (tempDark && tempDark==='true'){valueDark = true}
   const [isDarkMode, setIsDarkMode] = useState(valueDark);
-  const [connection, setConnection] = useState(null);
+  //const [connection, setConnection] = useState(null);
+  const connectionRef = useRef(null); // Use ref instead of state
   const [conversations, setConversations] = useState([]);
   const [messages, setMessages] = useState([]); // State for the array of messages
 
@@ -938,6 +939,7 @@ function Chats() {
       messagesEndRef.current.scrollTop = messagesEndRef.current.scrollHeight;
     }
   }, [messages]);
+
   const processTyping = useCallback((typer,valueBool)=>{
     if (selectedRecpientId !== null && selectedRecpientId === typer) {
       console.log('Typing Selected');
@@ -953,14 +955,15 @@ function Chats() {
     
   }, [showToast]);
 
-  const clearReconnectTimeout = () => {
+  const clearReconnectTimeout =useCallback( () => {
     if (reconnectTimeoutRef.current) {
       clearTimeout(reconnectTimeoutRef.current);
       reconnectTimeoutRef.current = null;
     }
-  };
+  },[]);
   useEffect(() => {
-    const newConnection = new HubConnectionBuilder()
+    console.log("Connection UseEffect Start current state",connectionRef.current);
+    connectionRef.current = new HubConnectionBuilder()
       .withUrl('https://livechatbackend-xwgx.onrender.com/messagesHub', {
         accessTokenFactory: () => sessionStorage.getItem('Token'),
         skipNegotiation: true,
@@ -969,68 +972,69 @@ function Chats() {
       .withAutomaticReconnect()
       .build();
 
-    setConnection(newConnection);
-  }, []);
-
-  useEffect(() => {
-    if (connection) {
-        connection.start()
-            .then(result => {
+      connectionRef.current.start()
+      .then(result => {
                 clearReconnectTimeout();
                 //setIsOffline(true);
                 //fetchMissedUpdates();
+                console.log(".then connection current state");
+    
                 console.log('Connected Initial! Start');
                 
-                connection.on('ReceiveMessage', message => {
+                connectionRef.current.on('ReceiveMessage', message => {
                     console.log('ReceiveMessage',message);
                     messageQueue.current.push({ type: 'ReceiveMessage', payload: message });
                     processEvents();
                 });
 
-                connection.on('Receive UserProfile', userPayLoad => {
+                connectionRef.current.on('Receive UserProfile', userPayLoad => {
                   console.log('Receive UserProfile');
                     
                     userProfileQueue.current.push({ type: 'ReceiveUserProfile', payload: userPayLoad });
                     processEvents();
                 });
 
-                connection.on('Receive Conversation', convPayLoad => {
+                connectionRef.current.on('Receive Conversation', convPayLoad => {
                   console.log('ReceiveConversation');
                     
                     conversationQueue.current.push({ type: 'ReceiveConversation', payload: convPayLoad });
                     processEvents();
                 });
 
-                connection.on('UserStatusChanged', (userId, isOnline,lastSeen) => {
+                connectionRef.current.on('UserStatusChanged', (userId, isOnline,lastSeen) => {
                     console.log('UserStatusChange');
                     userStatusQueue.current.push({ type: 'UserStatusChanged', payload: { userId, isOnline,lastSeen } });
                     processEvents();
                 });
-                connection.on('Typing', (typer, valueBool) => {
+                connectionRef.current.on('Typing', (typer, valueBool) => {
                   console.log('Typing');
                   processTyping(typer,valueBool);
                 });
 
-                connection.onclose(() => {
+                connectionRef.current.onclose(() => {
                     console.log("Initial Connection Closed");
+                    console.log("closing current state");
+    
                     handleConnectionLost();
                 });
             })
-            .catch(e => {
-                showToast('Connection Failed');
-                console.log("Connection Failed");
-                handleConnectionLost();
-            });
-    }
+      .catch(e => {
+          //showToast('Connection Failed');
+          console.log("Catch failed current state");
+
+          handleConnectionLost();
+          
+      });
+    
 
     return () => {
-      if (connection) {
-          connection.stop();
+      if (connectionRef.current) {
+          connectionRef.current.stop();
           console.log("Initial Connection Stopped");
       }
       clearReconnectTimeout();
   };
-}, [connection, handleConnectionLost, showToast, processEvents,processTyping]);
+}, [handleConnectionLost, processEvents,processTyping,clearReconnectTimeout]);
 
   
   
@@ -1041,17 +1045,17 @@ function Chats() {
     const handleVisibilityChange = async () => {
       try {
         if (document.visibilityState === 'visible') {
-          if (connection) {
+          if (connectionRef.current) {
             console.log("Visibility changed to visible, notifying server.");
             fetchMissedUpdates();
-            await connection.invoke ('VisibilityChanged', 'visible');
+            await connectionRef.current.invoke ('VisibilityChanged', 'visible');
           }
         } else {
-          if (connection) {
+          if (connectionRef.current) {
             console.log("Visibility changed to hidden, notifying server.");
             setIsOffline(true);
             
-            await connection.invoke('VisibilityChanged', 'hidden');
+            await connectionRef.current.invoke('VisibilityChanged', 'hidden');
           }
         }
       } catch (error) {
@@ -1065,7 +1069,7 @@ function Chats() {
     return () => {
       document.removeEventListener('visibilitychange', handleVisibilityChange);
     };
-  }, [connection, showToast,fetchMissedUpdates]);
+  }, [fetchMissedUpdates]);
   
 // JavaScript visiblity Change
   /** UseEffects End ws Connection*/
@@ -1178,8 +1182,8 @@ const handleLogOut = (e) =>{
   navigate(`/`);
     sessionStorage.clear();
     //localStorage.clear();
-    if (connection) {
-      connection.invoke('UserLoggingOut');
+    if (connectionRef.current) {
+      connectionRef.current.invoke('UserLoggingOut');
       console.log("Invoked Log out");
       //connection.stop().then(() => console.log('Disconnected due to LOGOUT'));
     }
@@ -1192,8 +1196,8 @@ const handleMessage = useCallback(async (e) =>{
   if (!isLoadingMessage){
   setSendMessage(e.target.value);
   //handleTyping(true);
-  if (connection && selectedRecpientId!== null) {
-    await connection.invoke('Typing',selectedRecpientId,true);
+  if (connectionRef.current && selectedRecpientId!== null) {
+    await connectionRef.current.invoke('TypingIndicator',selectedRecpientId,true);
   }
   
       if (typingTimeoutRef.current) {
@@ -1202,13 +1206,13 @@ const handleMessage = useCallback(async (e) =>{
 
       typingTimeoutRef.current = setTimeout( async () => {
         //handleTyping(false);
-        if (connection && selectedRecpientId !== null) {
-          await connection.invoke('Typing',selectedRecpientId,false);
+        if (connectionRef.current && selectedRecpientId !== null) {
+          await connectionRef.current.invoke('TypingIndicator',selectedRecpientId,false);
         } 
       }, 2000); // Adjust the timeout duration as needed
 }
 
-},[connection,selectedRecpientId,isLoadingMessage]);
+},[selectedRecpientId,isLoadingMessage]);
 const insertMessage = (newMessage) => {
   setMessages(prevMessages => {
     const updatedMessages = [...prevMessages, newMessage]; // Add the new message to the existing array
