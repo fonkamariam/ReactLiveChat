@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { HubConnectionBuilder, HttpTransportType } from '@microsoft/signalr';
 
-const useSignalRConnection = (handleConnectionLost, processEvents, selectedRecpientId, setSelectedTyping,messageQueue, userProfileQueue, conversationQueue, userStatusQueue) => {
+const useSignalRConnection = (handleConnectionLost, processEvents, selectedRecpientIdPara, setSelectedTyping,messageQueue, userProfileQueue, conversationQueue, userStatusQueue) => {
   const [connection, setConnection] = useState(null);
   
   useEffect(() => {
@@ -44,7 +44,7 @@ const useSignalRConnection = (handleConnectionLost, processEvents, selectedRecpi
 
           connection.on('Typing', (typer, valueBool) => {
             console.log('Typing');
-            if (selectedRecpientId !== null && selectedRecpientId === typer) {
+            if (selectedRecpientIdPara !== null && selectedRecpientIdPara === typer) {
               console.log('Typing Selected');
               setSelectedTyping(valueBool);
             }
@@ -74,7 +74,7 @@ const useSignalRConnection = (handleConnectionLost, processEvents, selectedRecpi
           .catch(error => console.error('Error stopping connection', error));
       }
     };
-  }, [connection,handleConnectionLost, processEvents, selectedRecpientId, setSelectedTyping,messageQueue, userProfileQueue, conversationQueue, userStatusQueue]);
+  }, [connection,handleConnectionLost, processEvents, selectedRecpientIdPara, setSelectedTyping,messageQueue, userProfileQueue, conversationQueue, userStatusQueue]);
 
   return connection;
 };

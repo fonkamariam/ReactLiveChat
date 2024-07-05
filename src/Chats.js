@@ -955,7 +955,8 @@ function Chats() {
     console.log('Handling connection lost');
     // Your logic to handle connection lost
   }, []);
-  const connection = useSignalRConnection(handleConnectionLost, processEvents, selectedRecpientId, setSelectedTyping, messageQueue, userProfileQueue, conversationQueue, userStatusQueue);
+  const xselectedId = selectedRecpientId;
+  const connection = useSignalRConnection(handleConnectionLost, processEvents, xselectedId, setSelectedTyping, messageQueue, userProfileQueue, conversationQueue, userStatusQueue);
 
 
   useEffect(() => {
