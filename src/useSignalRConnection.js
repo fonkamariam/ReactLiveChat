@@ -75,7 +75,7 @@ const useSignalRConnection = (handleConnectionLost, processEvents,messageQueue, 
           .catch(error => console.error('Error stopping connection', error));
       }
     };
-  }, [connection,handleConnectionLost, processEvents, selectedRecpientIdPara, setSelectedTyping,messageQueue, userProfileQueue, conversationQueue, userStatusQueue]);
+  }, [connection,handleConnectionLost, processEvents,messageQueue, userProfileQueue, conversationQueue, userStatusQueue]);
 
   return connection;
 };

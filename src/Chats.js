@@ -956,6 +956,7 @@ function Chats() {
     // Your logic to handle connection lost
   }, []);
   //const xselectedId = selectedRecpientId;
+  setSelectedTyping(false);
   const connection = useSignalRConnection(handleConnectionLost, processEvents, messageQueue, userProfileQueue, conversationQueue, userStatusQueue);
 
 
