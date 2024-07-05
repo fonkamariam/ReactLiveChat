@@ -938,7 +938,13 @@ function Chats() {
       messagesEndRef.current.scrollTop = messagesEndRef.current.scrollHeight;
     }
   }, [messages]);
-
+  const processTyping = useCallback((typer,valueBool)=>{
+    if (selectedRecpientId !== null && selectedRecpientId === typer) {
+      console.log('Typing Selected');
+      setSelectedTyping(valueBool);
+    }
+  },[selectedRecpientId,setSelectedTyping]);
+  
   
   const handleConnectionLost = useCallback(() => {    
     reconnectTimeoutRef.current = setTimeout(() => {
@@ -1000,6 +1006,10 @@ function Chats() {
                     userStatusQueue.current.push({ type: 'UserStatusChanged', payload: { userId, isOnline,lastSeen } });
                     processEvents();
                 });
+                connection.on('Typing', (typer, valueBool) => {
+                  console.log('Typing');
+                  processTyping(typer,valueBool);
+                });
 
                 connection.onclose(() => {
                     console.log("Initial Connection Closed");
@@ -1020,18 +1030,11 @@ function Chats() {
       }
       clearReconnectTimeout();
   };
-}, [connection, handleConnectionLost, showToast, processEvents,fetchMissedUpdates,selectedRecpientId]);
+}, [connection, handleConnectionLost, showToast, processEvents,processTyping]);
 
-setSelectedTyping(false);
-  /**
-  const processTyping = useCallback((typer,valueBool)=>{
-    if (selectedRecpientId !== null && selectedRecpientId === typer) {
-      console.log('Typing Selected');
-      setSelectedTyping(valueBool);
-    }
-  },[selectedRecpientId,setSelectedTyping]);
   
-  */
+  
+  
   
 
   useEffect(() => {
