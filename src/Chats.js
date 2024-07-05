@@ -942,8 +942,10 @@ function Chats() {
 
   const processTyping = useCallback((typer,valueBool)=>{
     if (selectedRecpientId !== null && selectedRecpientId === typer) {
-      console.log('Typing Selected');
+      
       setSelectedTyping(valueBool);
+      
+    
     }
   },[selectedRecpientId,setSelectedTyping]);
   
@@ -1035,11 +1037,6 @@ function Chats() {
       clearReconnectTimeout();
   };
 }, [handleConnectionLost, processEvents,processTyping,clearReconnectTimeout]);
-
-  
-  
-  
-  
 
   useEffect(() => {
     const handleVisibilityChange = async () => {
@@ -1209,7 +1206,7 @@ const handleMessage = useCallback(async (e) =>{
         if (connectionRef.current && selectedRecpientId !== null) {
           await connectionRef.current.invoke('TypingIndicator',selectedRecpientId,false);
         } 
-      }, 2000); // Adjust the timeout duration as needed
+      }, 1000); // Adjust the timeout duration as needed
 }
 
 },[selectedRecpientId,isLoadingMessage]);
