@@ -964,12 +964,12 @@ function Chats() {
     }, 7000); // 5000ms = 5 seconds, adjust as needed
     
   }, [showToast]);
-  const clearReconnectTimeout = () => {
+  const clearReconnectTimeout = useCallback(() => {
     if (reconnectTimeoutRef.current) {
       clearTimeout(reconnectTimeoutRef.current);
       reconnectTimeoutRef.current = null;
     }
-  };
+  },[]);
   useEffect(() => {
     const newConnection = new HubConnectionBuilder()
       .withUrl('https://livechatbackend-xwgx.onrender.com/messagesHub', {
@@ -1037,7 +1037,7 @@ function Chats() {
         }
         clearReconnectTimeout();
     };
-}, [connection, handleConnectionLost, processMessages, showToast, processEvents,fetchMissedUpdates]);
+}, [connection, handleConnectionLost, processMessages, showToast, processEvents,clearReconnectTimeout]);
 setSelectedTyping(false);
   /**
   const processTyping = useCallback((typer,valueBool)=>{
