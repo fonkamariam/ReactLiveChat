@@ -1,12 +1,11 @@
 // https://fonkagram.netlify.app/
 import React, { useState ,useEffect,useRef,useMemo } from 'react';
 import { useNavigate} from 'react-router-dom';
-import { HttpTransportType, HubConnectionBuilder } from "@microsoft/signalr";                   
 //import * as signalR from '@microsoft/signalr';
 import { toast, ToastContainer } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
 import { useCallback } from 'react';
-
+import useSignalRConnection from './useSignalRConnection';
 // Intergration
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faCheckDouble,faEllipsisV,faSun,faMoon,faPaperPlane, faCloudDownload, faPause, faTrashAlt,faSmile ,faCog, faUserEdit, faKey, faSignOutAlt, faTrash,faCheck,faTimes,faSpinner,faPaperclip,faMicrophone, faStop, faPlay,faBookmark,faArrowLeft, faArrowRight} from '@fortawesome/free-solid-svg-icons';
@@ -27,7 +26,6 @@ function Chats() {
   let valueDark = false;
   if (tempDark && tempDark==='true'){valueDark = true}
   const [isDarkMode, setIsDarkMode] = useState(valueDark);
-  const [connection, setConnection] = useState(null);  
   const [conversations, setConversations] = useState([]);
   const [messages, setMessages] = useState([]); // State for the array of messages
   //const [messageWs,setMessagesWs] = useState([]);
@@ -126,7 +124,6 @@ function Chats() {
   const emojiPickerRef = useRef(null);
   const settingsRef = useRef(null);
   const modalRef = useRef(null);
-  //const reconnectTimeoutRef = useRef(null);
   const messagesEndRef = useRef(null);
   
   //const eventQueue = useRef([]);
@@ -134,7 +131,6 @@ function Chats() {
   const userProfileQueue = useRef([]);
   const conversationQueue = useRef([]);
   const userStatusQueue = useRef([]);
-  const connectionRef = useRef(null);
   
   const handleUserProfileQueue = useCallback(async (userProfile) => {
     // Handle the user profile payload
@@ -955,79 +951,12 @@ function Chats() {
       processMessages();
     });
   }, [handleMessageQueue]);
+  const handleConnectionLost = useCallback(() => {
+    console.log('Handling connection lost');
+    // Your logic to handle connection lost
+  }, []);
+  const connection = useSignalRConnection(handleConnectionLost, processEvents, selectedRecpientId, setSelectedTyping, messageQueue, userProfileQueue, conversationQueue, userStatusQueue);
 
-  
-
-
-  useEffect(() => {
-    const createConnection = () => {
-      const connection = new HubConnectionBuilder()
-        .withUrl('https://livechatbackend-xwgx.onrender.com/messagesHub', {
-          accessTokenFactory: () => sessionStorage.getItem('Token'),
-          skipNegotiation: true,
-          transport: HttpTransportType.WebSockets,
-        })
-        .withAutomaticReconnect()
-        .build();
-
-      connectionRef.current = connection;
-      setConnection(connection);
-
-      connection.start()
-        .then(() => {
-          console.log('Connected Initial! Start');
-
-          connection.on('ReceiveMessage', message => {
-            console.log('ReceiveMessage', message);
-            // Handle the received message
-          });
-
-          connection.on('Receive UserProfile', userPayLoad => {
-            console.log('Receive UserProfile');
-            // Handle the received user profile
-          });
-
-          connection.on('Receive Conversation', convPayLoad => {
-            console.log('Receive Conversation');
-            // Handle the received conversation
-          });
-
-          connection.on('UserStatusChanged', (userId, isOnline, lastSeen) => {
-            console.log('UserStatusChange');
-            // Handle the user status change
-          });
-
-          connection.on('Typing', (typer, valueBool) => {
-            console.log('Typing');
-            if (selectedRecpientId !== null && selectedRecpientId === typer) {
-              console.log('Typing Selected');
-              setSelectedTyping(valueBool);
-            }
-          });
-
-          connection.onclose(() => {
-            console.log('Initial Connection Closed');
-            //handleConnectionLost();
-          });
-        })
-        .catch(error => {
-          console.error('Connection Failed', error);
-          //handleConnectionLost();
-        });
-    };
-
-    if (!connectionRef.current) {
-      createConnection();
-    }
-
-    return () => {
-      if (connectionRef.current) {
-        connectionRef.current.stop()
-          .then(() => console.log('Initial Connection Stopped'))
-          .catch(error => console.error('Error stopping connection', error));
-      }
-    };
-  }, [ processEvents, selectedRecpientId]);
 
   useEffect(() => {
     const handleVisibilityChange = async () => {
