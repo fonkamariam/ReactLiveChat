@@ -1,11 +1,12 @@
 // https://fonkagram.netlify.app/
 import React, { useState ,useEffect,useRef,useMemo } from 'react';
 import { useNavigate} from 'react-router-dom';
+import { HttpTransportType, HubConnectionBuilder } from "@microsoft/signalr";   
 //import * as signalR from '@microsoft/signalr';
 import { toast, ToastContainer } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
 import { useCallback } from 'react';
-import useSignalRConnection from './useSignalRConnection';
+//import useSignalRConnection from './useSignalRConnection';
 // Intergration
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faCheckDouble,faEllipsisV,faSun,faMoon,faPaperPlane, faCloudDownload, faPause, faTrashAlt,faSmile ,faCog, faUserEdit, faKey, faSignOutAlt, faTrash,faCheck,faTimes,faSpinner,faPaperclip,faMicrophone, faStop, faPlay,faBookmark,faArrowLeft, faArrowRight} from '@fortawesome/free-solid-svg-icons';
@@ -26,8 +27,10 @@ function Chats() {
   let valueDark = false;
   if (tempDark && tempDark==='true'){valueDark = true}
   const [isDarkMode, setIsDarkMode] = useState(valueDark);
+  const [connection, setConnection] = useState(null);
   const [conversations, setConversations] = useState([]);
   const [messages, setMessages] = useState([]); // State for the array of messages
+
   //const [messageWs,setMessagesWs] = useState([]);
   const [selectedConversation, setSelectedConversation] = useState(null); // State for the selected conversation
   const [selectedRecpientId, setSelectedRecpientId] = useState(null);//for sending a message by id
@@ -125,6 +128,7 @@ function Chats() {
   const settingsRef = useRef(null);
   const modalRef = useRef(null);
   const messagesEndRef = useRef(null);
+  const reconnectTimeoutRef = useRef(null);
   
   //const eventQueue = useRef([]);
   //const isProcessingEvent = useRef(false);
@@ -952,9 +956,89 @@ function Chats() {
     });
   }, [handleMessageQueue]);
   const handleConnectionLost = useCallback(() => {
-    console.log('Handling connection lost');
-    // Your logic to handle connection lost
+    //console.log("handle Connection Lost function");
+    //showToast('Connection Lost');
+    
+    reconnectTimeoutRef.current = setTimeout(() => {
+      showToast('Connection lost. Attempting to reconnect...');
+    }, 7000); // 5000ms = 5 seconds, adjust as needed
+    
+  }, [showToast]);
+  const clearReconnectTimeout = () => {
+    if (reconnectTimeoutRef.current) {
+      clearTimeout(reconnectTimeoutRef.current);
+      reconnectTimeoutRef.current = null;
+    }
+  };
+  useEffect(() => {
+    const newConnection = new HubConnectionBuilder()
+      .withUrl('https://livechatbackend-xwgx.onrender.com/messagesHub', {
+        accessTokenFactory: () => sessionStorage.getItem('Token'),
+        skipNegotiation: true,
+        transport: HttpTransportType.WebSockets,
+      })
+      .withAutomaticReconnect()
+      .build();
+
+    setConnection(newConnection);
   }, []);
+
+  useEffect(() => {
+    if (connection) {
+        connection.start()
+            .then(result => {
+                clearReconnectTimeout();
+                //setIsOffline(true);
+                //fetchMissedUpdates();
+                console.log('Connected Initial! Start');
+                
+                connection.on('ReceiveMessage', message => {
+                    console.log('ReceiveMessage',message);
+                    messageQueue.current.push({ type: 'ReceiveMessage', payload: message });
+                    processEvents();
+                });
+
+                connection.on('Receive UserProfile', userPayLoad => {
+                  console.log('Receive UserProfile');
+                    
+                    userProfileQueue.current.push({ type: 'ReceiveUserProfile', payload: userPayLoad });
+                    processEvents();
+                });
+
+                connection.on('Receive Conversation', convPayLoad => {
+                  console.log('ReceiveConversation');
+                    
+                    conversationQueue.current.push({ type: 'ReceiveConversation', payload: convPayLoad });
+                    processEvents();
+                });
+
+                connection.on('UserStatusChanged', (userId, isOnline,lastSeen) => {
+                    console.log('UserStatusChange');
+                    userStatusQueue.current.push({ type: 'UserStatusChanged', payload: { userId, isOnline,lastSeen } });
+                    processEvents();
+                });
+
+                connection.onclose(() => {
+                    console.log("Initial Connection Closed");
+                    handleConnectionLost();
+                });
+            })
+            .catch(e => {
+                showToast('Connection Failed');
+                console.log("Connection Failed");
+                handleConnectionLost();
+            });
+    }
+
+    return () => {
+        if (connection) {
+            connection.stop();
+            console.log("Initial Connection Stopped");
+        }
+        clearReconnectTimeout();
+    };
+}, [connection, handleConnectionLost, processMessages, showToast, processEvents,fetchMissedUpdates]);
+setSelectedTyping(false);
   /**
   const processTyping = useCallback((typer,valueBool)=>{
     if (selectedRecpientId !== null && selectedRecpientId === typer) {
@@ -962,10 +1046,9 @@ function Chats() {
       setSelectedTyping(valueBool);
     }
   },[selectedRecpientId,setSelectedTyping]);
-   */
-  setSelectedTyping(false);
-  const connection = useSignalRConnection(handleConnectionLost, processEvents, messageQueue, userProfileQueue, conversationQueue, userStatusQueue);
-
+  
+  */
+  
 
   useEffect(() => {
     const handleVisibilityChange = async () => {
