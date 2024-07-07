@@ -1222,6 +1222,8 @@ const handleSendMessage = async (e) => {
   setIsLoadingMessage(true);
   //setVarOnce(true);
   try {
+    const conversationIdDima = selectedConversation === null ? 0 : selectedConversation;
+
     const messagesResponse1 = await fetch('https://livechatbackend-xwgx.onrender.com/api/Message/SendMessage', {
       method: 'POST',
       headers: {
@@ -1233,7 +1235,8 @@ const handleSendMessage = async (e) => {
         recpientId: selectedRecpientId,
         messageType: "text",
         isAudio: false,
-        isImage: false
+        isImage: false,
+        conversationId: conversationIdDima
       })  
     });
     if (messagesResponse1.ok) {
