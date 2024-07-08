@@ -1223,7 +1223,7 @@ const handleSendMessage = async (e) => {
   //setVarOnce(true);
   try {
     const conversationIdDima = selectedConversation === null ? 0 : selectedConversation;
-
+    console.log("ConversationDima",conversationIdDima);
     const messagesResponse1 = await fetch('https://livechatbackend-xwgx.onrender.com/api/Message/SendMessage', {
       method: 'POST',
       headers: {
@@ -2873,7 +2873,6 @@ const handleKeyDown = (e) => {
     handleSendMessage();
   }
 };
-//useOutsideClick(emojiPickerRef, () => setShowEmojiPicker(false));
 useOutsideClick(emojiPickerRef,() => setShowEmojiPickerEDIT(false));
 useOutsideClick(emojiPickerRef,() => setShowEmojiPicker(false));
 
