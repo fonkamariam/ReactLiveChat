@@ -8,10 +8,12 @@ import 'react-toastify/dist/ReactToastify.css';
 import { useCallback } from 'react';
 import 'react-chat-elements/dist/main.css';
 import { MessageBox } from 'react-chat-elements';
+//import CustomContextMenu, { useMessageContextMenu } from './CustomContextMenu';
+//import './MessageList.css'; // Custom CSS for additional styling
 //import useSignalRConnection from './useSignalRConnection';
 // Intergration
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { faReply,faCheckDouble,faEllipsisV,faSun,faMoon,faPaperPlane, faCloudDownload, faPause, faTrashAlt,faSmile ,faCog, faUserEdit, faKey, faSignOutAlt, faTrash,faCheck,faTimes,faSpinner,faPaperclip,faMicrophone, faStop, faPlay,faBookmark,faArrowLeft, faArrowRight} from '@fortawesome/free-solid-svg-icons';
+import { faEdit,faReply,faCheckDouble,faEllipsisV,faSun,faMoon,faPaperPlane, faCloudDownload, faPause, faTrashAlt,faSmile ,faCog, faUserEdit, faKey, faSignOutAlt, faTrash,faCheck,faTimes,faSpinner,faPaperclip,faMicrophone, faStop, faPlay,faBookmark,faArrowLeft, faArrowRight} from '@fortawesome/free-solid-svg-icons';
 import { MdEdit } from 'react-icons/md';
 import Picker from '@emoji-mart/react';
 import dataXXX from '@emoji-mart/data';
@@ -20,9 +22,13 @@ import RecordRTC from 'recordrtc';
 import WaveSurfer from 'wavesurfer.js';
 import { storage } from './firebaseConfig';
 import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
+import ContextMenu from './ContextMenu'; // Import the ContextMenu component
+import ContextMenu2 from './ContextMenu2';
 
 // Integration end
 function Chats() {
+  const [contextMenu, setContextMenu] = useState(null);
+  const [contextMenu2,setContextMenu2] = useState(null);
   const messageQueue = useRef([]);
   const isProcessing = useRef(false);
   let tempDark = sessionStorage.getItem('Dark');
@@ -124,7 +130,8 @@ function Chats() {
   const [playbackPositions, setPlaybackPositions] = useState({});
   const [replyMessage, setReplyMessage] = useState(null);
   const [replyMessageId,setReplyMessageId]=useState(0);
-
+  const [editMessageModal,setEditMessageModal] = useState(null);
+  const [editMessageModalId,setEditMessageModalId]= useState(0);
   const audioRef = useRef(null);
   const durationsRef = useRef({});
   const waveformRefs = useRef({});
@@ -369,6 +376,7 @@ function Chats() {
               timeStamp: message.record.timeStamp,
               isAudio: message.record.isAudio,
               isImage: message.record.isImage,
+              reply: message.record.reply
               };
             
             insertMessage(newMessage);
@@ -394,7 +402,8 @@ function Chats() {
               status:message.record.status,
               timeStamp: message.record.timeStamp,
               isAudio: message.record.isAudio,
-              isImage: message.record.isImage
+              isImage: message.record.isImage,
+              reply: message.record.reply
               };
             
             insertMessage(newMessage);
@@ -418,7 +427,8 @@ function Chats() {
               status:message.record.status,
               timeStamp: message.record.timeStamp,
               isAudio: message.record.isAudio,
-              isImage: message.record.isImage
+              isImage: message.record.isImage,
+              reply: message.record.reply
               };
             
             insertMessage(newMessage);
@@ -441,7 +451,8 @@ function Chats() {
               status:message.record.status,
               timeStamp: message.record.timeStamp,
               isAudio: message.record.isAudio,
-              isImage: message.record.isImage
+              isImage: message.record.isImage,
+              reply: message.record.reply
               };
             
             
@@ -1192,7 +1203,6 @@ const handleLogOut = (e) =>{
 
 };
 
-
 const handleMessage = useCallback(async (e) =>{
   if (!isLoadingMessage){
   setSendMessage(e.target.value);
@@ -1226,8 +1236,8 @@ const handleSendMessage = async (e) => {
   setIsLoadingMessage(true);
   //setVarOnce(true);
   try {
-    const conversationIdDima = selectedConversation === null ? 0 : selectedConversation;
-    console.log("ConversationDima",conversationIdDima);
+    const conversationIdDima = selectedConversationRef.current === null ? 0 : selectedConversationRef.current;
+    console.log("ConverstaionIdDima:", conversationIdDima);
     const messagesResponse1 = await fetch('https://livechatbackend-xwgx.onrender.com/api/Message/SendMessage', {
       method: 'POST',
       headers: {
@@ -1246,7 +1256,7 @@ const handleSendMessage = async (e) => {
     });
     if (messagesResponse1.ok) {
       const data = await messagesResponse1.json();
-      if (selectedConversation === null) { 
+      if (selectedConversationRef.current === null) { 
         setConversations(prevConversations => {
           // Create a new array that includes the previous conversations and the new one
           
@@ -1279,14 +1289,13 @@ const handleSendMessage = async (e) => {
           // Return the sorted array to update the state
           return updatedConversations12;
         });
-        setSelectedConversation(data.convId);
-        
+        selectedConversationRef.current = data.convId;
         
       }else{
         setConversations(prevConversations => {
         const updatedConversations = prevConversations.map(conversation => {
           
-          if (conversation.convId === selectedConversation) {
+          if (conversation.convId === selectedConversationRef.current) {
             
             return { ...conversation, message: sendMessage,notificationCount: 0, updatedTime:data.timeStamp ,messageId: data.id,isAudio:false,isImage:false,messageSender:Number(sessionStorage.getItem('userId')),seen:true}; 
           }
@@ -1315,7 +1324,7 @@ const handleSendMessage = async (e) => {
       const ParsedMessage = JSON.parse(sessionStorage.getItem(`${data.convId}`));
       if (ParsedMessage!== null) {
       ParsedMessage.push(newMessage);
-      sessionStorage.setItem(`${selectedConversation}`,JSON.stringify(ParsedMessage))
+      sessionStorage.setItem(`${selectedConversationRef.current}`,JSON.stringify(ParsedMessage))
       }
       setIsLoadingMessage(false); 
       setSendMessage('');
@@ -1338,14 +1347,27 @@ const handleSendMessage = async (e) => {
     showToast('Connection Refused');
   }
 };
-const handleReplyMessage = (messageId,messageContent) => {
+const handleReplyMessage = (messageId,messageContent,messageType) => {
+  setEditMessageModalId(0);
+  setEditMessageModal(null);
+  setSendMessage('');
   setReplyMessageId(messageId);
+  if (messageType === "audio"){
+  setReplyMessage("Voice Message");
+} else if (messageType === "image"){
+  setReplyMessage("Photo Message");
+} else{
   setReplyMessage(messageContent);
+}
 };
-
 const clearReplyMessage = () => {
   setReplyMessageId(0);
   setReplyMessage(null);
+};
+const clerEditMessageModal = () =>{
+  setEditMessageModalId(0);
+  setEditMessageModal(null);
+  setSendMessage('');
 };
 const handleConversationClick = async (convId,recpientId,Name,LastName,onlineStatus,lastSeen,bio,email,profilePicConv,deletedPara) => {
   setIsLoading(true);
@@ -1361,6 +1383,12 @@ const handleConversationClick = async (convId,recpientId,Name,LastName,onlineSta
   setSelectedEmail(email);
   setSelectedProfilePic(profilePicConv);
   setSelectedDeleted(deletedPara);
+  // clear reply and edit 
+  setEditMessageModalId(0);
+  setEditMessageModal(null);
+  setSendMessage('');
+  setReplyMessageId(0);
+  setReplyMessage(null);
 
 
   
@@ -1669,13 +1697,13 @@ const zeroNotificationCID = async (convIdPara) => {
     console.error('Error zeroing Notification');
   }
 };
-const handleEditSubmit = async (e) => {
-  e.preventDefault();
-  if (!editMessageContent.trim()) {
+const handleEditSubmit = async () => {
+  console.log("EditMessage endpoint invoked");
+  if (!sendMessage.trim()) {
    
     return;
   }
-
+  setIsLoadingMessage(true);
   try {
     const response = await fetch(`https://livechatbackend-xwgx.onrender.com/api/Message/EditMessage`, {
       method: 'PUT',
@@ -1684,15 +1712,17 @@ const handleEditSubmit = async (e) => {
         'Authorization': `Bearer ${sessionStorage.getItem('Token')}`
       },
       body: JSON.stringify({ 
-        content: editMessageContent,
-        MessageId: editMessageId 
+        content: sendMessage,
+        MessageId: editMessageModalId 
       }) 
     });
     if (response.ok) {
       const updatedMessage = await response.json();
       setMessages(messages.map(message => message.id === editMessageId ? updatedMessage : message));
-      
-      setEditMessageContent('');
+      setIsLoadingMessage(false);
+      setEditMessageModalId(0);
+      setEditMessageModal(null);
+      setSendMessage('');
       setConversations(prevConversations => {
         
         const updatedConversations = prevConversations.map(conversation => {
@@ -1719,10 +1749,9 @@ const handleEditSubmit = async (e) => {
       }
       sessionStorage.setItem(`${selectedConversation}`,JSON.stringify(xy))
       }
-      setEditMessageId(null);
       
-     
     } else {
+      setIsLoadingMessage(false);
       let errorMessage = 'An error occurred';
       if (response.status === 401) {
         errorMessage = 'Unauthorized';
@@ -1733,12 +1762,17 @@ const handleEditSubmit = async (e) => {
       throw new Error('Failed to edit message');
     }
   } catch (error) {
+    setIsLoadingMessage(false);
+      
     showToast('Connection Refused');
   }
 };
-const handleEditMessage = (message) => {
-  setEditMessageId(message.id);
-  setEditMessageContent(message.content);
+const handleEditMessage = (messageId,messageContent) => {
+  setReplyMessageId(0);
+  setReplyMessage(null);
+  setEditMessageModalId(messageId);
+  setEditMessageModal(messageContent);
+  setSendMessage(messageContent);
 };
 const deleteAccount = () => {
   if (window.confirm('Are you sure you want to delete this item?')) {
@@ -2065,6 +2099,9 @@ recorderRef.current.stopRecording(async () => {
   
   
     try {
+      const conversationIdDima = selectedConversationRef.current === null ? 0 : selectedConversationRef.current;
+      console.log("ConverstaionIdDima:", conversationIdDima);
+    
       const messagesResponse1 = await fetch('https://livechatbackend-xwgx.onrender.com/api/Message/SendMessage', {
         method: 'POST',
         headers: {
@@ -2076,7 +2113,9 @@ recorderRef.current.stopRecording(async () => {
           recpientId: selectedRecpientId,
           messageType: "text",
           isAudio: true,
-          isImage: false
+          isImage: false,
+          conversationId: conversationIdDima,
+          reply: replyMessageId
         })  
       });
       if (messagesResponse1.ok) {
@@ -2337,6 +2376,8 @@ try {
 const handleConversationChange = (conversationId) => {
 setSelectedConversation(conversationId);
 stopCurrentAudio();
+setContextMenu(null);
+setContextMenu2(null);
 }; 
 useEffect(() => {
   const currentWaveformRefs = waveformRefs.current;
@@ -2591,6 +2632,9 @@ const handleFileChange = async (event) => {
       // Add a temporary message with a loading icon
       
       try {
+      const conversationIdDima = selectedConversationRef.current === null ? 0 : selectedConversationRef.current;
+      console.log("ConverstaionIdDima:", conversationIdDima);
+    
       const messagesResponse1 = await fetch('https://livechatbackend-xwgx.onrender.com/api/Message/SendMessage', {
         method: 'POST',
         headers: {
@@ -2602,7 +2646,9 @@ const handleFileChange = async (event) => {
           recpientId: selectedRecpientId,
           messageType: "text",
           isAudio: false,
-          isImage: true
+          isImage: true,
+          conversationId: conversationIdDima,
+          reply: replyMessageId
         })  
       });
       if (messagesResponse1.ok) {
@@ -2887,7 +2933,12 @@ const handleKeyDown = (e) => {
     //setNewMessage(prev => prev + '\n');
   } else if (e.key === 'Enter' && !e.ctrlKey) {
     e.preventDefault();
-    handleSendMessage();
+    if (editMessageModalId !== 0){
+      handleEditSubmit();
+    }else{
+      handleSendMessage();
+    }
+    
   }
 };
 useOutsideClick(emojiPickerRef,() => setShowEmojiPickerEDIT(false));
@@ -2926,6 +2977,12 @@ const handleResize = () => {
 };
 const msgIdTomsgObj = (id) => {
   const replyMessage = messages.find(msg => msg.id === id);
+  if (replyMessage.isAudio === 'true'){
+    return 'Voice Message';
+  };
+  if (replyMessage.isImage === 'true'){
+    return 'Photo Message';
+  };
   return replyMessage.content;
 };
 
@@ -2934,14 +2991,47 @@ useEffect(() => {
   return () => window.removeEventListener('resize', handleResize);
 }, []);
 
+const handleRightClick = (e,messageId,type) => {
+  e.preventDefault();
+  if (type === "text"){
+    setContextMenu({
+      messageId,
+      x: e.clientX,
+      y: e.clientY,
+    });
+  } else {
+    setContextMenu2({
+      messageId,
+      x: e.clientX,
+      y: e.clientY,
+    });
+  }
+  
+  
+};
 
+const closeContextMenu = useCallback(() => {
+  setContextMenu(null);
+  setContextMenu2(null);
+},[]);
+const handleScroll = useCallback (() => {
+  setContextMenu(null);
+  setContextMenu2(null);
+},[]);
+
+useEffect(() => {
+  window.addEventListener('scroll', handleScroll);
+  return () => {
+    window.removeEventListener('scroll', handleScroll);
+  };
+}, [handleScroll]);
 
     // FUCNTION INTEGRATION END
 
 // For Settings code End
 
   return(
-  <div className={`flex h-screen relative ${isDarkMode ? 'bg-gray-900 text-white' : 'bg-gray-100 text-black'}`}>
+  <div className={`flex h-screen relative ${isDarkMode ? 'bg-gray-900 text-white' : 'bg-gray-100 text-black'}`}  onClick={closeContextMenu}>
     <ToastContainer />
     {modalContent && (
         <div 
@@ -4225,172 +4315,57 @@ useEffect(() => {
           {selectedConversation!= null || forSearchUser === true ? (
           messages.length > 0 ? (
           messages.map(message=>( 
-            <div key={message.id} id={`message-${message.id}`} className="mb-4">
             
+            <div key={message.id} onClick={closeContextMenu} id={`message-${message.id}`} className="mb-4">
             <div>
             {message.senderId !== Number(sessionStorage.getItem('userId'))?(
-              <div key={message.id} className="chat chat-start">
-                 
-                <div className="group chat-bubble bg-white-500 text-white p-2 rounded-lg max-w-xs md:max-w-md break-words">
-                {message.reply !== 0 && ( 
+            <div key={message.id} onClick={closeContextMenu} className="chat chat-start">
+                {/* chat chat start classname = "group chat-bubble bg-white-500 text-white p-2 rounded-lg max-w-xs md:max-w-md break-words"*/ }         
+                <div className="group w-80">
+                {message.isImage ? (
+                isUploading && uploadingMessageId === message.id ? (
+                  <FontAwesomeIcon icon={faSpinner} spin className="mr-2" />
+                ) : (
+                  <div className='group group-hover:cursor-pointer' onContextMenu={(e)=> handleRightClick(e,message.id,"image")}>
                   <MessageBox
-                  reply={{
-                    photoURL: 'https://facebook.github.io/react/img/logo.svg',
-                    title: 'elit magna',
+                    reply={message.reply !== 0 && {
+                    photoURL: selectedProfilePic,
+                    title: `${truncateText101(selectedName,13)}`,
                     titleColor: '#8717ae',
-                    message: 'Aliqua amet incididunt id nostrud',
+                    message: 'Photo Message',
                   }}
                   onReplyMessageClick={() => console.log('reply clicked!')}
-                  position={'left'}
-                  type={'text'}
-                  text={'Tempor duis do voluptate enim duis velit veniam aute ullamco dolore duis irure.'}
-                />
-                  /*{<div className={`w-full mb-2 p-1 rounded-md ${isDarkMode ? 'bg-blue-500 text-white' : 'bg-gray-100 text-black'}`}>
-                    <div className="flex items-start">
-                      <div className="pl-1">
-                        <div className="font-bold">{`${truncateText101(selectedName,13)}`}</div>
-                        <div>{`${truncateText101((msgIdTomsgObj(message.id)),10)}`}</div>
-                      </div>
-                    </div>
-                </div>}*/
-                )}
-              {message.isImage ? (
-              
-                <div className='image-container'>
-                  {isUploading && uploadingMessageId === message.id && (
-                    <FontAwesomeIcon icon={faSpinner} spin className="mr-2"/>
-                  )}
-                  {!isUploading && (
-                    <img src={message.content} alt="Uploaded" onClick={() => handleImageClick(message.content)} className="uploaded-image cursor-pointer" />
-                  )}
-            {(!isDeletingMessage && !isUploading)&& (<div className="flex items-center justify-between mt-1">
-              <button className="ml-2 text-red-600 hidden group-hover:block" onClick={() => handleDeleteMessage(message.id)}>
-                <FontAwesomeIcon icon={faTrashAlt} />
-              </button>
-              <button className="ml-2 text-gray-600 hidden group-hover:block" onClick={() => handleReplyMessage(message.id,"Photo")}>
-              <FontAwesomeIcon icon={faReply} />
-            </button>
-            </div>)}
                   
-                </div>
-              ) : message.isAudio?(
-              <div>
-                  {isUploading && uploadingMessageId === message.id && (
-                      <FontAwesomeIcon icon={faSpinner} spin className="mr-2" />
+                    position="left"
+                    type="photo"
+                    title={selectedName}
+                    data={{ uri: message.content }}
+                    status={message.new === true || message.new === null ? 'sent' : 'received'}
+                    onClick={() => handleImageClick(message.content)}
+                  />
+                  {contextMenu2 && (
+                    <ContextMenu2
+                      x={contextMenu2.x}
+                      y={contextMenu2.y}
+                      
+                      onReply={() => {
+                        handleReplyMessage(contextMenu2.messageId,msgIdTomsgObj(contextMenu2.messageId),"image");
+                        closeContextMenu();
+                      }}
+                      onDelete={() => {
+                        handleDeleteMessage(contextMenu2.messageId);
+                        closeContextMenu();
+                      }}
+                      onClose={closeContextMenu}
+                    />
                   )}
-                  {(!isUploading || uploadingMessageId !== message.id) && (
-                    <>
-                    {isDownloading && downloadingMessageId === message.id ? (
-                      <FontAwesomeIcon icon={faSpinner} spin className="mr-2" />
-                    ) : (
-                      isAudioDownloaded(message.id) ? (
-                        <button onClick={() => handlePlayAudio(message.content, message.id)} className="mr-2">
-                          <FontAwesomeIcon icon={isPlaying && currentAudioId === message.id ? faPause : faPlay} />
-                        </button>
-                      ) : (
-                        <button onClick={() => handleDownloadAudio(message.content, message.id)} className="mr-2">
-                          <FontAwesomeIcon icon={faCloudDownload} />
-                        </button>
-                      )
-                    )}
-                  </>
-                  )}
-                <div id={`waveform-${message.id}`} className="rounded-lg max-w-full">
-                <span className="duration" 
-                  id={`duration-${message.id}`}>
-                  {/* eslint-disable-next-line no-template-curly-in-string */}
-                  {isPlaying && currentAudioId === message.id
-                ? `${Math.floor((elapsedTimes[message.id] || 0) / 60)}:${Math.floor((elapsedTimes[message.id] || 0) % 60).toString().padStart(2, '0')}`
-                : durationsRef.current[message.id]
-                  ? `${Math.floor(durationsRef.current[message.id] / 60)}:${Math.floor(durationsRef.current[message.id] % 60).toString().padStart(2, '0')}`
-                  : '0:00'}
-                  
-                  </span>
-              </div>
-              {!isDeletingMessage && (<div className="flex items-center justify-between mt-1">
-          <button className="ml-2 text-red-600 hidden group-hover:block" onClick={() => handleDeleteMessage(message.id)}>
-            <FontAwesomeIcon icon={faTrashAlt} />
-          </button>
-          <button className="ml-2 text-gray-600 hidden group-hover:block" onClick={() => handleReplyMessage(message.id,"Voice Message")}>
-              <FontAwesomeIcon icon={faReply} />
-            </button>
-        </div>)}
-            </div>
-              ):(
-                
-              <div>
-                {message.content}
-                
-                {!isDeletingMessage && (<div className="flex items-center justify-between mt-1">
-              <button className="ml-2 text-red-600 hidden group-hover:block" onClick={() => handleDeleteMessage(message.id)}>
-                <FontAwesomeIcon icon={faTrashAlt} />
-              </button>
-              <button className="ml-2 text-gray-600 hidden group-hover:block" onClick={() => handleReplyMessage(message.id,message.content)}>
-              <FontAwesomeIcon icon={faReply} />
-            </button>
-            </div>)}
-              </div>
-          )}
-                </div>
-                {/* Deleting Icon*/}
-              {isDeletingMessage ===true && isDeletingMessageId === message.id ?(
-              <FontAwesomeIcon icon={faSpinner} spin />
-              ):(
-              <div className="chat-footer opacity-50">
-              {message.edited === true ? (
-                <span className="mr-2">edited</span>
-                ) : null}
-              {formatDateTime(message.timeStamp)}
-              </div>
-              
-              )}
-                  
-              
-            </div>
-            ):( 
-            <div key={message.id} className="chat chat-end">
-              
-              {editMessageId !== message.id ?(
-                
-                
-                
-                <div className="group chat-bubble bg-blue-500 text-white p-2 rounded-lg max-w-xs md:max-w-md break-words">
-                {message.reply !== 0 && ( 
-                  <div className={`w-full mb-2 p-1 rounded-md ${isDarkMode ? 'bg-gray-900 text-white' : 'bg-gray-100 text-black'}`}>
-                    <div className="flex items-start">
-                      <div className="pl-1">
-                        <div className="font-bold">{`${truncateText101(selectedName,13)}`}</div>
-                        <div>{`${truncateText101((msgIdTomsgObj(message.id)),15)}`}</div>
-                      </div>
-                    </div>
                   </div>
-                )}
-                  {message.isImage ? (
-                    
-                    <div className='image-container'>
-                {isUploading && uploadingMessageId === message.id && (
-                  <FontAwesomeIcon icon={faSpinner} spin className="mr-2"/>
-                )}
-                {(!isUploading || uploadingMessageId !== message.id)&&(
-                  <img src={message.content} alt="Uploaded" onClick={() => handleImageClick(message.content)} className="uploaded-image cursor-pointer" />
-                )} 
-                    {(!isDeletingMessage  && !isUploading) && (
-                          <div className="flex items-center justify-between mt-1">
-                          <button className="ml-2 text-red-600 hidden group-hover:block" onClick={() => handleDeleteMessage(message.id)}>
-                            <FontAwesomeIcon icon={faTrashAlt} />
-                          </button>
-                          <button className="ml-2 text-gray-600 hidden group-hover:block" onClick={() => handleReplyMessage(message.id,"Photo")}>
-                          <FontAwesomeIcon icon={faReply} />
-                        </button>
-                        </div>
-                    )}
-                    </div>
-                  ):message.isAudio?(
-                  <div>
+                )) : message.isAudio?(
+                  <div className='group chat-bubble bg-blue-500 text-white p-2 rounded-lg max-w-xs md:max-w-md break-words' onContextMenu={(e)=> handleRightClick(e,message.id,"text")}>
                       {isUploading && uploadingMessageId === message.id && (
                           <FontAwesomeIcon icon={faSpinner} spin className="mr-2" />
                       )}
-                      {!isUploading && (
+                      {(!isUploading || uploadingMessageId !== message.id) && (
                         <>
                         {isDownloading && downloadingMessageId === message.id ? (
                           <FontAwesomeIcon icon={faSpinner} spin className="mr-2" />
@@ -4419,100 +4394,221 @@ useEffect(() => {
                       
                       </span>
                   </div>
-                {!isDeletingMessage  &&  (<div className="flex items-center justify-between mt-1">
-                  <button className="ml-2 text-red-600 hidden group-hover:block" onClick={() => handleDeleteMessage(message.id)}>
-                    <FontAwesomeIcon icon={faTrashAlt} />
-                  </button>
-                  <button className="ml-2 text-gray-600 hidden group-hover:block" onClick={() => handleReplyMessage(message.id, "Voice Message")}>
-                          <FontAwesomeIcon icon={faReply} />
-                        </button>
-                </div>)}
-                    
-                </div>
-                  ):(
-                  <div>
-                  {message.content}
-                  {message.new === true || message.new === null ? (
-                  <FontAwesomeIcon icon={faCheck} className="text-gray-500 mr-1" />
-                  ):(
-                  <FontAwesomeIcon icon={faCheckDouble} className="text-gray-500 mr-1" />
-                  )}
-                  {!isDeletingMessage  &&  (
-                
-                  <div className="flex items-center justify-between mt-1">
-                  <button
-                  className="ml-2 text-gray-600 hidden group-hover:block"
-                  onClick={() => handleEditMessage(message)}
-                >
-                  <MdEdit />
-                </button>
-                <button className="ml-2 text-red-600 hidden group-hover:block" onClick={() => handleDeleteMessage(message.id)}>
-                  <FontAwesomeIcon icon={faTrashAlt} />
-                </button>
-                <button className="ml-2 text-gray-600 hidden group-hover:block" onClick={() => handleReplyMessage(message.id,message.content)}>
-                   <FontAwesomeIcon icon={faReply} />
-               </button>
-                      </div>
-                  )}
-                  
-              </div>
-              
-            )}   
-            </div>
-            
-                ):(
-                <div className="group chat-bubble bg-blue-500 text-white p-2 rounded-lg max-w-xs md:max-w-md break-words">
-                <form key={message.id} onSubmit={handleEditSubmit}>
-                  <TextareaAutosize
-                    type="text" 
-                    value={editMessageContent} 
-                    onChange={(e) => setEditMessageContent(e.target.value)}
-                    required 
-                    className='bg-white text-black p-2 rounded-lg'
-                  /> 
-                      <button type="submit"  disabled={!editMessageContent.trim() || message.content === editMessageContent} className="ml-2 text-gray-600">
-                        <FontAwesomeIcon icon={faCheck} />
-                      </button> 
-                      <button type="button" onClick={() => setEditMessageId(null)} className="ml-2 text-red-600">
-                        <FontAwesomeIcon icon={faTimes} />
-                      </button>
+                  {contextMenu2 && (
+                    <ContextMenu2
+                      x={contextMenu2.x}
+                      y={contextMenu2.y}
                       
-                </form>
-                  <div className="flex items-center justify-between mt-1">
-                    
-                    <button
-                      onClick={() => setShowEmojiPickerEDIT(!showEmojiPickerEDIT)}
-                      className="btn btn-secondary ml-2 size-0"
-                    >
-                      <FontAwesomeIcon icon={faSmile} size='sm' />
-                    </button>
-                    {showEmojiPickerEDIT && (
-                      <div className="absolute top-20 right-0 z-30" ref={emojiPickerRef}> 
-                        <Picker  theme = {`${isDarkMode ? 'dark' : 'light'}`} dataXX={dataXXX} 
-                          onEmojiSelect={(e) => { 
-                            setEditMessageContent(editMessageContent + e.native);
-                          }}
-                        />
-                      </div>
+                      onReply={() => {
+                        handleReplyMessage(contextMenu2.messageId,msgIdTomsgObj(contextMenu2.messageId),"audio");
+                        closeContextMenu();
+                      }}
+                      onDelete={() => {
+                        handleDeleteMessage(contextMenu2.messageId);
+                        closeContextMenu();
+                      }}
+                      onClose={closeContextMenu}
+                    />
+                  )}
+                </div>
+                ):(
+                <div onContextMenu={(e)=> handleRightClick(e,message.id,"text")}>
+                  <MessageBox 
+                    reply={message.reply !== 0 && {
+                      photoURL: selectedProfilePic,
+                      title: `${truncateText101(selectedName,13)}`,
+                      titleColor: '#8717ae',
+                      message: `${truncateText101((msgIdTomsgObj(message.id)),15)}`,
+                    }}
+                    onReplyMessageClick={() => console.log('reply clicked!')}
+                    position={'left'}
+                    type={'text'}
+                    text={message.content}
+                    status={message.new === true || message.new === null ? 'sent' : 'received'}
+                    />
+                    {contextMenu && (
+                      <ContextMenu
+                        x={contextMenu.x}
+                        y={contextMenu.y}
+                        
+                        onReply={() => {
+                          handleReplyMessage(contextMenu.messageId,msgIdTomsgObj(contextMenu.messageId),"text");
+                          closeContextMenu();
+                        }}
+                        onDelete={() => {
+                          handleDeleteMessage(contextMenu.messageId);
+                          closeContextMenu();
+                        }}
+                        onClose={closeContextMenu}
+                      />
                     )}
-                  </div>
-                  </div>
-              )}
-              {/* Deleting Icon*/}
+                </div>
+                )}
+                </div>
+                {/* Deleting Icon and Timefield*/}
               {isDeletingMessage ===true && isDeletingMessageId === message.id ?(
               <FontAwesomeIcon icon={faSpinner} spin />
               ):(
+              <div className="chat-footer opacity-50">
+              {message.edited === true ? ( 
+                <span className="mr-2">edited</span>
+                ) : null} 
+              {formatDateTime(message.timeStamp)} 
+              </div> 
+              )}
+            </div>
+            ):( 
+            <div key={message.id} onClick={closeContextMenu} className="chat chat-end" >             
+                
+                <div className='group'>              
+                {message.isImage ? (
+                isUploading && uploadingMessageId === message.id ? (
+                  <FontAwesomeIcon icon={faSpinner} spin className="mr-2" />
+                ) : (
+                  <div className='group w-80 group-hover:cursor-pointer relative overflow-hidden ml-auto' onContextMenu={(e)=> handleRightClick(e,message.id,"image")}>
+                  <MessageBox
+                    reply={message.reply !== 0 && {
+                    photoURL: selectedProfilePic,
+                    title: `${truncateText101(selectedName,13)}`,
+                    titleColor: '#8717ae',
+                    message: 'Photo Message',
+                  }}
+                  onReplyMessageClick={() => console.log('reply clicked!')}
+                  
+                    position="right"
+                    type="photo"
+                    title={selectedName}
+                    data={{ uri: message.content }}
+                    status={message.new === true || message.new === null ? 'sent' : 'received'}
+                    onClick={() => handleImageClick(message.content)}
+                  />
+                  {contextMenu2 && (
+                    <ContextMenu2
+                      x={contextMenu2.x}
+                      y={contextMenu2.y}
+                      
+                      onReply={() => {
+                        handleReplyMessage(contextMenu2.messageId,msgIdTomsgObj(contextMenu2.messageId),"image");
+                        closeContextMenu();
+                      }}
+                      onDelete={() => {
+                        handleDeleteMessage(contextMenu2.messageId);
+                        closeContextMenu();
+                      }}
+                      onClose={closeContextMenu}
+                    />
+                  )}
+                  </div>
+                )) : message.isAudio?(
+                  <div className='group chat-bubble bg-blue-500 text-white p-2 rounded-lg max-w-xs md:max-w-md break-words' onContextMenu={(e) => handleRightClick(e, message.id, "audio")}>
+                      {isUploading && uploadingMessageId === message.id && (
+                          <FontAwesomeIcon icon={faSpinner} spin className="mr-2" />
+                      )}
+                      {!isUploading && (
+                        <>
+                        {isDownloading && downloadingMessageId === message.id ? (
+                          <FontAwesomeIcon icon={faSpinner} spin className="mr-2" />
+                        ) : (
+                          isAudioDownloaded(message.id) ? (
+                            <button onClick={() => handlePlayAudio(message.content, message.id)} className="mr-2">
+                              <FontAwesomeIcon icon={isPlaying && currentAudioId === message.id ? faPause : faPlay} />
+                            </button>
+                          ) : (
+                            <button onClick={() => handleDownloadAudio(message.content, message.id)} className="mr-2">
+                              <FontAwesomeIcon icon={faCloudDownload} />
+                            </button>
+                          )
+                        )}
+                      </>
+                      )} 
+                      {contextMenu2 && (
+                        <ContextMenu2
+                          x={contextMenu2.x}
+                          y={contextMenu2.y}
+                          
+                          onReply={() => {
+                            handleReplyMessage(contextMenu2.messageId,msgIdTomsgObj(contextMenu2.messageId),"audio");
+                            closeContextMenu();
+                          }}
+                          onDelete={() => {
+                            handleDeleteMessage(contextMenu2.messageId);
+                            closeContextMenu();
+                          }}
+                          onClose={closeContextMenu}
+                        />
+                      )} 
+                    <div id={`waveform-${message.id}`} className="rounded-lg max-w-full">
+                    <span className="duration"
+                      id={`duration-${message.id}`}>
+                      {/* eslint-disable-next-line no-template-curly-in-string */}
+                      {isPlaying && currentAudioId === message.id
+                    ? `${Math.floor((elapsedTimes[message.id] || 0) / 60)}:${Math.floor((elapsedTimes[message.id] || 0) % 60).toString().padStart(2, '0')}`
+                    : durationsRef.current[message.id]
+                      ? `${Math.floor(durationsRef.current[message.id] / 60)}:${Math.floor(durationsRef.current[message.id] % 60).toString().padStart(2, '0')}`
+                      : '0:00'}
+                      
+                      </span>
+                      
+                    </div>
+                    
+                
+                   
+                </div>
+                ):(
+                <div className='group' onContextMenu={(e)=> handleRightClick(e,message.id,"text")}>
+                  <MessageBox
+                    reply={message.reply !== 0 && {
+                      photoURL: selectedProfilePic,
+                      title: `${truncateText101(selectedName,13)}`,
+                      titleColor: '#8717ae',
+                      message: `${truncateText101((msgIdTomsgObj(message.id)),15)}` ,
+                    }}
+                    onReplyMessageClick={() => console.log('reply clicked!')}
+                    position={'right'}
+                    type={'text'}
+                    text={message.content}
+                    status={message.new === true || message.new === null ? 'sent' : 'received'}
+                    />
+                    {contextMenu && (
+                      <ContextMenu
+                        x={contextMenu.x}
+                        y={contextMenu.y}
+                        onEdit={() => {
+                          handleEditMessage(contextMenu.messageId,msgIdTomsgObj(contextMenu.messageId));
+                          closeContextMenu();
+                        }}
+                        onReply={() => {
+                          handleReplyMessage(contextMenu.messageId,msgIdTomsgObj(contextMenu.messageId),"text");
+                          closeContextMenu();
+                        }}
+                        onDelete={() => {
+                          handleDeleteMessage(contextMenu.messageId);
+                          closeContextMenu();
+                        }}
+                        onClose={closeContextMenu}
+                      />
+                    )}
+                
+                </div>
+              
+                )}   
+                </div>                               
+              {/* Deleting Icon*/}
+              {isDeletingMessage === true && isDeletingMessageId === message.id ?(
+              <FontAwesomeIcon icon={faSpinner} spin />
+              ):(
                 <div className="chat-footer opacity-50">
-              {message.edited === true ? (
-                  <span className="mr-2">edited</span>
-                ) : null}
-              {formatDateTime(message.timeStamp)}
-              </div>
+                  {message.edited === true ? (
+                      <span className="mr-2">edited</span>
+                    ) : null}
+                  {formatDateTime(message.timeStamp)}
+                </div>
+              
               
               )}
                 
             </div>
-
+             
             )}
           
           </div>
@@ -4546,6 +4642,22 @@ useEffect(() => {
                   </div> 
                 </div>
                 <button className="text-red-600" onClick={clearReplyMessage}>
+                  <FontAwesomeIcon icon={faTimes} />
+                </button>
+              </div>
+            </div>
+           )}
+           {editMessageModal && (
+              <div className={`w-full mb-2 p-1 rounded-md ${isDarkMode ? 'bg-gray-900 text-white' : 'bg-gray-100 text-black'}`}>
+                <div className="flex justify-between items-center">
+                <div className="flex items-start pl-6">
+                  <FontAwesomeIcon icon={faEdit} className="mr-2 text-gray-600" />
+                  <div className='pl-4'>
+                    <div className="font-bold">Edit message</div> 
+                    <div>{`${truncateText101(editMessageModal,15)}`}</div>
+                  </div> 
+                </div>
+                <button className="text-red-600" onClick={clerEditMessageModal}>
                   <FontAwesomeIcon icon={faTimes} />
                 </button>
               </div>
@@ -4585,16 +4697,16 @@ useEffect(() => {
             minRows={1}
           /> 
           <button 
-                onClick={() => setShowEmojiPicker(!showEmojiPicker)}
-                className="btn btn-secondary ml-2"
-              > 
-                <FontAwesomeIcon icon={faSmile} />
+            onClick={() => setShowEmojiPicker(!showEmojiPicker)}
+            className="btn btn-secondary ml-2"
+          > 
+          <FontAwesomeIcon icon={faSmile} />
           </button> 
-          {(sendMessage.length ===0 && isOffline === false )&& (<button onClick={isRecording ? handleStopRecording : handleStartRecording} className={`btn ml-2 ${isDarkMode ? 'bg-gray-900 text-white' : 'bg-gray-100 text-black'} `}>
+          {(sendMessage.length === 0 && isOffline === false )&& (<button onClick={isRecording ? handleStopRecording : handleStartRecording} className={`btn ml-2 ${isDarkMode ? 'bg-gray-900 text-white' : 'bg-gray-100 text-black'} `}>
             <FontAwesomeIcon icon={isRecording ? faStop : faMicrophone} />
           </button>)}
               
-          {(sendMessage.length !==0 && isOffline ===false) && (<button onClick={handleSendMessage} disabled={sendMessage.length ===0}>
+          {(sendMessage.length !==0 && isOffline ===false) && (<button onClick={editMessageModalId === 0 ? handleSendMessage : handleEditSubmit} disabled={sendMessage.length ===0}>
             {isLoadingMessage ? <FontAwesomeIcon icon={faSpinner} spin /> : <FontAwesomeIcon icon={faPaperPlane} />}
           </button> )}
           </div>
