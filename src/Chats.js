@@ -149,6 +149,7 @@ function Chats() {
   const conversationQueue = useRef([]);
   const userStatusQueue = useRef([]);
   
+  
   const handleUserProfileQueue = useCallback(async (userProfile) => {
     // Handle the user profile payload
     
@@ -3416,7 +3417,7 @@ useEffect(() => {
         <div className={`flex justify-center items-center${isDarkMode ? 'bg-gray-900' : 'bg-gray-100'}`}>
           <FontAwesomeIcon icon={faSpinner} spin className="text-2xl" />
         </div>
-      )}
+        )}
         
       {/*Conversation Info*/}
       <div className={`p-4 border-b flex items-center justify-between ${isDarkMode ? 'bg-gray-900 text-white  border-gray-800' : 'bg-gray-100 text-black  border-gray-200'}`}>
@@ -3473,354 +3474,426 @@ useEffect(() => {
       )} 
       </div>
         </div>
-      {/*Messages */}
-      <div className='flex-1 overflow-y-auto p-4 scrollbar-thin' ref={messagesEndRef}>
-        {selectedConversation!= null || forSearchUser === true ? (
-        messages.length > 0 ? (
-        messages.map(message=>( 
-          <div key={message.id} id={`message-${message.id}`} className="mb-4">
-          <div>
-          {message.senderId !== Number(sessionStorage.getItem('userId'))?(
-            <div key={message.id} className="chat chat-start">
-            
-              <div className="group chat-bubble bg-white-500 text-white p-2 rounded-lg max-w-xs md:max-w-md break-words">
-                      {message.isImage ? (
-                      
-                        <div className='image-container'>
-                          {isUploading && uploadingMessageId === message.id && (
-                            <FontAwesomeIcon icon={faSpinner} spin className="mr-2"/>
-                          )}
-                          {!isUploading && (
-                            <img src={message.content} alt="Uploaded" onClick={() => handleImageClick(message.content)} className="uploaded-image cursor-pointer" />
-                          )}
-                    {(!isDeletingMessage && !isUploading)&& (<div className="flex items-center justify-between mt-1">
-                      <button className="ml-2 text-red-600 hidden group-hover:block" onClick={() => handleDeleteMessage(message.id)}>
-                        <FontAwesomeIcon icon={faTrashAlt} />
-                      </button>
-                    </div>)}
-                          
-                        </div>
-                      ) : message.isAudio?(
-                      <div>
-                          {isUploading && uploadingMessageId === message.id && (
-                              <FontAwesomeIcon icon={faSpinner} spin className="mr-2" />
-                          )}
-                          {(!isUploading || uploadingMessageId !== message.id) && (
-                            <>
-                            {isDownloading && downloadingMessageId === message.id ? (
-                              <FontAwesomeIcon icon={faSpinner} spin className="mr-2" />
-                            ) : (
-                              isAudioDownloaded(message.id) ? (
-                                <button onClick={() => handlePlayAudio(message.content, message.id)} 
-                                onTouchStart={(e) => {
-                                  e.stopPropagation(); // Prevent touch event from triggering other elements
-                                  handleDownloadAudio(message.content, message.id);
-                                }}
-                                className="mr-2 phone-icon text-lg sm:text-2xl">
-                                  <FontAwesomeIcon icon={isPlaying && currentAudioId === message.id ? faPause : faPlay} />
-                                </button>
-                              ) : (
-                                <button onClick={() => handleDownloadAudio(message.content, message.id)} 
-                                onTouchStart={(e) => {
-                                  e.stopPropagation(); // Prevent touch event from triggering other elements
-                                  handleDownloadAudio(message.content, message.id);
-                                }}
-                                className="mr-2 phone-icon text-lg sm:text-2xl">
-                                  <FontAwesomeIcon icon={faCloudDownload} />
-                                </button>
-                              )
-                            )}
-                          </>
-                          )}
-                        <div id={`waveform-${message.id}`} className="rounded-lg max-w-full">
-                        <span className="duration" 
-                          id={`duration-${message.id}`}>
-                          {isPlaying && currentAudioId === message.id
-                        ? `${Math.floor((elapsedTimes[message.id] || 0) / 60)}:${Math.floor((elapsedTimes[message.id] || 0) % 60).toString().padStart(2, '0')}`
-                        : durationsRef.current[message.id]
-                          ? `${Math.floor(durationsRef.current[message.id] / 60)}:${Math.floor(durationsRef.current[message.id] % 60).toString().padStart(2, '0')}`
-                          : '0:00'}
-                          
-                          </span>
-                      </div>
-                      {!isDeletingMessage && (<div className="flex items-center justify-between mt-1">
-                  <button className="ml-2 text-red-600 hidden group-hover:block" 
-                  onClick={(e) => {
-                    e.stopPropagation(); // Prevent event from bubbling up
-                    handleDeleteMessage(message.id);
-                  }}>
-                    <FontAwesomeIcon icon={faTrashAlt} />
-                  </button>
-                </div>)}
-                    </div>
-                      ):(
-                        
-                        <div>
-                        {message.content}
-                        
-                        {!isDeletingMessage && (<div className="flex items-center justify-between mt-1">
-                      <button className="ml-2 text-red-600 hidden group-hover:block" onClick={() => handleDeleteMessage(message.id)}>
-                        <FontAwesomeIcon icon={faTrashAlt} />
-                      </button>
-                    </div>)}
-                  </div>
-                  )}
-              </div>
-              {/* Deleting Icon*/}
-            {isDeletingMessage ===true && isDeletingMessageId === message.id ?(
-            <FontAwesomeIcon icon={faSpinner} spin />
-            ):(
-            <div className="chat-footer opacity-50">
-            {message.edited === true ? (
-    <span className="mr-2">edited</span>
-    ) : null}
-            {formatDateTime(message.timeStamp)}
-            </div>
-            
-            )}
-                
-            
-          </div>
-          ):( 
-          <div key={message.id} className="chat chat-end">
-            {editMessageId !== message.id ?(
-              <div className="group chat-bubble bg-blue-500 text-white p-2 rounded-lg max-w-xs md:max-w-md break-words">
-                {message.isImage ? (
-                  
-                  <div className='image-container'>
-              {isUploading && uploadingMessageId === message.id && (
-                <FontAwesomeIcon icon={faSpinner} spin className="mr-2"/>
-              )}
-              {(!isUploading || uploadingMessageId !== message.id)&&(
-                <img src={message.content} alt="Uploaded" onClick={() => handleImageClick(message.content)} className="uploaded-image cursor-pointer" />
-              )} 
-                  {(!isDeletingMessage  && !isUploading) && (
-                        <div className="flex items-center justify-between mt-1">
-                        <button className="ml-2 text-red-600 hidden group-hover:block" onClick={() => handleDeleteMessage(message.id)}>
-                          <FontAwesomeIcon icon={faTrashAlt} />
-                        </button>
-                      </div>
-                  )}
-                  </div>
-                ):message.isAudio?(
-                <div>
-                    {isUploading && uploadingMessageId === message.id && (
-                        <FontAwesomeIcon icon={faSpinner} spin className="mr-2" />
-                    )}
-                    {!isUploading && (
-                      <>
-                      {isDownloading && downloadingMessageId === message.id ? (
-                        <FontAwesomeIcon icon={faSpinner} spin className="mr-2" />
-                      ) : (
-                        isAudioDownloaded(message.id) ? (
-                          <button 
-                          onClick={() => handlePlayAudio(message.content, message.id)}
-                          onTouchStart={(e) => {
-                            e.stopPropagation(); // Prevent touch event from triggering other elements
-                            handlePlayAudio(message.content, message.id);
-                          }}
-                          className="mr-2 phone-icon text-lg sm:text-2xl"
-                          >
-                            <FontAwesomeIcon icon={isPlaying && currentAudioId === message.id ? faPause : faPlay} />
-                          </button>
-                        ) : (
-                          <button onClick={() => handleDownloadAudio(message.content, message.id)} 
-                          onTouchStart={(e) => {
-                            e.stopPropagation(); // Prevent touch event from triggering other elements
-                            handleDownloadAudio(message.content, message.id);
-                          }}
-                          className="mr-2 phone-icon text-lg sm:text-2xl"
-                        >
-                            <FontAwesomeIcon icon={faCloudDownload} />
-                          </button>
-                        )
-                      )}
-                    </>
-                    )}
-                  <div id={`waveform-${message.id}`} className="rounded-lg max-w-full">
-                  <span className="duration" 
-                    id={`duration-${message.id}`}>
-                    {/* eslint-disable-next-line no-template-curly-in-string */}
-                    {isPlaying && currentAudioId === message.id
-                  ? `${Math.floor((elapsedTimes[message.id] || 0) / 60)}:${Math.floor((elapsedTimes[message.id] || 0) % 60).toString().padStart(2, '0')}`
-                  : durationsRef.current[message.id]
-                    ? `${Math.floor(durationsRef.current[message.id] / 60)}:${Math.floor(durationsRef.current[message.id] % 60).toString().padStart(2, '0')}`
-                    : '0:00'}
-                    
-                    </span>
-                </div>
-              {!isDeletingMessage  &&  (<div className="flex items-center justify-between mt-1">
-                <button className="ml-2 text-red-600 hidden group-hover:block" 
-                onClick={(e) => {
-                  e.stopPropagation(); // Prevent event from bubbling up
-                  handleDeleteMessage(message.id);
-                }}>
-                  <FontAwesomeIcon icon={faTrashAlt} />
-                </button>
-              </div>)}
-                  
-              </div>
-                ):(
-                <div>
-                {message.content}
-                {message.new === true || message.new === null ? (
-                <FontAwesomeIcon icon={faCheck} className="text-gray-500 mr-1" />
-                ):(
-                <FontAwesomeIcon icon={faCheckDouble} className="text-gray-500 mr-1" />
-                )}
-                {!isDeletingMessage  &&  (
-              
-                <div className="flex items-center justify-between mt-1">
-                <button
-                className="ml-2 text-gray-600 hidden group-hover:block"
-                onClick={() => handleEditMessage(message)}
-              >
-                <MdEdit />
-              </button>
-              <button className="ml-2 text-red-600 hidden group-hover:block" onClick={() => handleDeleteMessage(message.id)}>
-                <FontAwesomeIcon icon={faTrashAlt} />
-              </button>
-                    </div>
-                )}
-                
-            </div>
-            
-          )}   
-          </div>
-              ):(
-              <div className="group chat-bubble bg-blue-500 text-white p-2 rounded-lg max-w-xs md:max-w-md break-words">
-              <form key={message.id} onSubmit={handleEditSubmit}>
-                <TextareaAutosize
-                  type="text" 
-                  value={editMessageContent} 
-                  onChange={(e) => setEditMessageContent(e.target.value)}
-                  required 
-                  className='bg-white text-black p-2 rounded-lg'
-                /> 
-                    <button type="submit"  disabled={!editMessageContent.trim() || message.content === editMessageContent} className="ml-2 text-gray-600">
-                      <FontAwesomeIcon icon={faCheck} />
-                    </button> 
-                    <button type="button" onClick={() => setEditMessageId(null)} className="ml-2 text-red-600">
-                      <FontAwesomeIcon icon={faTimes} />
-                    </button>
-                    
-              </form>
-                <div className="flex items-center justify-between mt-1">
-                  
-                  <button
-                    onClick={() => setShowEmojiPickerEDIT(!showEmojiPickerEDIT)}
-                    className="btn btn-secondary ml-2 size-0"
-                  >
-                    <FontAwesomeIcon icon={faSmile} size='sm' />
-                  </button>
-                  {showEmojiPickerEDIT && (
-                    <div className="absolute top-20 right-0 z-30" ref={emojiPickerRef}> 
-                      <Picker  theme = {`${isDarkMode ? 'dark' : 'light'}`} dataXX={dataXXX} 
-                        onEmojiSelect={(e) => { 
-                          setEditMessageContent(editMessageContent + e.native);
-                        }}
-                      />
-                    </div>
-                  )}
-                </div>
-                </div>
-            )}
-            {/* Deleting Icon*/}
-            {isDeletingMessage ===true && isDeletingMessageId === message.id ?(
-            <FontAwesomeIcon icon={faSpinner} spin />
-            ):(
-              <div className="chat-footer opacity-50">
-            {message.edited === true ? (
-                <span className="mr-2">edited</span>
-              ) : null}
-            {formatDateTime(message.timeStamp)}
-            </div>
-            
-            )}
-              
-          </div>
-
-          )}
-        
-        </div>
-        </div>
+       {/* Messages */}
           
-        ))
-        ):(
-        <>
-        {isLoading ? (<div className="text-center text-gray-600"><FontAwesomeIcon icon={faSpinner} size='2x' spin /></div> ):(<div className="text-center text-gray-600">No messages</div>  ) }
-      </>
-        )
-      ):(
-        <div className="text-center text-gray-600">
-              <p>Welcome Mr.Harry Kane </p>
-            <p>Select a conversation to view messages</p> 
-              
+       <div className='flex-1 overflow-y-auto p-4 scrollbar-thin' ref={messagesEndRef}>
+          {selectedConversation!= null || forSearchUser === true ? (
+          messages.length > 0 ? (
+          messages.map(message=>( 
+            
+            <div key={message.id} onClick={closeContextMenu} id={`message-${message.id}`} className="mb-4">
+            <div>
+            {message.senderId !== Number(sessionStorage.getItem('userId'))?(
+            <div key={message.id} onClick={closeContextMenu} className="chat chat-start">
+                {/* chat chat start classname = "group chat-bubble bg-white-500 text-white p-2 rounded-lg max-w-xs md:max-w-md break-words"*/ }         
+                <div className="group w-80">
+                {message.isImage ? (
+                isUploading && uploadingMessageId === message.id ? (
+                  <FontAwesomeIcon icon={faSpinner} spin className="mr-2" />
+                ) : (
+                  <div className='group group-hover:cursor-pointer' onContextMenu={(e)=> handleRightClick(e,message.id,"image","start")}>
+                  <MessageBox
+                    reply={message.reply !== 0 && {
+                    photoURL: selectedProfilePic,
+                    title: `${truncateText101(selectedName,13)}`,
+                    titleColor: '#8717ae',
+                    message: 'Photo Message',
+                  }}
+                  onReplyMessageClick={() => console.log('reply clicked!')}
+                  
+                    position="left"
+                    type="photo"
+                    title={selectedName}
+                    data={{ uri: message.content }}
+                    status={message.new === true || message.new === null ? 'sent' : 'received'}
+                    onClick={() => handleImageClick(message.content)}
+                  />
+                  {contextMenu2 && (
+                    <ContextMenu2
+                      x={contextMenu2.x}
+                      y={contextMenu2.y}
+                      
+                      onReply={() => {
+                        handleReplyMessage(contextMenu2.messageId,msgIdTomsgObj(contextMenu2.messageId),"image");
+                        closeContextMenu();
+                      }}
+                      onDelete={() => {
+                        handleDeleteMessage(contextMenu2.messageId);
+                        closeContextMenu();
+                      }}
+                      onClose={closeContextMenu}
+                    />
+                  )}
+                  </div>
+                )):message.isAudio?(
+                  <div className='group chat-bubble bg-blue-500 text-white p-2 rounded-lg max-w-xs md:max-w-md break-words' onContextMenu={(e)=> handleRightClick(e,message.id,"audio","start")}>
+                      {isUploading && uploadingMessageId === message.id && (
+                          <FontAwesomeIcon icon={faSpinner} spin className="mr-2" />
+                      )}
+                      {(!isUploading || uploadingMessageId !== message.id) && (
+                        <>
+                        {isDownloading && downloadingMessageId === message.id ? (
+                          <FontAwesomeIcon icon={faSpinner} spin className="mr-2" />
+                        ) : (
+                          isAudioDownloaded(message.id) ? (
+                            <button onClick={() => handlePlayAudio(message.content, message.id)} className="mr-2">
+                              <FontAwesomeIcon icon={isPlaying && currentAudioId === message.id ? faPause : faPlay} />
+                            </button>
+                          ) : (
+                            <button onClick={() => handleDownloadAudio(message.content, message.id)} className="mr-2">
+                              <FontAwesomeIcon icon={faCloudDownload} />
+                            </button>
+                          )
+                        )}
+                      </>
+                      )}
+                    <div id={`waveform-${message.id}`} className="rounded-lg max-w-full">
+                    <span className="duration" 
+                      id={`duration-${message.id}`}>
+                      {/* eslint-disable-next-line no-template-curly-in-string */}
+                      {isPlaying && currentAudioId === message.id
+                    ? `${Math.floor((elapsedTimes[message.id] || 0) / 60)}:${Math.floor((elapsedTimes[message.id] || 0) % 60).toString().padStart(2, '0')}`
+                    : durationsRef.current[message.id]
+                      ? `${Math.floor(durationsRef.current[message.id] / 60)}:${Math.floor(durationsRef.current[message.id] % 60).toString().padStart(2, '0')}`
+                      : '0:00'}
+                      
+                      </span>
+                  </div>
+                  {contextMenu2 && (
+                    <ContextMenu2
+                      x={contextMenu2.x}
+                      y={contextMenu2.y}
+                      
+                      onReply={() => {
+                        console.log("Chat chat start")
+                        handleReplyMessage(contextMenu2.messageId,msgIdTomsgObj(contextMenu2.messageId),"audio");
+                        closeContextMenu();
+                      }}
+                      onDelete={() => {
+                        handleDeleteMessage(contextMenu2.messageId);
+                        closeContextMenu();
+                      }}
+                      onClose={closeContextMenu}
+                    />
+                  )}
+                </div>
+                ):(
+                <div onContextMenu={(e)=> handleRightClick(e,message.id,"text","start")}>
+                  <MessageBox 
+                    reply={message.reply !== 0 && {
+                      photoURL: selectedProfilePic,
+                      title: `${truncateText101(selectedName,13)}`,
+                      titleColor: '#8717ae',
+                      message: `${truncateText101((msgIdTomsgObj(message.id)),15)}`,
+                    }}
+                    onReplyMessageClick={() => console.log('reply clicked!')}
+                    position={'left'}
+                    type={'text'}
+                    text={message.content}
+                    
+                    />
+                    {contextMenu2 && (
+                      <ContextMenu2
+                        x={contextMenu2.x}
+                        y={contextMenu2.y}
+                        
+                        onReply={() => {
+                          handleReplyMessage(contextMenu2.messageId,msgIdTomsgObj(contextMenu2.messageId),"text");
+                          closeContextMenu();
+                        }}
+                        onDelete={() => {
+                          handleDeleteMessage(contextMenu2.messageId);
+                          closeContextMenu();
+                        }}
+                        onClose={closeContextMenu}
+                      />
+                    )}
+                </div>
+                )}
+                </div>
+                {/* Deleting Icon and Timefield*/}
+              {isDeletingMessage ===true && isDeletingMessageId === message.id ?(
+              <FontAwesomeIcon icon={faSpinner} spin />
+              ):(
+              <div className="chat-footer opacity-50">
+              {message.edited === true ? ( 
+                <span className="mr-2">edited</span>
+                ) : null} 
+              {formatDateTime(message.timeStamp)} 
+              </div> 
+              )}
             </div>
-      )}
-      </div>
-      {/*Input field */}
-      <div className={`p-4 border-t flex items-center ${isDarkMode ? 'bg-gray-900 text-white  border-gray-800' : 'bg-gray-100 text-black  border-gray-200'}`}>
-      
-        {isRecording ?(
-        <div className={`flex items-center w-full justify-between ${isDarkMode ? 'bg-gray-900 text-white  border-gray-700' : 'bg-gray-100 text-black  border-gray-200'}`}>
-          <span className="mr-2">{Math.floor(recordingDuration / 60)}:{(recordingDuration % 60).toString().padStart(2, '0')}</span>
-          <div id="waveform-recording" className="flex-1"></div>
-          <button onClick={handleStopRecording} className="ml-2 text-red-600 text-lg">
-            <FontAwesomeIcon icon={faStop} size="lg" />
-          </button>
-        </div>
+            ):( 
+            <div key={message.id} onClick={closeContextMenu} className="chat chat-end" >             
+                
+                <div className='group'>              
+                {message.isImage ? (
+                isUploading && uploadingMessageId === message.id ? (
+                  <FontAwesomeIcon icon={faSpinner} spin className="mr-2" />
+                ) : (
+                  <div className='group w-80 group-hover:cursor-pointer relative overflow-hidden ml-auto' onContextMenu={(e)=> handleRightClick(e,message.id,"image","end")}>
+                  <MessageBox
+                    reply={message.reply !== 0 && {
+                    photoURL: selectedProfilePic,
+                    title: `${truncateText101(selectedName,13)}`,
+                    titleColor: '#8717ae',
+                    message: 'Photo Message',
+                  }}
+                  onReplyMessageClick={() => console.log('reply clicked!')}
+                  
+                    position="right"
+                    type="photo"
+                    title={selectedName}
+                    data={{ uri: message.content }}
+                    status={message.new === true || message.new === null ? 'sent' : 'received'}
+                    onClick={() => handleImageClick(message.content)}
+                  />
+                  {contextMenu2 && (
+                    <ContextMenu2
+                      x={contextMenu2.x}
+                      y={contextMenu2.y}
+                      
+                      onReply={() => {
+                        handleReplyMessage(contextMenu2.messageId,msgIdTomsgObj(contextMenu2.messageId),"image");
+                        closeContextMenu();
+                      }}
+                      onDelete={() => {
+                        handleDeleteMessage(contextMenu2.messageId);
+                        closeContextMenu();
+                      }}
+                      onClose={closeContextMenu}
+                    />
+                  )}
+                  </div>
+                )) : message.isAudio?(
+                  <div className='group chat-bubble bg-blue-500 text-white p-2 rounded-lg max-w-xs md:max-w-md break-words' onContextMenu={(e) => handleRightClick(e, message.id, "audio","end")}>
+                      {isUploading && uploadingMessageId === message.id && (
+                          <FontAwesomeIcon icon={faSpinner} spin className="mr-2" />
+                      )}
+                      {!isUploading && (
+                        <>
+                        {isDownloading && downloadingMessageId === message.id ? (
+                          <FontAwesomeIcon icon={faSpinner} spin className="mr-2" />
+                        ) : (
+                          isAudioDownloaded(message.id) ? (
+                            <button onClick={() => handlePlayAudio(message.content, message.id)} className="mr-2">
+                              <FontAwesomeIcon icon={isPlaying && currentAudioId === message.id ? faPause : faPlay} />
+                            </button>
+                          ) : (
+                            <button onClick={() => handleDownloadAudio(message.content, message.id)} className="mr-2">
+                              <FontAwesomeIcon icon={faCloudDownload} />
+                            </button>
+                          )
+                        )}
+                      </>
+                      )} 
+                      {contextMenu2 && (
+                        <ContextMenu2
+                          x={contextMenu2.x}
+                          y={contextMenu2.y}
+                          
+                          onReply={() => {
+                            handleReplyMessage(contextMenu2.messageId,msgIdTomsgObj(contextMenu2.messageId),"audio");
+                            closeContextMenu();
+                          }}
+                          onDelete={() => {
+                            handleDeleteMessage(contextMenu2.messageId);
+                            closeContextMenu();
+                          }}
+                          onClose={closeContextMenu}
+                        />
+                      )} 
+                    <div id={`waveform-${message.id}`} className="rounded-lg max-w-full">
+                    <span className="duration"
+                      id={`duration-${message.id}`}>
+                      {/* eslint-disable-next-line no-template-curly-in-string */}
+                      {isPlaying && currentAudioId === message.id
+                    ? `${Math.floor((elapsedTimes[message.id] || 0) / 60)}:${Math.floor((elapsedTimes[message.id] || 0) % 60).toString().padStart(2, '0')}`
+                    : durationsRef.current[message.id]
+                      ? `${Math.floor(durationsRef.current[message.id] / 60)}:${Math.floor(durationsRef.current[message.id] % 60).toString().padStart(2, '0')}`
+                      : '0:00'}
+                      
+                      </span>
+                      
+                    </div>
+                    
+                
+                   
+                </div>
+                ):(
+                <div className='group' onContextMenu={(e)=> handleRightClick(e,message.id,"text","end")}>
+                  <MessageBox
+                    reply={message.reply !== 0 && {
+                      photoURL: selectedProfilePic,
+                      title: `${truncateText101(selectedName,13)}`,
+                      titleColor: '#8717ae',
+                      message: `${truncateText101((msgIdTomsgObj(message.id)),15)}` ,
+                    }}
+                    onReplyMessageClick={() => console.log('reply clicked!')}
+                    position={'right'}
+                    type={'text'}
+                    text={message.content}
+                    status={message.new === true || message.new === null ? 'sent' : 'received'}
+                    />
+                    {contextMenu && (
+                      <ContextMenu
+                        x={contextMenu.x}
+                        y={contextMenu.y}
+                        onEdit={() => {
+                          handleEditMessage(contextMenu.messageId,msgIdTomsgObj(contextMenu.messageId));
+                          closeContextMenu();
+                        }}
+                        onReply={() => {
+                          handleReplyMessage(contextMenu.messageId,msgIdTomsgObj(contextMenu.messageId),"text");
+                          closeContextMenu();
+                        }}
+                        onDelete={() => {
+                          handleDeleteMessage(contextMenu.messageId);
+                          closeContextMenu();
+                        }}
+                        onClose={closeContextMenu}
+                      />
+                    )}
+                
+                </div>
+              
+                )}   
+                </div>                               
+              {/* Deleting Icon*/}
+              {isDeletingMessage === true && isDeletingMessageId === message.id ?(
+              <FontAwesomeIcon icon={faSpinner} spin />
+              ):(
+                <div className="chat-footer opacity-50">
+                  {message.edited === true ? (
+                      <span className="mr-2">edited</span>
+                    ) : null}
+                  {formatDateTime(message.timeStamp)}
+                </div>
+              
+              
+              )}
+                
+            </div>
+             
+            )}
+          
+          </div>
+          </div>
+            
+          ))
+          ):(
+          <>
+          {isLoading ? (<div className="text-center text-gray-600"><FontAwesomeIcon icon={faSpinner} size='2x' spin /></div> ):(<div className="text-center text-gray-600">No messages</div>  ) }
+        </>
+          )
         ):(
-        <div className={`flex items-center w-full ${isDarkMode ? 'bg-gray-900 text-white  border-gray-700' : 'bg-gray-100 text-black  border-gray-200'} `}>
-        <input 
-          type="file"
-          accept="image/*"
-          ref={fileInputRef}
-          style={{ display: 'none' }}
-          onChange={handleFileChange}
-        />
-        <button
-          onClick={() => fileInputRef.current.click()}
-          className="btn btn-secondary ml-2"
-        >
-          <FontAwesomeIcon icon={faPaperclip} />
-        </button>
-        <TextareaAutosize  
-        placeholder="Type your message..."
-        value={sendMessage}
-        onChange={handleMessage}
-        className={`textarea textarea-bordered flex-1 p-2 resize-none rounded-md overflow-hidden ${isDarkMode ? 'bg-gray-900 text-white  border-gray-700' : 'bg-gray-100 text-black  border-gray-200'}`}
-        onKeyDown={handleKeyDown}
-        minRows={1}
-        
-      /> 
-      <button 
+          <div className="flex justify-center items-center h-full text-center text-gray-600">
+      
+      <p>Select a conversation to view messages</p>
+    </div>
+        )}
+        </div>
+
+      {/* Input Field */}
+      
+          <div className={`p-1 border-t flex flex-col ${isDarkMode ? 'bg-gray-900 text-white  border-gray-800' : 'bg-gray-100 text-black  border-gray-200'}`}>
+          {replyMessage && (
+              <div className={`w-full mb-2 p-1 rounded-md ${isDarkMode ? 'bg-gray-900 text-white' : 'bg-gray-100 text-black'}`}>
+                <div className="flex justify-between items-center">
+                <div className="flex items-start pl-6">
+                  <FontAwesomeIcon icon={faReply} className="mr-2 text-gray-600" />
+                  <div className='pl-4'>
+                    <div className="font-bold">{`Reply to ${truncateText101(selectedName,13)}`}</div> 
+                    <div>{`${truncateText101(replyMessage,15)}`}</div>
+                  </div> 
+                </div>
+                <button className="text-red-600" onClick={clearReplyMessage}>
+                  <FontAwesomeIcon icon={faTimes} />
+                </button>
+              </div>
+            </div>
+           )}
+          {editMessageModal && (
+              <div className={`w-full mb-2 p-1 rounded-md ${isDarkMode ? 'bg-gray-900 text-white' : 'bg-gray-100 text-black'}`}>
+                <div className="flex justify-between items-center">
+                <div className="flex items-start pl-6">
+                  <FontAwesomeIcon icon={faEdit} className="mr-2 text-gray-600" />
+                  <div className='pl-4'>
+                    <div className="font-bold">Edit message</div> 
+                    <div>{`${truncateText101(editMessageModal,15)}`}</div>
+                  </div> 
+                </div>
+                <button className="text-red-600" onClick={clerEditMessageModal}>
+                  <FontAwesomeIcon icon={faTimes} />
+                </button>
+              </div>
+            </div>
+           )}
+          {isRecording ?(
+          <div className={`flex items-center w-full justify-between ${isDarkMode ? 'bg-gray-900 text-white  border-gray-700' : 'bg-gray-100 text-black  border-gray-200'}`}>
+            <span className="mr-2">{Math.floor(recordingDuration / 60)}:{(recordingDuration % 60).toString().padStart(2, '0')}</span>
+            <div id="waveform-recording" className="flex-1"></div>
+            <button onClick={handleStopRecording} className="ml-2 text-red-600 text-lg">
+              <FontAwesomeIcon icon={faStop} size="lg" />
+            </button>
+          </div>
+          ):(
+            
+          <div className={`flex items-center w-full ${isDarkMode ? 'bg-gray-900 text-white  border-gray-700' : 'bg-gray-100 text-black  border-gray-200'} `}>
+            <input 
+              type="file"
+              accept="image/*"
+              ref={fileInputRef}
+              style={{ display: 'none' }}
+              onChange={handleFileChange}
+            />
+            <button
+              onClick={() => fileInputRef.current.click()}
+              disabled={isOffline}
+              className="btn btn-secondary ml-2"
+            >
+              <FontAwesomeIcon icon={faPaperclip} />
+            </button>
+            <TextareaAutosize  
+            placeholder="Type your message..."
+            value={sendMessage}
+            onChange={handleMessage}
+            className={`textarea textarea-bordered flex-1 p-2 resize-none rounded-md overflow-hidden ${isDarkMode ? 'bg-gray-900 text-white  border-gray-700' : 'bg-gray-100 text-black  border-gray-200'}`}
+            onKeyDown={handleKeyDown}
+            minRows={1}
+          /> 
+          <button 
             onClick={() => setShowEmojiPicker(!showEmojiPicker)}
             className="btn btn-secondary ml-2"
           > 
-            <FontAwesomeIcon icon={faSmile} />
-      </button> 
-      {sendMessage.length ===0 && (<button onClick={isRecording ? handleStopRecording : handleStartRecording} className={`btn ml-2 ${isDarkMode ? 'bg-gray-900 text-white' : 'bg-gray-100 text-black'} `}>
-        <FontAwesomeIcon icon={isRecording ? faStop : faMicrophone} />
-      </button>)}
+          <FontAwesomeIcon icon={faSmile} />
+          </button> 
+          {(sendMessage.length === 0 && isOffline === false )&& (<button onClick={isRecording ? handleStopRecording : handleStartRecording} className={`btn ml-2 ${isDarkMode ? 'bg-gray-900 text-white' : 'bg-gray-100 text-black'} `}>
+            <FontAwesomeIcon icon={isRecording ? faStop : faMicrophone} />
+          </button>)}
+              
+          {(sendMessage.length !==0 && isOffline ===false) && (<button onClick={editMessageModalId === 0 ? handleSendMessage : handleEditSubmit} disabled={sendMessage.length ===0}>
+            {isLoadingMessage ? <FontAwesomeIcon icon={faSpinner} spin /> : <FontAwesomeIcon icon={faPaperPlane} />}
+          </button> )}
+          {/* Emoji Picker */}
+          {showEmojiPicker && (
+          <div className= {`absolute bottom-20 right-10 z-50 bg-dark`} ref={emojiPickerRef} >
+          <Picker theme = {`${isDarkMode ? 'dark' : 'light'}`} dataXX={dataXXX} 
+            onEmojiSelect={(e) => { 
+              setSendMessage(sendMessage + e.native); 
+            }}
+          />
+          </div>
+          )}
+          </div>
           
-      {sendMessage.length !==0 && (<button onClick={handleSendMessage} disabled={sendMessage.length ===0}>
-        {isLoadingMessage ? <FontAwesomeIcon icon={faSpinner} spin /> : <FontAwesomeIcon icon={faPaperPlane} />}
-      </button> )}
+        )}
+          </div>
+     
+    
+          </div>
+          
       
-      </div>
-      )}
-        </div>
-      {showEmojiPicker && (
-      <div className= {`absolute bottom-20 right-10 z-50 bg-dark`} ref={emojiPickerRef} >
-      <Picker theme = {`${isDarkMode ? 'dark' : 'light'}`} dataXX={dataXXX} 
-        onEmojiSelect={(e) => { 
-          setSendMessage(sendMessage + e.native); 
-      }}
-  />
-  </div>
-      )}
-      </div>
       ):( 
         <div className={`w-full bg-gray-100 border-r border-gray-300 flex flex-col  ${isDarkMode ? 'bg-gray-900 text-white' : 'bg-gray-100 text-black'}`}>
           <div className="p-2 flex justify-between items-center">
