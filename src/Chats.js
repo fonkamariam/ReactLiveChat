@@ -1,7 +1,8 @@
 // https://fonkagram.netlify.app/
 import React, { useState ,useEffect,useRef,useMemo } from 'react';
 import { useNavigate} from 'react-router-dom';
-import { HttpTransportType, HubConnectionBuilder } from "@microsoft/signalr";   
+//import { HttpTransportType, HubConnectionBuilder } from "@microsoft/signalr";   
+import { createConnection } from './Singleton';
 //import * as signalR from '@microsoft/signalr';
 import { toast, ToastContainer } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
@@ -339,7 +340,7 @@ function Chats() {
           console.log("About to call zero function");
           zeroNotification(message.record.id); // sets to false
           console.log("passed zeroNotfication");
-          }else{
+          }else{ 
             console.log("IT should be hereeeeeeeeeeeeeee noti");
             setConversations(prevConversations =>{ 
               const updatedConversations = prevConversations.map(conversation => {
@@ -354,7 +355,7 @@ function Chats() {
               return updatedConversations.sort((a, b) => new Date(b.updatedTime) - new Date(a.updatedTime));
           })
           };
-          
+            
       }
         
       // setMessages state insert
@@ -470,111 +471,117 @@ function Chats() {
               
   
       
-    }else if(message.type === 'UPDATE' && message.record.deleted === false){
+    }else if(message.type === 'UPDATE' && message.record.deleted === false && message.record.edited===false){
       
           //console.log("Update");
-          setConversations(prevConversations => {
-            const updatedConversations = prevConversations.map(conversation => {
-              if (conversation.convId === message.record.convId && conversation.messageId === message.record.id && message.record.new === false) {
-                console.log ("seen false arge");
-                return { ...conversation, message: message.record.content, seen: false , updatedTime: message.record.timeStamp,messageId:message.record.id };
-              } 
-              return conversation; 
+          // Seen/Unseen (Only executes for Sender of the Message);
+          if (message.record.new === false && message.record.senderId !== Number(sessionStorage.getItem('userId'))){
+            setConversations(prevConversations => {
+              const updatedConversations = prevConversations.map(conversation => {
+                if (conversation.convId === message.record.convId && conversation.messageId === message.record.id && message.record.new === false) {
+                  console.log ("seen false arge");
+                  return { ...conversation, message: message.record.content, seen: false , updatedTime: message.record.timeStamp,messageId:message.record.id };
+                } 
+                return conversation; 
+              });
+            
+              // Sort the updated conversations by updatedTime
+              return updatedConversations;
+            });
+          };
+          
+        
+    }else if (message.type === 'UPDATE' && message.record.edited===true && message.record.deleted === false && message.record.senderId !== Number(sessionStorage.getItem('userId'))){
+        
+      // Edit Messsage Conversation laye yalwne
+        setConversations(prevConversations => {
+          const updatedConversations = prevConversations.map(conversation => {
+            if (conversation.convId === message.record.convId && conversation.messageId === message.record.id && message.record.new === true) {
+              return { ...conversation, message: message.record.content, updatedTime: message.record.timeStamp,messageId:message.record.id };
+            } 
+            return conversation; 
+          });
+      
+          // Sort the updated conversations by updatedTime
+          return updatedConversations.sort((a, b) => new Date(b.updatedTime) - new Date(a.updatedTime));
+        });
+        //set Message state update
+        if ( selectedConversationRef.current===message.record.convId && sessionStorage.getItem(`${message.record.convId}`)) {
+          // update both message state and Ss 
+          console.log("both MessState and Ss");
+          
+          setMessages(prevMessages => {
+            const updatedMessages = prevMessages.map(messagePara => {
+              if (messagePara.id === message.record.id) {
+                return { ...messagePara, content: message.record.content,edited:message.record.edited, new:message.record.new};
+              }
+              return messagePara;
             });
         
             // Sort the updated conversations by updatedTime
-            return updatedConversations;
+            return updatedMessages;
           });
-          
-          setConversations(prevConversations => {
-            const updatedConversations = prevConversations.map(conversation => {
-              if (conversation.convId === message.record.convId && conversation.messageId === message.record.id && message.record.new === true) {
-                return { ...conversation, message: message.record.content, updatedTime: message.record.timeStamp,messageId:message.record.id };
+          const xy = JSON.parse(sessionStorage.getItem(`${message.record.convId}`));
+          if (xy!== null) {
+            for (let index = 0; index < xy.length; index++) {
+              if ( xy[index].id === message.record.id) {
+                  xy[index].content = message.record.content;
+                  xy[index].edited = message.record.edited;
+                  xy[index].new = message.record.new;
+                  break; 
               } 
-              return conversation; 
+          }
+          sessionStorage.setItem(`${message.record.convId}`,JSON.stringify(xy))
+          }                    
+          
+        }else if (selectedConversationRef.current===message.record.convId && !sessionStorage.getItem(`${message.record.convId}`)){
+          console.log(" MessState and !Ss");
+          
+          setMessages(prevMessages => {
+            const updatedMessages = prevMessages.map(messagePara => {
+              if (messagePara.id === message.record.id) {
+                return { ...messagePara, content: message.record.content,edited:message.record.edited,new:message.record.new};
+              }
+              return messagePara;
             });
         
             // Sort the updated conversations by updatedTime
-            return updatedConversations.sort((a, b) => new Date(b.updatedTime) - new Date(a.updatedTime));
+            return updatedMessages.sort((a, b) => new Date(a.timeStamp) - new Date(b.timeStamp));
           });
-          //set Message state update
-          if ( selectedConversationRef.current===message.record.convId && sessionStorage.getItem(`${message.record.convId}`)) {
-            // update both message state and Ss 
-            console.log("both MessState and Ss");
-            
-            setMessages(prevMessages => {
-              const updatedMessages = prevMessages.map(messagePara => {
-                if (messagePara.id === message.record.id) {
-                  return { ...messagePara, content: message.record.content,edited:message.record.edited, new:message.record.new};
-                }
-                return messagePara;
-              });
+          const xy = JSON.parse(sessionStorage.getItem(`${message.record.convId}`));
+          if (xy!== null) {
+            for (let index = 0; index < xy.length; index++) {
+              if ( xy[index].id === message.record.id) {
+                  xy[index].content = message.record.content;
+                  xy[index].edited = message.record.edited;
+                  xy[index].new = message.record.new;
+                  break; 
+              } 
+          }
+          sessionStorage.setItem(`${message.record.convId}`,JSON.stringify(xy))
+          }                    
           
-              // Sort the updated conversations by updatedTime
-              return updatedMessages;
-            });
-            const xy = JSON.parse(sessionStorage.getItem(`${message.record.convId}`));
-            if (xy!== null) {
-              for (let index = 0; index < xy.length; index++) {
-                if ( xy[index].id === message.record.id) {
-                    xy[index].content = message.record.content;
-                    xy[index].edited = message.record.edited;
-                    xy[index].new = message.record.new;
-                    break; 
-                } 
-            }
-            sessionStorage.setItem(`${message.record.convId}`,JSON.stringify(xy))
-            }                    
-            
-          }else if (selectedConversationRef.current===message.record.convId && !sessionStorage.getItem(`${message.record.convId}`)){
-            console.log(" MessState and !Ss");
-            
-            setMessages(prevMessages => {
-              const updatedMessages = prevMessages.map(messagePara => {
-                if (messagePara.id === message.record.id) {
-                  return { ...messagePara, content: message.record.content,edited:message.record.edited,new:message.record.new};
-                }
-                return messagePara;
-              });
+        }else if ( message.record.convId !== selectedConversationRef.current && sessionStorage.getItem(`${message.record.convId}`)) {
+          console.log("Only Session Storage,Not Message State");
           
-              // Sort the updated conversations by updatedTime
-              return updatedMessages.sort((a, b) => new Date(a.timeStamp) - new Date(b.timeStamp));
-            });
-            const xy = JSON.parse(sessionStorage.getItem(`${message.record.convId}`));
-            if (xy!== null) {
-              for (let index = 0; index < xy.length; index++) {
-                if ( xy[index].id === message.record.id) {
-                    xy[index].content = message.record.content;
-                    xy[index].edited = message.record.edited;
-                    xy[index].new = message.record.new;
-                    break; 
-                } 
-            }
-            sessionStorage.setItem(`${message.record.convId}`,JSON.stringify(xy))
-            }                    
-            
-          }else if ( message.record.convId !== selectedConversationRef.current && sessionStorage.getItem(`${message.record.convId}`)) {
-            console.log("Only Session Storage,Not Message State");
-            
-            const xy = JSON.parse(sessionStorage.getItem(`${message.record.convId}`));
-            if (xy !== null) {
-              for (let index = 0; index < xy.length; index++) {
-                if ( xy[index].id === message.record.id) { 
-                    xy[index].content = message.record.content;
-                    xy[index].edited = message.record.edited;
-                    xy[index].new = message.record.new;
-                    break; 
-                } 
-            }
-            sessionStorage.setItem(`${message.record.convId}`,JSON.stringify(xy))
-            }                    
-          }else if( message.record.convId !== selectedConversationRef.current && !sessionStorage.getItem(`${message.record.convId}`)){
-            
-            console.log("Don't do anything");
-          }else{
-            console.log("Problem Updating Message for Reciever in signalR");
-          } 
-        
+          const xy = JSON.parse(sessionStorage.getItem(`${message.record.convId}`));
+          if (xy !== null) {
+            for (let index = 0; index < xy.length; index++) {
+              if ( xy[index].id === message.record.id) { 
+                  xy[index].content = message.record.content;
+                  xy[index].edited = message.record.edited;
+                  xy[index].new = message.record.new;
+                  break; 
+              } 
+          }
+          sessionStorage.setItem(`${message.record.convId}`,JSON.stringify(xy))
+          }                    
+        }else if( message.record.convId !== selectedConversationRef.current && !sessionStorage.getItem(`${message.record.convId}`)){
+          
+          console.log("Don't do anything");
+        }else{
+          console.log("Problem Updating Message for Reciever in signalR");
+        } 
     }else if (message.type === 'UPDATE' && message.record.deleted === true ){
         
         console.log("FOR ME, there is a deleted message and it concerns me");
@@ -653,7 +660,7 @@ function Chats() {
                   sessionStorage.setItem(`${message.record.convId}`,JSON.stringify(xy))
                   console.log("Setted Session Storage");
                   }
-                  zeroNotification(message.record.convId);
+                  //zeroNotification(message.record.id);
                   
                 } 
             
@@ -832,7 +839,7 @@ function Chats() {
   
     // Process messages
     if (messageQueue.current.length > 0) {
-      console.log('Message Queue');
+      //console.log('Message Queue');
                     
       const message = messageQueue.current.shift();
       handleMessageQueue(message.payload).finally(() => {
@@ -968,91 +975,76 @@ function Chats() {
   const handleConnectionLost = useCallback(() => {    
     reconnectTimeoutRef.current = setTimeout(() => {
       showToast('Connection lost. Attempting to reconnect...');
-    }, 5000); // 5000ms = 5 seconds, adjust as needed
+    }, 3000); // 5000ms = 5 seconds, adjust as needed
     
   }, [showToast]);
 
-  const clearReconnectTimeout =useCallback( () => {
+/*  const clearReconnectTimeout =useCallback( () => {
     if (reconnectTimeoutRef.current) {
       clearTimeout(reconnectTimeoutRef.current);
       reconnectTimeoutRef.current = null;
     }
   },[]);
+*/
   useEffect(() => {
-    console.log("Connection UseEffect Start current state",connectionRef.current);
-    connectionRef.current = new HubConnectionBuilder()
-      .withUrl('https://livechatbackend-xwgx.onrender.com/messagesHub', {
-        accessTokenFactory: () => sessionStorage.getItem('Token'),
-        skipNegotiation: true,
-        transport: HttpTransportType.WebSockets,
-      })
-      .withAutomaticReconnect()
-      .build();
+    const connection = createConnection();
+    connectionRef.current = connection;
 
-      connectionRef.current.start()
-      .then(result => {
-                clearReconnectTimeout();
-                //setIsOffline(true);
-                //fetchMissedUpdates();
-                console.log(".then connection current state");
+    connection.start()
+      .then(() => {
+        console.log("Start");
+        setIsOffline(false);
+
+            connectionRef.current.on('ReceiveMessage', message => {
+                //console.log('ReceiveMessage', message);
+                messageQueue.current.push({ type: 'ReceiveMessage', payload: message });
+                processEvents();
+            });
+
+            connectionRef.current.on('Receive UserProfile', userPayLoad => {
+                console.log('Receive UserProfile');
+                userProfileQueue.current.push({ type: 'ReceiveUserProfile', payload: userPayLoad });
+                processEvents();
+            });
+
+            connectionRef.current.on('Receive Conversation', convPayLoad => {
+                console.log('ReceiveConversation');
+                conversationQueue.current.push({ type: 'ReceiveConversation', payload: convPayLoad });
+                processEvents();
+            });
+
+            connectionRef.current.on('UserStatusChanged', (userId, isOnline, lastSeen) => {
+                console.log('UserStatusChange');
+                userStatusQueue.current.push({ type: 'UserStatusChanged', payload: { userId, isOnline, lastSeen } });
+                processEvents();
+            });
+
+            connectionRef.current.on('Typing', (typer, valueBool) => {
+                console.log('Typing');
+                processTyping(typer, valueBool);
+            });
+
+            connectionRef.current.onclose(() => {
+                console.log("Closing");
+                console.log("After Closing...");
+                console.log(connectionRef.current);
+                //handleConnectionLost();
+            });
+          })
+          .catch(e => {
+            console.log("Catch failed current state");
+            handleConnectionLost();
+            setIsOffline(true);
+          });
     
-                console.log('Connected Initial! Start');
-                
-                connectionRef.current.on('ReceiveMessage', message => {
-                    console.log('ReceiveMessage',message);
-                    messageQueue.current.push({ type: 'ReceiveMessage', payload: message });
-                    processEvents();
-                });
-
-                connectionRef.current.on('Receive UserProfile', userPayLoad => {
-                  console.log('Receive UserProfile');
-                    
-                    userProfileQueue.current.push({ type: 'ReceiveUserProfile', payload: userPayLoad });
-                    processEvents();
-                });
-
-                connectionRef.current.on('Receive Conversation', convPayLoad => {
-                  console.log('ReceiveConversation');
-                    
-                    conversationQueue.current.push({ type: 'ReceiveConversation', payload: convPayLoad });
-                    processEvents();
-                });
-
-                connectionRef.current.on('UserStatusChanged', (userId, isOnline,lastSeen) => {
-                    console.log('UserStatusChange');
-                    userStatusQueue.current.push({ type: 'UserStatusChanged', payload: { userId, isOnline,lastSeen } });
-                    processEvents();
-                });
-                connectionRef.current.on('Typing', (typer, valueBool) => {
-                  console.log('Typing');
-                  processTyping(typer,valueBool);
-                });
-
-                connectionRef.current.onclose(() => {
-                    console.log("Initial Connection Closed");
-                    console.log("closing current state");
-    
-                    handleConnectionLost();
-                });
-            })
-      .catch(e => {
-          //showToast('Connection Failed');
-          console.log("Catch failed current state");
-
-          handleConnectionLost();
-          
-      });
-    
-
-    return () => {
-      if (connectionRef.current) {
-          connectionRef.current.stop();
-          console.log("Initial Connection Stopped");
-      }
-      clearReconnectTimeout();
-  };
-}, [handleConnectionLost, processEvents,processTyping,clearReconnectTimeout]);
-
+        return () => {
+          /*if (!connectionRef.current) {
+            connectionRef.current.stop();
+            console.log("Connection Stopped");
+          }*/
+        };
+}, []);
+ 
   useEffect(() => {
     const handleVisibilityChange = async () => {
       try {
@@ -1202,7 +1194,6 @@ const handleLogOut = (e) =>{
     
 
 };
-
 const handleMessage = useCallback(async (e) =>{
   if (!isLoadingMessage){
   setSendMessage(e.target.value);
@@ -1352,7 +1343,9 @@ const handleReplyMessage = (messageId,messageContent,messageType) => {
   setEditMessageModal(null);
   setSendMessage('');
   setReplyMessageId(messageId);
+  console.log("Reply message fucntion: messageType:",messageType);
   if (messageType === "audio"){
+    console.log("Auido selected");
   setReplyMessage("Voice Message");
 } else if (messageType === "image"){
   setReplyMessage("Photo Message");
@@ -1397,11 +1390,12 @@ const handleConversationClick = async (convId,recpientId,Name,LastName,onlineSta
     const rMd = JSON.parse(storedMessages);
     setIsLoading(false);
     setMessages(rMd);
-    zeroNotificationCID(convId);
     setConversations(prevConversations =>{ 
       const updatedConversations = prevConversations.map(conversation => {
         if (conversation.convId === convId) { 
-          
+          if (conversation.notificationCount !== 0){
+            zeroNotificationCID(convId);
+          }
           // Update the message and timeStamp for the matching conversation
           return { ...conversation, notificationCount: 0};
         } 
@@ -1414,49 +1408,50 @@ const handleConversationClick = async (convId,recpientId,Name,LastName,onlineSta
    
 
     return;
-  } 
-  try {
-    const messagesResponse = await fetch(`https://livechatbackend-xwgx.onrender.com/api/Message/GetConversationMessage?query=${convId}`, {
-      method: 'GET',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${sessionStorage.getItem('Token')}`
-      }
-    });
-    if (messagesResponse.ok) {
-      const messagesData = await messagesResponse.json();
-      sessionStorage.setItem(`${convId}`,JSON.stringify(messagesData));
-      setIsLoading(false);
-      setMessages(messagesData);
-      
-      setConversations(prevConversations =>{ 
-        const updatedConversations = prevConversations.map(conversation => {
-          if (conversation.convId === convId) { 
-            
-            // Update the message and timeStamp for the matching conversation
-            return { ...conversation, notificationCount: 0};
-          } 
-          return conversation;
-        });
-    
-        // Sort the updated conversations by updatedTime
-        return updatedConversations.sort((a, b) => new Date(b.updatedTime) - new Date(a.updatedTime));
-    }); 
-     
-    } else {
-      //setIsLoading(false);
-      let errorMessage = 'An error occurred';
-        if (messagesResponse.status === 401) {
-          errorMessage = 'Unauthorized';
-        } else if (!messagesResponse.ok) {
-          errorMessage = 'Connection problem';
+  }else{
+    try {
+      const messagesResponse = await fetch(`https://livechatbackend-xwgx.onrender.com/api/Message/GetConversationMessage?query=${convId}`, {
+        method: 'GET',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${sessionStorage.getItem('Token')}`
         }
-        showToast(errorMessage);
-      throw new Error('Failed to fetch messages');
+      });
+      if (messagesResponse.ok) {
+        const messagesData = await messagesResponse.json();
+        sessionStorage.setItem(`${convId}`,JSON.stringify(messagesData));
+        setIsLoading(false);
+        setMessages(messagesData);
+        
+        setConversations(prevConversations =>{ 
+          const updatedConversations = prevConversations.map(conversation => {
+            if (conversation.convId === convId) { 
+              
+              // Update the message and timeStamp for the matching conversation
+              return { ...conversation, notificationCount: 0};
+            } 
+            return conversation;
+          });
+      
+          // Sort the updated conversations by updatedTime
+          return updatedConversations.sort((a, b) => new Date(b.updatedTime) - new Date(a.updatedTime));
+      }); 
+      
+      } else {
+        //setIsLoading(false);
+        let errorMessage = 'An error occurred';
+          if (messagesResponse.status === 401) {
+            errorMessage = 'Unauthorized';
+          } else if (!messagesResponse.ok) {
+            errorMessage = 'Connection problem';
+          }
+          showToast(errorMessage);
+        throw new Error('Failed to fetch messages');
+      }
+    } catch (error) {
+      showToast('Connection Refused');
     }
-  } catch (error) {
-    showToast('Connection Refused');
-  }
+}
 };
 const handleNewUserClick =  (RecpientId,Name,LastName,email,onlineStatus,lastSeen,bio,profilePicSearch)=>{ 
   setSearchResultUser([]);
@@ -1730,7 +1725,7 @@ const handleEditSubmit = async () => {
           if (conversation.convId === selectedConversation && conversation.messageId === editMessageId) {
             
           
-            return { ...conversation, message: editMessageContent  };
+            return { ...conversation, message: editMessageContent };
           }
           return conversation;
         });
@@ -2991,23 +2986,23 @@ useEffect(() => {
   return () => window.removeEventListener('resize', handleResize);
 }, []);
 
-const handleRightClick = (e,messageId,type) => {
+const handleRightClick = (e,messageId,type,chatType) => {
   e.preventDefault();
-  if (type === "text"){
+  if (type === "text" && chatType === "end" ){
+    setContextMenu2(null);
     setContextMenu({
       messageId,
       x: e.clientX,
       y: e.clientY,
     });
   } else {
+    setContextMenu(null);
     setContextMenu2({
       messageId,
       x: e.clientX,
       y: e.clientY,
     });
   }
-  
-  
 };
 
 const closeContextMenu = useCallback(() => {
@@ -4300,7 +4295,7 @@ useEffect(() => {
             <FontAwesomeIcon icon={faStop} />  
           </button> 
         </div> 
-        )} 
+          )} 
         </div>
           </div>
           
@@ -4326,7 +4321,7 @@ useEffect(() => {
                 isUploading && uploadingMessageId === message.id ? (
                   <FontAwesomeIcon icon={faSpinner} spin className="mr-2" />
                 ) : (
-                  <div className='group group-hover:cursor-pointer' onContextMenu={(e)=> handleRightClick(e,message.id,"image")}>
+                  <div className='group group-hover:cursor-pointer' onContextMenu={(e)=> handleRightClick(e,message.id,"image","start")}>
                   <MessageBox
                     reply={message.reply !== 0 && {
                     photoURL: selectedProfilePic,
@@ -4360,8 +4355,8 @@ useEffect(() => {
                     />
                   )}
                   </div>
-                )) : message.isAudio?(
-                  <div className='group chat-bubble bg-blue-500 text-white p-2 rounded-lg max-w-xs md:max-w-md break-words' onContextMenu={(e)=> handleRightClick(e,message.id,"text")}>
+                )):message.isAudio?(
+                  <div className='group chat-bubble bg-blue-500 text-white p-2 rounded-lg max-w-xs md:max-w-md break-words' onContextMenu={(e)=> handleRightClick(e,message.id,"audio","start")}>
                       {isUploading && uploadingMessageId === message.id && (
                           <FontAwesomeIcon icon={faSpinner} spin className="mr-2" />
                       )}
@@ -4400,6 +4395,7 @@ useEffect(() => {
                       y={contextMenu2.y}
                       
                       onReply={() => {
+                        console.log("Chat chat start")
                         handleReplyMessage(contextMenu2.messageId,msgIdTomsgObj(contextMenu2.messageId),"audio");
                         closeContextMenu();
                       }}
@@ -4412,7 +4408,7 @@ useEffect(() => {
                   )}
                 </div>
                 ):(
-                <div onContextMenu={(e)=> handleRightClick(e,message.id,"text")}>
+                <div onContextMenu={(e)=> handleRightClick(e,message.id,"text","start")}>
                   <MessageBox 
                     reply={message.reply !== 0 && {
                       photoURL: selectedProfilePic,
@@ -4424,19 +4420,19 @@ useEffect(() => {
                     position={'left'}
                     type={'text'}
                     text={message.content}
-                    status={message.new === true || message.new === null ? 'sent' : 'received'}
+                    
                     />
-                    {contextMenu && (
-                      <ContextMenu
-                        x={contextMenu.x}
-                        y={contextMenu.y}
+                    {contextMenu2 && (
+                      <ContextMenu2
+                        x={contextMenu2.x}
+                        y={contextMenu2.y}
                         
                         onReply={() => {
-                          handleReplyMessage(contextMenu.messageId,msgIdTomsgObj(contextMenu.messageId),"text");
+                          handleReplyMessage(contextMenu2.messageId,msgIdTomsgObj(contextMenu2.messageId),"text");
                           closeContextMenu();
                         }}
                         onDelete={() => {
-                          handleDeleteMessage(contextMenu.messageId);
+                          handleDeleteMessage(contextMenu2.messageId);
                           closeContextMenu();
                         }}
                         onClose={closeContextMenu}
@@ -4465,7 +4461,7 @@ useEffect(() => {
                 isUploading && uploadingMessageId === message.id ? (
                   <FontAwesomeIcon icon={faSpinner} spin className="mr-2" />
                 ) : (
-                  <div className='group w-80 group-hover:cursor-pointer relative overflow-hidden ml-auto' onContextMenu={(e)=> handleRightClick(e,message.id,"image")}>
+                  <div className='group w-80 group-hover:cursor-pointer relative overflow-hidden ml-auto' onContextMenu={(e)=> handleRightClick(e,message.id,"image","end")}>
                   <MessageBox
                     reply={message.reply !== 0 && {
                     photoURL: selectedProfilePic,
@@ -4500,7 +4496,7 @@ useEffect(() => {
                   )}
                   </div>
                 )) : message.isAudio?(
-                  <div className='group chat-bubble bg-blue-500 text-white p-2 rounded-lg max-w-xs md:max-w-md break-words' onContextMenu={(e) => handleRightClick(e, message.id, "audio")}>
+                  <div className='group chat-bubble bg-blue-500 text-white p-2 rounded-lg max-w-xs md:max-w-md break-words' onContextMenu={(e) => handleRightClick(e, message.id, "audio","end")}>
                       {isUploading && uploadingMessageId === message.id && (
                           <FontAwesomeIcon icon={faSpinner} spin className="mr-2" />
                       )}
@@ -4555,7 +4551,7 @@ useEffect(() => {
                    
                 </div>
                 ):(
-                <div className='group' onContextMenu={(e)=> handleRightClick(e,message.id,"text")}>
+                <div className='group' onContextMenu={(e)=> handleRightClick(e,message.id,"text","end")}>
                   <MessageBox
                     reply={message.reply !== 0 && {
                       photoURL: selectedProfilePic,

@@ -15,8 +15,8 @@ const ContextMenu2 = ({ x, y, onReply, onDelete, onClose }) => (
       Reply
     </button>
     <button className="flex items-center w-full p-2 hover:bg-gray-100" onClick={onDelete}>
-      <FontAwesomeIcon icon={faTrashAlt} className="mr-2" />
-      Delete
+      <FontAwesomeIcon icon={faTrashAlt} className="mr-2" /> 
+      Delete 
     </button>
   </div>
 );
