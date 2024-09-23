@@ -489,7 +489,19 @@ function Chats() {
               // Sort the updated conversations by updatedTime
               return updatedConversations;
             });
+            setMessages(prevMessages => {
+              const updatedMessages = prevMessages.map(messagePara => {
+                if (messagePara.id === message.record.id) {
+                  return { ...messagePara, new:message.record.new};
+                }
+                return messagePara;
+              });
+          
+              // Sort the updated conversations by updatedTime
+              return updatedMessages.sort((a, b) => new Date(a.timeStamp) - new Date(b.timeStamp));
+            });
           };
+          
           
         
     }else if (message.type === 'UPDATE' && message.record.edited===true && message.record.deleted === false && message.record.senderId !== Number(sessionStorage.getItem('userId'))){
