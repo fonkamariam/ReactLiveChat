@@ -1,3 +1,5 @@
+/* eslint-disable react-hooks/exhaustive-deps */
+
 // https://fonkagram.netlify.app/
 import React, { useState ,useEffect,useRef,useMemo } from 'react';
 import { useNavigate} from 'react-router-dom';
@@ -15,7 +17,7 @@ import { MessageBox } from 'react-chat-elements';
 // Intergration
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faEdit,faReply,faCheckDouble,faEllipsisV,faSun,faMoon,faPaperPlane, faCloudDownload, faPause, faTrashAlt,faSmile ,faCog, faUserEdit, faKey, faSignOutAlt, faTrash,faCheck,faTimes,faSpinner,faPaperclip,faMicrophone, faStop, faPlay,faBookmark,faArrowLeft, faArrowRight} from '@fortawesome/free-solid-svg-icons';
-import { MdEdit } from 'react-icons/md';
+//import { MdEdit } from 'react-icons/md';
 import Picker from '@emoji-mart/react';
 import dataXXX from '@emoji-mart/data';
 import TextareaAutosize from 'react-textarea-autosize';
@@ -48,8 +50,8 @@ function Chats() {
   const [selecteDeleted,setSelectedDeleted]= useState(false);
   const [selectedTyping,setSelectedTyping] = useState(false);
   const [selectedLastName,setSelectedLastName]=useState(null);
-  const [editMessageId, setEditMessageId] = useState(null);
-  const [editMessageContent, setEditMessageContent] = useState('');
+  //const [editMessageId, setEditMessageId] = useState(null);
+  //const [editMessageContent, setEditMessageContent] = useState('');
   const navigate = useNavigate(); // Access the history object
   const [searchQueryUser, setSearchQueryUser] = useState('');
   const [searchResultUser, setSearchResultUser] = useState([]);
@@ -75,11 +77,9 @@ function Chats() {
   //const [messages, setMessages] = useState([]);
   //const [newMessage, setNewMessage] = useState('');
   const [showEmojiPicker, setShowEmojiPicker] = useState(false);
-  const [showEmojiPickerEDIT,setShowEmojiPickerEDIT] = useState(false);
+  //const [showEmojiPickerEDIT,setShowEmojiPickerEDIT] = useState(false);
   const [showSettings, setShowSettings] = useState(false);
   const [modalContent, setModalContent] = useState(null);
-  //const [editMessageId, setEditMessageId] = useState(null);
-  //const [editMessageContent, setEditMessageContent] = useState('');
   
   const [fullscreenImage, setFullscreenImage] = useState(null);
   const [fullImagePicture,setFullImagePicture]= useState(null);
@@ -986,66 +986,68 @@ function Chats() {
       reconnectTimeoutRef.current = null;
     }
   },[]);
-*/
-  useEffect(() => {
-    const connection = createConnection();
-    connectionRef.current = connection;
+  */
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    useEffect(() => {
+      
+      const connection = createConnection();
+      connectionRef.current = connection;
 
-    connection.start()
-      .then(() => {
-        console.log("Start");
-        setIsOffline(false);
+      connection.start()
+        .then(() => {
+          console.log("Start");
+          setIsOffline(false);
 
-            connectionRef.current.on('ReceiveMessage', message => {
-                //console.log('ReceiveMessage', message);
-                messageQueue.current.push({ type: 'ReceiveMessage', payload: message });
-                processEvents();
+              connectionRef.current.on('ReceiveMessage', message => {
+                  //console.log('ReceiveMessage', message);
+                  messageQueue.current.push({ type: 'ReceiveMessage', payload: message });
+                  processEvents();
+              });
+
+              connectionRef.current.on('Receive UserProfile', userPayLoad => {
+                  console.log('Receive UserProfile');
+                  userProfileQueue.current.push({ type: 'ReceiveUserProfile', payload: userPayLoad });
+                  processEvents();
+              });
+
+              connectionRef.current.on('Receive Conversation', convPayLoad => {
+                  console.log('ReceiveConversation');
+                  conversationQueue.current.push({ type: 'ReceiveConversation', payload: convPayLoad });
+                  processEvents();
+              });
+
+              connectionRef.current.on('UserStatusChanged', (userId, isOnline, lastSeen) => {
+                  console.log('UserStatusChange');
+                  userStatusQueue.current.push({ type: 'UserStatusChanged', payload: { userId, isOnline, lastSeen } });
+                  processEvents();
+              });
+
+              connectionRef.current.on('Typing', (typer, valueBool) => {
+                  console.log('Typing');
+                  processTyping(typer, valueBool);
+              });
+
+              connectionRef.current.onclose(() => {
+                  console.log("Closing");
+                  console.log("After Closing...");
+                  console.log(connectionRef.current);
+                  //handleConnectionLost();
+              });
+            })
+            .catch(e => {
+              console.log("Catch failed current state");
+              handleConnectionLost();
+              setIsOffline(true);
             });
-
-            connectionRef.current.on('Receive UserProfile', userPayLoad => {
-                console.log('Receive UserProfile');
-                userProfileQueue.current.push({ type: 'ReceiveUserProfile', payload: userPayLoad });
-                processEvents();
-            });
-
-            connectionRef.current.on('Receive Conversation', convPayLoad => {
-                console.log('ReceiveConversation');
-                conversationQueue.current.push({ type: 'ReceiveConversation', payload: convPayLoad });
-                processEvents();
-            });
-
-            connectionRef.current.on('UserStatusChanged', (userId, isOnline, lastSeen) => {
-                console.log('UserStatusChange');
-                userStatusQueue.current.push({ type: 'UserStatusChanged', payload: { userId, isOnline, lastSeen } });
-                processEvents();
-            });
-
-            connectionRef.current.on('Typing', (typer, valueBool) => {
-                console.log('Typing');
-                processTyping(typer, valueBool);
-            });
-
-            connectionRef.current.onclose(() => {
-                console.log("Closing");
-                console.log("After Closing...");
-                console.log(connectionRef.current);
-                //handleConnectionLost();
-            });
-          })
-          .catch(e => {
-            console.log("Catch failed current state");
-            handleConnectionLost();
-            setIsOffline(true);
-          });
-    
-        return () => {
-          /*if (!connectionRef.current) {
-            connectionRef.current.stop();
-            console.log("Connection Stopped");
-          }*/
-        };
-}, []);
- 
+      
+          return () => {
+            /*if (!connectionRef.current) {
+              connectionRef.current.stop();
+              console.log("Connection Stopped");
+            }*/
+          };
+  }, []);
+  
   useEffect(() => {
     const handleVisibilityChange = async () => {
       try {
@@ -1714,7 +1716,7 @@ const handleEditSubmit = async () => {
     });
     if (response.ok) {
       const updatedMessage = await response.json();
-      setMessages(messages.map(message => message.id === editMessageId ? updatedMessage : message));
+      setMessages(messages.map(message => message.id === editMessageModalId ? updatedMessage : message));
       setIsLoadingMessage(false);
       setEditMessageModalId(0);
       setEditMessageModal(null);
@@ -1723,10 +1725,10 @@ const handleEditSubmit = async () => {
         
         const updatedConversations = prevConversations.map(conversation => {
           
-          if (conversation.convId === selectedConversation && conversation.messageId === editMessageId) {
+          if (conversation.convId === selectedConversation && conversation.messageId === editMessageModalId) {
             
           
-            return { ...conversation, message: editMessageContent };
+            return { ...conversation, message: sendMessage };
           }
           return conversation;
         });
@@ -1737,8 +1739,8 @@ const handleEditSubmit = async () => {
       const xy = JSON.parse(sessionStorage.getItem(`${selectedConversation}`));
       if (xy!== null) {
         for (let index = 0; index < xy.length; index++) {
-          if ( xy[index].id === editMessageId) {
-              xy[index].content = editMessageContent;
+          if ( xy[index].id === editMessageModalId) {
+              xy[index].content = sendMessage;
               xy[index].edited = true;
               break; 
           } 
@@ -2937,7 +2939,7 @@ const handleKeyDown = (e) => {
     
   }
 };
-useOutsideClick(emojiPickerRef,() => setShowEmojiPickerEDIT(false));
+//useOutsideClick(emojiPickerRef,() => setShowEmojiPickerEDIT(false));
 useOutsideClick(emojiPickerRef,() => setShowEmojiPicker(false));
 
 const toggleDarkMode = async () => {
