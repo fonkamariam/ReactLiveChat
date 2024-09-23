@@ -244,7 +244,7 @@ function Chats() {
         conversation => conversation.convId === message.record.convId
       );
      
-      
+    
       if (conversationsRef.current.length === 0 || existingConversation1 === false ) {
         //console.log("HHHHHHHHHH");
         // Notification count if 0 and 1
@@ -476,13 +476,13 @@ function Chats() {
       
           //console.log("Update");
           // Seen/Unseen (Only executes for Sender of the Message);
-          if (message.record.new === false && message.record.senderId !== Number(sessionStorage.getItem('userId'))){
+          if (message.record.new === false && message.record.senderId === Number(sessionStorage.getItem('userId'))){
             setConversations(prevConversations => {
-              const updatedConversations = prevConversations.map(conversation => {
+              const updatedConversations = prevConversations.map(conversation => { 
                 if (conversation.convId === message.record.convId && conversation.messageId === message.record.id && message.record.new === false) {
-                  console.log ("seen false arge");
+                  console.log ("seen false arge"); 
                   return { ...conversation, message: message.record.content, seen: false , updatedTime: message.record.timeStamp,messageId:message.record.id };
-                } 
+                }  
                 return conversation; 
               });
             
