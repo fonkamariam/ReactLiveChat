@@ -149,7 +149,7 @@ function Chats() {
   const conversationQueue = useRef([]);
   const userStatusQueue = useRef([]);
   
-  
+  const [isOffline2,setIsOffline2]= useState(false);
   const handleUserProfileQueue = useCallback(async (userProfile) => {
     // Handle the user profile payload
     
@@ -690,6 +690,7 @@ function Chats() {
                                                   
                     const Parsed = JSON.parse(sessionStorage.getItem(`${message.record.convId}`));
                     let refinedContent = Parsed.at(-1).content;
+                    console.log("RefinedContent:",refinedContent);
                     let refinedAudioStatus = false;
                     let refinedImageStatus = false;
                         if (Parsed.at(-1).isAudio === true){
@@ -909,12 +910,14 @@ function Chats() {
         const data = await response.json();
   
         data.forEach(update => {
+          if ((update.type === 'INSERT' || update.type === 'UPDATE') && update.table === 'Messages') {
+            console.log("FETCH");
+            console.log(update);
+            messageQueue.current.push({ type: 'ReceiveMessage', payload: update });
+          }
+        
+          // Handle other cases like UserProfile and Conversation
           switch (update.type) {
-            case 'INSERT':
-              if (update.table === 'Messages') {
-                messageQueue.current.push({ type: 'ReceiveMessage', payload: update });
-              }
-              break;
             case 'UPDATE':
               if (update.table === 'UserProfile') {
                 userProfileQueue.current.push({ type: 'ReceiveUserProfile', payload: update });
@@ -923,13 +926,12 @@ function Chats() {
             case 'DELETE':
               if (update.table === 'Conversation') {
                 conversationQueue.current.push({ type: 'ReceiveConversation', payload: update });
-               }
+              }
               break;
             default:
               break;
           }
         });
-  
         // Handle user status updates
         data.forEach(update => {
           if (update.key) {
@@ -947,7 +949,7 @@ function Chats() {
       window.location.reload();
 
     } finally {
-      console.log("False New feature fetching Missed Updates");
+      //console.log("False New feature fetching Missed Updates");
       setIsOffline(false);
     }
   },[processEvents,setIsOffline]);
@@ -1004,11 +1006,19 @@ function Chats() {
       
       const connection = createConnection();
       connectionRef.current = connection;
+      let offlineTimeout;
+
+      if (isOffline2) {
+          offlineTimeout = setTimeout(() => {
+              window.location.reload();
+          }, 5000);  // Reload the page after 5 seconds of being offline
+      }
 
       connection.start()
         .then(() => {
           console.log("Start");
           setIsOffline(false);
+          setIsOffline2(false)
 
               connectionRef.current.on('ReceiveMessage', message => {
                   //console.log('ReceiveMessage', message);
@@ -1050,6 +1060,7 @@ function Chats() {
               console.log("Catch failed current state");
               handleConnectionLost();
               setIsOffline(true);
+              setIsOffline2(true);
             });
       
           return () => {
@@ -1057,6 +1068,9 @@ function Chats() {
               connectionRef.current.stop();
               console.log("Connection Stopped");
             }*/
+              if (offlineTimeout) {
+                clearTimeout(offlineTimeout); // Clear the timeout if the component unmounts or the connection is restored
+            }
           };
   }, []);
   
@@ -1065,13 +1079,13 @@ function Chats() {
       try {
         if (document.visibilityState === 'visible') {
           if (connectionRef.current) {
-            console.log("Visibility changed to visible, notifying server.");
+            //console.log("Visibility changed to visible, notifying server.");
             fetchMissedUpdates();
             await connectionRef.current.invoke ('VisibilityChanged', 'visible');
           }
         } else {
           if (connectionRef.current) {
-            console.log("Visibility changed to hidden, notifying server.");
+            //console.log("Visibility changed to hidden, notifying server.");
             setIsOffline(true);
             
             await connectionRef.current.invoke('VisibilityChanged', 'hidden');
@@ -4507,7 +4521,16 @@ useEffect(() => {
                     position={'left'}
                     type={'text'}
                     text={message.content}
-                    
+                    styles={{ 
+                      backgroundColor: isDarkMode ? '#2A2F3A' : 'white',  // Black for dark mode, light green otherwise
+                      color: isDarkMode ? 'white' : 'black',  // White text for dark mode, black text otherwise
+                      borderRadius: '15px',  // Rounded corners
+                      padding: '10px',  // Padding inside the box
+                    }}
+                    textStyle={{
+                      fontSize: '56px',  // Adjust the font size
+                      color: 'black'     // Make sure text color stays black
+                    }}
                     />
                     {contextMenu2 && (
                       <ContextMenu2
@@ -4639,19 +4662,29 @@ useEffect(() => {
                 </div>
                 ):(
                 <div className='group' onContextMenu={(e)=> handleRightClick(e,message.id,"text","end")}>
-                  <MessageBox
-                    reply={message.reply !== 0 && {
-                      photoURL: selectedProfilePic,
-                      title: `${truncateText101(selectedName,13)}`,
-                      titleColor: '#8717ae',
-                      message: `${truncateText101((msgIdTomsgObj(message.id)),15)}` ,
-                    }}
-                    onReplyMessageClick={() => console.log('reply clicked!')}
-                    position={'right'}
-                    type={'text'}
-                    text={message.content}
-                    status={message.new === true || message.new === null ? 'sent' : 'received'}
-                    />
+                    <MessageBox
+                      reply={message.reply !== 0 && {
+                        photoURL: selectedProfilePic,
+                        title: `${truncateText101(selectedName,13)}`,
+                        titleColor: '#8717ae',
+                        message: `${truncateText101((msgIdTomsgObj(message.id)),15)}` ,
+                      }}
+                      onReplyMessageClick={() => console.log('reply clicked!')}
+                      position={'right'}
+                      type={'text'}
+                      text={message.content}
+                      status={message.new === true || message.new === null ? 'sent' : 'received'}
+                      styles={{ 
+                        backgroundColor: isDarkMode ? '#3A76F0' : '#3A76F0',  // Black for dark mode, light green otherwise
+                        color: isDarkMode ? 'white' : 'black',  // White text for dark mode, black text otherwise
+                        borderRadius: '15px',  // Rounded corners
+                        padding: '10px',  // Padding inside the box
+                      }}
+                      textStyle={{
+                        fontSize: '56px',  // Adjust the font size
+                        color: 'black'     // Make sure text color stays black
+                      }}
+                      />
                     {contextMenu && (
                       <ContextMenu
                         x={contextMenu.x}
