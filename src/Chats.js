@@ -480,7 +480,7 @@ function Chats() {
             setConversations(prevConversations => {
               const updatedConversations = prevConversations.map(conversation => { 
                 if (conversation.convId === message.record.convId && conversation.messageId === message.record.id && message.record.new === false) {
-                  console.log ("seen false arge"); 
+                  //console.log ("seen false arge"); 
                   return { ...conversation, message: message.record.content, seen: false , updatedTime: message.record.timeStamp,messageId:message.record.id };
                 }  
                 return conversation; 
@@ -489,18 +489,33 @@ function Chats() {
               // Sort the updated conversations by updatedTime
               return updatedConversations;
             });
-            setMessages(prevMessages => {
-              const updatedMessages = prevMessages.map(messagePara => {
-                if (messagePara.id === message.record.id) {
-                  return { ...messagePara, new:message.record.new};
-                }
-                return messagePara;
+            if (selectedConversationRef.current=== message.record.convId){
+              setMessages(prevMessages => {
+                const updatedMessages = prevMessages.map(messagePara => {
+                  if (messagePara.id === message.record.id) {
+                    return { ...messagePara, new:message.record.new};
+                  }
+                  return messagePara;
+                });
+            
+                // Sort the updated conversations by updatedTime
+                return updatedMessages.sort((a, b) => new Date(a.timeStamp) - new Date(b.timeStamp));
               });
-          
-              // Sort the updated conversations by updatedTime
-              return updatedMessages.sort((a, b) => new Date(a.timeStamp) - new Date(b.timeStamp));
-            });
-          };
+            }
+            // Setting the message new to false from the SessionStorage
+            const xy = JSON.parse(sessionStorage.getItem(`${message.record.convId}`));
+            if (xy!== null) {
+              for (let index = 0; index < xy.length; index++) {
+                if ( xy[index].id === message.record.id) {
+                  xy[index].new=message.record.new  
+                  break; 
+                } 
+              }
+            sessionStorage.setItem(`${message.record.convId}`,JSON.stringify(xy))
+           // console.log("Setted Session Storage");
+            }
+            
+          }
           
           
         
@@ -911,8 +926,7 @@ function Chats() {
   
         data.forEach(update => {
           if ((update.type === 'INSERT' || update.type === 'UPDATE') && update.table === 'Messages') {
-            console.log("FETCH");
-            console.log(update);
+           
             messageQueue.current.push({ type: 'ReceiveMessage', payload: update });
           }
         
@@ -1712,7 +1726,7 @@ const zeroNotificationCID = async (convIdPara) => {
       }
     });
     if (response.ok) {
-      console.log("Setted message new to false");
+      //console.log("Setted message new to false");
       return;
     } else {
       throw new Error('Failed to zero Notification');
