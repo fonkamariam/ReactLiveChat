@@ -1386,12 +1386,13 @@ const handleReplyMessage = (messageId,messageContent,messageType) => {
   setEditMessageModal(null);
   setSendMessage('');
   setReplyMessageId(messageId);
-  console.log("Reply message fucntion: messageType:",messageType);
+  console.log("Reply Message,",messageType);
   if (messageType === "audio"){
-    console.log("Auido selected");
   setReplyMessage("Voice Message");
+
 } else if (messageType === "image"){
   setReplyMessage("Photo Message");
+
 } else{
   setReplyMessage(messageContent);
 }
@@ -3031,6 +3032,9 @@ useEffect(() => {
 
 const handleRightClick = (e,messageId,type,chatType) => {
   e.preventDefault();
+  e.stopPropagation(); 
+  
+   
   if (type === "text" && chatType === "end" ){
     setContextMenu2(null);
     setContextMenu({
@@ -4392,9 +4396,11 @@ useEffect(() => {
             {selectedRecpientId === Number(sessionStorage.getItem('userId'))?(
               <></>
               ):(
-            <div className={`${selectedOnlineStatus?'text-blue-700':'text-gray-500'}`}>
-            {selectedOnlineStatus==='true' ? selectedTyping ? '...typing' :  'Online' : `Last seen: ${formatDateTime(selectedLastSeen)}`}
-            </div>
+                <div className={`${selectedOnlineStatus === 'true' ? 'text-blue-700' : 'text-gray-500'}`}>
+                {selectedOnlineStatus === 'true' 
+                  ? (selectedTyping ? '...typing' : 'Online') 
+                  : `Last seen: ${formatDateTime(selectedLastSeen)}`}
+              </div>
             )}
           </div>
           </div>
@@ -4457,6 +4463,7 @@ useEffect(() => {
                     <ContextMenu2
                       x={contextMenu2.x}
                       y={contextMenu2.y}
+                      isDarkMode={isDarkMode}
                       
                       onReply={() => {
                         handleReplyMessage(contextMenu2.messageId,msgIdTomsgObj(contextMenu2.messageId),"image");
@@ -4508,9 +4515,10 @@ useEffect(() => {
                     <ContextMenu2
                       x={contextMenu2.x}
                       y={contextMenu2.y}
+                      isDarkMode={isDarkMode}
                       
                       onReply={() => {
-                        console.log("Chat chat start")
+                        console.log("Chat chat start");
                         handleReplyMessage(contextMenu2.messageId,msgIdTomsgObj(contextMenu2.messageId),"audio");
                         closeContextMenu();
                       }}
@@ -4529,7 +4537,7 @@ useEffect(() => {
                       photoURL: selectedProfilePic,
                       title: `${truncateText101(selectedName,13)}`,
                       titleColor: '#8717ae',
-                      message: `${truncateText101((msgIdTomsgObj(message.id)),15)}`,
+                      message: `${truncateText101((msgIdTomsgObj(message.reply)),15)}`,
                     }}
                     onReplyMessageClick={() => console.log('reply clicked!')}
                     position={'left'}
@@ -4546,11 +4554,11 @@ useEffect(() => {
                       color: 'black'     // Make sure text color stays black
                     }}
                     />
-                    {contextMenu2 && (
+                    {contextMenu2 && contextMenu2.messageId === message.id &&(
                       <ContextMenu2
                         x={contextMenu2.x}
                         y={contextMenu2.y}
-                        
+                        isDarkMode={isDarkMode}
                         onReply={() => {
                           handleReplyMessage(contextMenu2.messageId,msgIdTomsgObj(contextMenu2.messageId),"text");
                           closeContextMenu();
@@ -4602,11 +4610,11 @@ useEffect(() => {
                     status={message.new === true || message.new === null ? 'sent' : 'received'}
                     onClick={() => handleImageClick(message.content)}
                   />
-                  {contextMenu2 && (
+                  {contextMenu2 && contextMenu2.messageId === message.id && (
                     <ContextMenu2
                       x={contextMenu2.x}
                       y={contextMenu2.y}
-                      
+                      isDarkMode={isDarkMode}
                       onReply={() => {
                         handleReplyMessage(contextMenu2.messageId,msgIdTomsgObj(contextMenu2.messageId),"image");
                         closeContextMenu();
@@ -4641,11 +4649,11 @@ useEffect(() => {
                         )}
                       </>
                       )} 
-                      {contextMenu2 && (
+                      {contextMenu2 && contextMenu2.messageId === message.id &&(
                         <ContextMenu2
                           x={contextMenu2.x}
                           y={contextMenu2.y}
-                          
+                          isDarkMode={isDarkMode}
                           onReply={() => {
                             handleReplyMessage(contextMenu2.messageId,msgIdTomsgObj(contextMenu2.messageId),"audio");
                             closeContextMenu();
@@ -4681,7 +4689,7 @@ useEffect(() => {
                         photoURL: selectedProfilePic,
                         title: `${truncateText101(selectedName,13)}`,
                         titleColor: '#8717ae',
-                        message: `${truncateText101((msgIdTomsgObj(message.id)),15)}` ,
+                        message: `${truncateText101((msgIdTomsgObj(message.reply)),15)}` ,
                       }}
                       onReplyMessageClick={() => console.log('reply clicked!')}
                       position={'right'}
@@ -4699,10 +4707,11 @@ useEffect(() => {
                         color: 'black'     // Make sure text color stays black
                       }}
                       />
-                    {contextMenu && (
+                    {contextMenu && contextMenu.messageId === message.id && (
                       <ContextMenu
                         x={contextMenu.x}
                         y={contextMenu.y}
+                        isDarkMode={isDarkMode}
                         onEdit={() => {
                           handleEditMessage(contextMenu.messageId,msgIdTomsgObj(contextMenu.messageId));
                           closeContextMenu();
@@ -4720,7 +4729,6 @@ useEffect(() => {
                     )}
                 
                 </div>
-              
                 )}   
                 </div>                               
               {/* Deleting Icon*/}
