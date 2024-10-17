@@ -4554,6 +4554,7 @@ useEffect(() => {
                       color: 'black'     // Make sure text color stays black
                     }}
                     />
+                    
                     {contextMenu2 && contextMenu2.messageId === message.id &&(
                       <ContextMenu2
                         x={contextMenu2.x}
