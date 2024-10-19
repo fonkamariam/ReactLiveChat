@@ -1386,16 +1386,8 @@ const handleReplyMessage = (messageId,messageContent,messageType) => {
   setEditMessageModal(null);
   setSendMessage('');
   setReplyMessageId(messageId);
-  console.log("Reply Message,",messageType);
-  if (messageType === "audio"){
-  setReplyMessage("Voice Message");
-
-} else if (messageType === "image"){
-  setReplyMessage("Photo Message");
-
-} else{
+  console.log("Reply Message,",messageContent);
   setReplyMessage(messageContent);
-}
 };
 const clearReplyMessage = () => {
   setReplyMessageId(0);
@@ -3016,10 +3008,11 @@ const handleResize = () => {
 };
 const msgIdTomsgObj = (id) => {
   const replyMessage = messages.find(msg => msg.id === id);
-  if (replyMessage.isAudio === 'true'){
+    
+  if (replyMessage.isAudio === true){
     return 'Voice Message';
   };
-  if (replyMessage.isImage === 'true'){
+  if (replyMessage.isImage === true){  
     return 'Photo Message';
   };
   return replyMessage.content;
@@ -3033,11 +3026,16 @@ useEffect(() => {
 const handleRightClick = (e,messageId,type,chatType) => {
   e.preventDefault();
   e.stopPropagation(); 
-  
-   
   if (type === "text" && chatType === "end" ){
     setContextMenu2(null);
     setContextMenu({
+      messageId,
+      x: e.clientX,
+      y: e.clientY,
+    });
+  } else if (type === "audio"){
+    setContextMenu(null);
+    setContextMenu2({
       messageId,
       x: e.clientX,
       y: e.clientY,
@@ -4459,7 +4457,7 @@ useEffect(() => {
                     status={message.new === true || message.new === null ? 'sent' : 'received'}
                     onClick={() => handleImageClick(message.content)}
                   />
-                  {contextMenu2 && (
+                  {contextMenu2 && contextMenu2.messageId === message.id && (
                     <ContextMenu2
                       x={contextMenu2.x}
                       y={contextMenu2.y}
@@ -4478,7 +4476,7 @@ useEffect(() => {
                   )}
                   </div>
                 )):message.isAudio?(
-                  <div className='group chat-bubble bg-blue-500 text-white p-2 rounded-lg max-w-xs md:max-w-md break-words' onContextMenu={(e)=> handleRightClick(e,message.id,"audio","start")}>
+                  <div className='group chat-bubble bg-blue-500 text-white p-2 rounded-lg max-w-xs md:max-w-md break-words relative' onContextMenu={(e)=> handleRightClick(e,message.id,"audio","start")}>
                       {isUploading && uploadingMessageId === message.id && (
                           <FontAwesomeIcon icon={faSpinner} spin className="mr-2" />
                       )}
@@ -4499,7 +4497,7 @@ useEffect(() => {
                         )}
                       </>
                       )}
-                    <div id={`waveform-${message.id}`} className="rounded-lg max-w-full">
+                    <div id={`waveform-${message.id}`} className="relative rounded-lg max-w-full">
                     <span className="duration" 
                       id={`duration-${message.id}`}>
                       {/* eslint-disable-next-line no-template-curly-in-string */}
@@ -4507,18 +4505,16 @@ useEffect(() => {
                     ? `${Math.floor((elapsedTimes[message.id] || 0) / 60)}:${Math.floor((elapsedTimes[message.id] || 0) % 60).toString().padStart(2, '0')}`
                     : durationsRef.current[message.id]
                       ? `${Math.floor(durationsRef.current[message.id] / 60)}:${Math.floor(durationsRef.current[message.id] % 60).toString().padStart(2, '0')}`
-                      : '0:00'}
-                      
-                      </span>
-                  </div>
-                  {contextMenu2 && (
+                      : '0:00'}       
+                    </span>
+                    {contextMenu2 && contextMenu2.messageId === message.id &&(
                     <ContextMenu2
+
                       x={contextMenu2.x}
                       y={contextMenu2.y}
                       isDarkMode={isDarkMode}
                       
                       onReply={() => {
-                        console.log("Chat chat start");
                         handleReplyMessage(contextMenu2.messageId,msgIdTomsgObj(contextMenu2.messageId),"audio");
                         closeContextMenu();
                       }}
@@ -4528,7 +4524,10 @@ useEffect(() => {
                       }}
                       onClose={closeContextMenu}
                     />
-                  )}
+                    )}
+                  </div>
+                  
+                  
                 </div>
                 ):(
                 <div onContextMenu={(e)=> handleRightClick(e,message.id,"text","start")}>
@@ -4554,8 +4553,8 @@ useEffect(() => {
                       color: 'black'     // Make sure text color stays black
                     }}
                     />
-                    
-                    {contextMenu2 && contextMenu2.messageId === message.id &&(
+
+                    {contextMenu2  && contextMenu2.messageId === message.id &&(
                       <ContextMenu2
                         x={contextMenu2.x}
                         y={contextMenu2.y}
@@ -4594,7 +4593,7 @@ useEffect(() => {
                 isUploading && uploadingMessageId === message.id ? (
                   <FontAwesomeIcon icon={faSpinner} spin className="mr-2" />
                 ) : (
-                  <div className='group w-80 group-hover:cursor-pointer relative overflow-hidden ml-auto' onContextMenu={(e)=> handleRightClick(e,message.id,"image","end")}>
+                  <div className='group w-80 group-hover:cursor-pointer ' onContextMenu={(e)=> handleRightClick(e,message.id,"image","end")}>
                   <MessageBox
                     reply={message.reply !== 0 && {
                     photoURL: selectedProfilePic,
@@ -4649,23 +4648,7 @@ useEffect(() => {
                           )
                         )}
                       </>
-                      )} 
-                      {contextMenu2 && contextMenu2.messageId === message.id &&(
-                        <ContextMenu2
-                          x={contextMenu2.x}
-                          y={contextMenu2.y}
-                          isDarkMode={isDarkMode}
-                          onReply={() => {
-                            handleReplyMessage(contextMenu2.messageId,msgIdTomsgObj(contextMenu2.messageId),"audio");
-                            closeContextMenu();
-                          }}
-                          onDelete={() => {
-                            handleDeleteMessage(contextMenu2.messageId);
-                            closeContextMenu();
-                          }}
-                          onClose={closeContextMenu}
-                        />
-                      )} 
+                      )}                     
                     <div id={`waveform-${message.id}`} className="rounded-lg max-w-full">
                     <span className="duration"
                       id={`duration-${message.id}`}>
@@ -4677,8 +4660,25 @@ useEffect(() => {
                       : '0:00'}
                       
                       </span>
-                      
+                      {contextMenu2 && contextMenu2.messageId === message.id &&(
+                        <ContextMenu2
+                          x={contextMenu2.x}
+                          y={contextMenu2.y}
+                          isDarkMode={isDarkMode}
+                          onReply={() => {
+                            handleReplyMessage(contextMenu2.messageId,msgIdTomsgObj(contextMenu2.messageId),"audio");
+                            //console.log("ContextMenu2 Audio chatEnd");
+                            closeContextMenu();
+                          }}
+                          onDelete={() => {
+                            handleDeleteMessage(contextMenu2.messageId);
+                            closeContextMenu();
+                          }}
+                          onClose={closeContextMenu}
+                        />
+                      )} 
                     </div>
+
                     
                 
                    
