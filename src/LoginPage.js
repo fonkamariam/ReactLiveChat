@@ -31,7 +31,7 @@ function LoginPage() {
       return; // Stop form submission if password is invalid
     }
     setIsLoading(true); // Set loading state to true before making the API call
-    fetch('https://livechatbackend-xwgx.onrender.com/api/Users/login', {
+    fetch('http://localhost:5206/api/Users/login', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json'
@@ -55,7 +55,12 @@ function LoginPage() {
         setErrorMessage('Wrong Password');
         clearErrorMessageAfterDelay();
         
-      } else { 
+      }else if (response.status === 409 ) {
+          setIsLoading(false);
+          setErrorMessage("Already Logged in from another device");
+          clearErrorMessageAfterDelay();
+      } 
+      else { 
         setIsLoading(false);
         setErrorMessage('Connection Problem. Please try again.'); 
         clearErrorMessageAfterDelay(); // Set error message for the user
